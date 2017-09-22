@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 
     //add gravity and wind resistance
     physicsManager.addDirectionalForce(glm::vec3(0.0f, -0.00001f, 0.0f));
-    physicsManager.addScalarForce(-0.001);
+    //physicsManager.addScalarForce(-0.001);
 
 
     //set plane normal
