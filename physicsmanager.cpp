@@ -5,8 +5,8 @@ PhysicsManager::PhysicsManager()
     scaGFLen = 0;
     dirGFLen = 0;
     objLen = 0;
-    elasticity = 0.1f;
-    fcoefficient = 0.9f;
+    elasticity = 1.0f;
+    fcoefficient = 0.1f;
 }
 
 void PhysicsManager::addPhysObj(PhysicsObject* obj)
@@ -114,7 +114,7 @@ float PhysicsManager::spherePlane(SphereObject * sph, PlaneObject * pla, float t
 
     if(glm::length(accross) != 0)
     {
-        accross = accross - std::min(fcoefficient * sph->mass * glm::length(cross), glm::length(accross)) * glm::normalize(accross);
+        accross = accross - std::min(fcoefficient * sph->mass * glm::length(up), glm::length(accross)) * glm::normalize(accross);
     }
     glm::vec3 fnVec = up + accross;
 
