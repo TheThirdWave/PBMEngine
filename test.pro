@@ -16,7 +16,9 @@ SOURCES += main.cpp \
 
 OTHER_FILES += \
     vertshade \
-    FragShade
+    FragShade \
+    FragShade_2d \
+    vertshade_2d
 
 HEADERS += \
     CJRW.h \

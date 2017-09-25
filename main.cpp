@@ -25,7 +25,7 @@
 
 using namespace std;
 
-image* flatImageRWStuff(int, char*);
+image* flatImageRWStuff(int, char**);
 void loadShades(void);
 void initBuf(void);
 void initPlane(float*, float*, unsigned int*);
@@ -40,6 +40,7 @@ void update(float);
 void display();
 void reshape(GLsizei width, GLsizei height);
 void Timer(int value);
+void KeyHandler(unsigned char key, int x, int y);
 unsigned long getTickCount();
 
 ShaderManager shaderManager;
@@ -78,11 +79,12 @@ int main(int argc, char *argv[])
 
 
 
+    image* img = flatImageRWStuff(argc, argv);
 
     glutInit(&argc, argv);
 
     glutInitWindowPosition(100, 100);
-    glutInitWindowSize(width, height);
+    glutInitWindowSize(img->width, img->height);
 
     glutInitDisplayMode(GLUT_RGBA|GLUT_DOUBLE);
     glutCreateWindow("TestWindow");
@@ -97,7 +99,7 @@ int main(int argc, char *argv[])
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
-//    initTexture();
+    initTexture(img);
     initShade();
     initBuf();
     float vertices[] = {
@@ -107,10 +109,10 @@ int main(int argc, char *argv[])
         1.0f, -1.0f, 0.0f
     };
     float colors[] = {
+        0.0f, 0.0f, 0.0f,
         1.0f, 0.0f, 0.0f,
         0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f,
-        1.0f, 1.0f, 1.0f
+        1.0f, 1.0f, 0.0f
     };
     unsigned int indicies[] = {
         0, 1, 2,
@@ -119,7 +121,7 @@ int main(int argc, char *argv[])
 
     initPlane(vertices, colors, indicies);
     initMatricies(width, height);
-
+/*
     //add gravity and wind resistance
     physicsManager.addDirectionalForce(glm::vec3(0.0f, -0.00001f, 0.0f));
     physicsManager.addScalarForce(-0.001);
@@ -132,14 +134,14 @@ int main(int argc, char *argv[])
     //set plane position
     plane.setPosition(glm::vec3(0.0f, -5.0f, 0.0f));
     //add to the physics manager for collision detection
-    physicsManager.addPhysObj((PhysicsObject*)&plane);
+    physicsManager.addPhysObj((PhysicsObject*)&plane);*/
 
     plane1.setGeometry(glm::vec3(0.0f, 0.0f, -1.0f));
     plane1.setRenderObject(&pModel);
-    plane1.setPosition(glm::vec3(0.0f, 0.0f, 5.0f));
+    plane1.setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane1);
 
-    plane2.setGeometry(glm::vec3(0.0f, 0.0f, 1.0f));
+/*    plane2.setGeometry(glm::vec3(0.0f, 0.0f, 1.0f));
     plane2.setRenderObject(&pModel);
     plane2.setPosition(glm::vec3(0.0f, 0.0f, -5.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane2);
@@ -157,9 +159,10 @@ int main(int argc, char *argv[])
     plane5.setGeometry(glm::vec3(0.0f, -1.0f, 0.0f));
     plane5.setRenderObject(&pModel);
     plane5.setPosition(glm::vec3(0.0f, 5.0f, 0.0f));
-    physicsManager.addPhysObj((PhysicsObject*)&plane5);
+    physicsManager.addPhysObj((PhysicsObject*)&plane5);*/
 
-    glutDisplayFunc(testRender);
+    glutDisplayFunc(testTexture);
+    glutKeyboardFunc(KeyHandler);
     glutTimerFunc(0, Timer, 0);
 
     cur_time = getTickCount();
@@ -169,34 +172,35 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-image* flatImageRWStuff(int argc, char* argv[])
+image* flatImageRWStuff(int argc, char** argv)
 {
-    int holdImage = imageManager.openPNG(argv[1]);
-    if(holdImage < 0) fprintf(stderr,"Error, couldn't read PPM file.\n");
-    image* img = imageManager.getImgPtr(holdImage);
-    //int count = stoi(argv[2], NULL, 10);
-    //Screen.initScreen(500, 500);
-    //Screen.psychedelic(count);
-    //image* img = Screen.getPtr();
+    //int holdImage = imageManager.openPNG(argv[1]);
+    //if(holdImage < 0) fprintf(stderr,"Error, couldn't read PPM file.\n");
+    //image* img = imageManager.getImgPtr(holdImage);
+    int count = stoi(argv[2], NULL, 10);
+    Screen.initScreen(500, 500);
+    Screen.psychedelic(count);
+    image* img = Screen.getPtr();
     //int imgIdx = imageManager.addImage(Screen.getScreen());
-    if(!imageManager.writePPM(argv[2], holdImage)) fprintf(stderr, "Error: Couldn't write ppm file\n");
+    //if(!imageManager.writePPM(argv[2], holdImage)) fprintf(stderr, "Error: Couldn't write ppm file\n");
     return img;
 }
 
 
 void initShade()
 {
-    vShade = shaderManager.loadVertexShader("../test/vertshade");
-    fShade = shaderManager.loadFragmentShader("../test/FragShade");
+    vShade = shaderManager.loadVertexShader("../PBMEngine/vertshade_2d");
+    fShade = shaderManager.loadFragmentShader("../PBMEngine/FragShade_2d");
     cShade = shaderManager.combineShaders(vShade, fShade);
     shaderManager.set3dShaderProgram(cShade);
 }
 
 void initMatricies(int width, int height)
 {
-    Proj = glm::perspective(glm::radians(YFOV), ((float)width / (float)height), ZNEAR, ZFAR);
+    Proj = glm::mat4(1.0f);
+    //Proj = glm::perspective(glm::radians(YFOV), ((float)width / (float)height), ZNEAR, ZFAR);
     //View = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f));
-    View = glm::lookAt(glm::vec3(0,0,-20), glm::vec3(0,0,0), glm::vec3(0,1,0));
+    View = glm::lookAt(glm::vec3(0,0,-1.0), glm::vec3(0,0,0), glm::vec3(0,1,0));
     Model = glm::mat4(1.0f);
     modelViewProj = Proj * View * Model;
 
@@ -283,9 +287,27 @@ void initTexture(image* texture)
 
 void testTexture()
 {
-    glClear(GL_COLOR_BUFFER_BIT);
-    glMatrixMode(GL_MODELVIEW);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glBindVertexArray(vao1);
+    plane1.updateRenderObject();
+    Model = *(plane1.getRenderObj()->getMatrix());
+    modelViewProj = Proj * View * Model;
+
+    RenderObject* puts = plane1.getRenderObj();
+
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    shaderManager.configure3DShaders(cShade, puts);
+
+    int shader = shaderManager.getCombinedShader(cShade);
+    GLint mvpID = glGetUniformLocation(shader, "MVPMat");
+
+    glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(modelViewProj));
+
+    model* hold = plane1.getRenderObj()->getData();
+    glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
+
     glutSwapBuffers();
 }
 
@@ -467,5 +489,21 @@ unsigned long getTickCount()
     if(clock_gettime(CLOCK_MONOTONIC, &tv) == 0)
     {
         return ((long)tv.tv_sec * 1000) + (tv.tv_nsec / 1000000);
+    }
+}
+
+void KeyHandler(unsigned char key, int x, int y)
+{
+    switch(key)
+    {
+    case 'r':
+    {
+        Screen.psychedelic(7);
+        image* img = Screen.getPtr();
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img->height, img->width, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        break;
+    }
+    default:
+        break;
     }
 }
