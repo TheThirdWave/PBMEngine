@@ -4,8 +4,9 @@
 #define YFOV    50.625f
 #define ZNEAR   0.01f
 #define ZFAR    100.0f
-#define RGBA 4
+#define RGBA    4
 
+#define MAX_IMAGES 10
 #define MAX_PICTURES 10
 #define MAX_SHADERS 10
 #define MAX_MODELS 10

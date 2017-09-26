@@ -12,7 +12,9 @@ SOURCES += main.cpp \
     physicsobject.cpp \
     physicsmanager.cpp \
     sphereobject.cpp \
-    planeobject.cpp
+    planeobject.cpp \
+    function2d.cpp \
+    linefunction.cpp
 
 OTHER_FILES += \
     vertshade \
@@ -30,7 +32,9 @@ HEADERS += \
     physicsobject.h \
     physicsmanager.h \
     sphereobject.h \
-    planeobject.h
+    planeobject.h \
+    function2d.h \
+    linefunction.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt
 

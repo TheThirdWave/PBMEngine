@@ -15,6 +15,8 @@
 #include "shadermanager.h"
 #include "modelmanager.h"
 #include "imagemanip.h"
+#include "function2d.h"
+#include "linefunction.h"
 #include "structpile.h"
 #include "renderobject.h"
 #include "physicsobject.h"
@@ -179,7 +181,11 @@ image* flatImageRWStuff(int argc, char** argv)
     //image* img = imageManager.getImgPtr(holdImage);
     int count = stoi(argv[2], NULL, 10);
     Screen.initScreen(500, 500);
-    Screen.psychedelic(count);
+    Screen.clearScreen();
+    LineFunction line(glm::vec2(-1.0f, 0.0f), glm::vec2(100.0f,200.0f));
+    Screen.addFunction(&line);
+    Screen.drawConvex();
+    //Screen.psychedelic(count);
     image* img = Screen.getPtr();
     //int imgIdx = imageManager.addImage(Screen.getScreen());
     //if(!imageManager.writePPM(argv[2], holdImage)) fprintf(stderr, "Error: Couldn't write ppm file\n");
