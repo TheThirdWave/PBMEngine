@@ -12,3 +12,13 @@ float LineFunction::getRelative(glm::vec2 pt)
 {
     return glm::dot(normal, (pt - origPoint));
 }
+
+void LineFunction::setNormal(glm::vec2 n)
+{
+    normal = n;
+}
+
+void LineFunction::setPoint(glm::vec2 p)
+{
+    origPoint = p;
+}

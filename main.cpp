@@ -10,6 +10,7 @@
 #include "../glm-0.9.8.5/glm/gtc/matrix_transform.hpp"
 #include "../glm-0.9.8.5/glm/gtc/type_ptr.hpp"
 #include "../glm-0.9.8.5/glm/gtx/transform.hpp"
+#include "../glm-0.9.8.5/glm/gtx/rotate_vector.hpp"
 
 #include "CJRW.h"
 #include "shadermanager.h"
@@ -43,6 +44,7 @@ void display();
 void reshape(GLsizei width, GLsizei height);
 void Timer(int value);
 void KeyHandler(unsigned char key, int x, int y);
+void MouseHandler(int button, int state, int x, int y);
 unsigned long getTickCount();
 
 ShaderManager shaderManager;
@@ -63,6 +65,13 @@ GLfloat angle = 0.0f;
 int refreshMills = 30;
 int vShade, fShade, cShade;
 model* hold1;
+
+LineFunction functions[MAX_FUNCTIONS];
+int numFuncs = 0;
+bool mouseDown = false;
+glm::vec2 mDownPos;
+glm::vec2 mUpPos;
+int progState = CONVEX;
 
 const float timeStep = 1000 / (60.0f * 5);
 
@@ -165,6 +174,7 @@ int main(int argc, char *argv[])
 
     glutDisplayFunc(testTexture);
     glutKeyboardFunc(KeyHandler);
+    glutMouseFunc(MouseHandler);
     glutTimerFunc(0, Timer, 0);
 
     cur_time = getTickCount();
@@ -180,11 +190,13 @@ image* flatImageRWStuff(int argc, char** argv)
     //if(holdImage < 0) fprintf(stderr,"Error, couldn't read PPM file.\n");
     //image* img = imageManager.getImgPtr(holdImage);
     int count = stoi(argv[2], NULL, 10);
-    Screen.initScreen(500, 500);
+    Screen.initScreen(800, 800);
     Screen.clearScreen();
-    LineFunction line(glm::vec2(-1.0f, 0.0f), glm::vec2(100.0f,200.0f));
-    Screen.addFunction(&line);
-    Screen.drawConvex();
+//    functions[numFuncs] = LineFunction(glm::vec2(-1.0f, 0.0f), glm::vec2(100.0f,200.0f));
+//    Screen.addFunction(&functions[numFuncs++]);
+//    functions[numFuncs] = LineFunction(glm::vec2(1.0f, 0.0f), glm::vec2(300.0f,200.0f));
+//    Screen.addFunction(&functions[numFuncs++]);
+    Screen.drawStarAA(1.0f);
     //Screen.psychedelic(count);
     image* img = Screen.getPtr();
     //int imgIdx = imageManager.addImage(Screen.getScreen());
@@ -509,7 +521,94 @@ void KeyHandler(unsigned char key, int x, int y)
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img->height, img->width, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         break;
     }
+    case's':
+    {
+        int imgIdx = imageManager.addImage(Screen.getScreen());
+        if(!imageManager.writePNG("../ping1.png", imgIdx)) fprintf(stderr, "Error: Couldn't write png file\n");
+        Screen.clearScreen();
+        switch(progState)
+        {
+        case CONVEX:
+            Screen.drawConvex();
+            break;
+        case STAR:
+            Screen.drawStar();
+            break;
+        default:
+            break;
+        }
+        imgIdx = imageManager.addImage(Screen.getScreen());
+        if(!imageManager.writePNG("../ping1AA.png", imgIdx)) fprintf(stderr, "Error: Couldn't write png file\n");
+        break;
+    }
+    case'z':
+    {
+        progState = CONVEX;
+        numFuncs = 0;
+        Screen.emptyFunctions();
+        Screen.clearScreen();
+        image* img = Screen.getPtr();
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img->height, img->width, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        break;
+    }
+    case'x':
+    {
+        progState = STAR;
+        numFuncs = 0;
+        Screen.emptyFunctions();
+        Screen.clearScreen();
+        image* img = Screen.getPtr();
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img->height, img->width, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        break;
+    }
     default:
         break;
     }
 }
+
+void MouseHandler(int button, int state, int x, int y)
+{
+    switch(button)
+    {
+    case GLUT_LEFT_BUTTON:
+    {
+        if(state == GLUT_DOWN)
+        {
+            mouseDown = !mouseDown;
+            if(mouseDown)
+            {
+                mDownPos = glm::vec2((float)x, (float)y);
+            }
+            else if(numFuncs < MAX_FUNCTIONS)
+            {
+                mUpPos = glm::vec2((float)x, (float)y);
+                glm::vec2 lineDir = glm::normalize(mUpPos - mDownPos);
+                glm::vec2 normal = glm::vec2(lineDir.y, lineDir.x);
+
+                functions[numFuncs] = LineFunction(normal, mDownPos);
+                Screen.addFunction(&functions[numFuncs]);
+                numFuncs++;
+                Screen.clearScreen();
+                switch(progState)
+                {
+                case CONVEX:
+                    Screen.drawConvexAA(2);
+                    break;
+                case STAR:
+                    Screen.drawStarAA(2);
+                    break;
+                default:
+                    break;
+                }
+                image* img = Screen.getPtr();
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img->height, img->width, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+            }
+            else fprintf(stderr, "ERROR: MAX_FUNCTIONS reached\n");
+        }
+        break;
+    }
+    default:
+        break;
+    }
+}
+

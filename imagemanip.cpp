@@ -12,8 +12,9 @@ Imagemanip::Imagemanip(int width, int height)
     screen.size = width * height * screen.unitbytes;
     screen.data = new unsigned char[sizeof(unsigned char) * screen.size];
     memset(screen.data, 0, (sizeof(unsigned char) * screen.size));
-    foreground = glm::vec3((char)0, (char)0, (char)0);
-    background = glm::vec3((char)255, (char)255, (char)255);
+    foreground = glm::vec3(0, 0, 0);
+    background = glm::vec3(1.0f, 1.0f, 1.0f);
+    funcNum = 0;
 }
 
 Imagemanip::~Imagemanip()
@@ -29,8 +30,9 @@ void Imagemanip::initScreen(int width, int height)
     screen.size = width * height * screen.unitbytes;
     screen.data = new unsigned char[sizeof(unsigned char) * screen.size];
     memset(screen.data, 0 , (sizeof(unsigned char) * screen.size));
-    foreground = glm::vec3((char)0, (char)0, (char)0);
-    background = glm::vec3((char)255, (char)255, (char)255);
+    foreground = glm::vec3(0, 0, 0);
+    background = glm::vec3(1.0f, 1.0f, 1.0f);
+    funcNum = 0;
 }
 
 void Imagemanip::setBackground(char r, char g, char b)
@@ -49,9 +51,11 @@ void Imagemanip::setForeground(char r, char g, char b)
 
 void Imagemanip::addFunction(Function2D* func)
 {
-    functions = func;
-    functions->origPoint.x *= screen.unitbytes;
-    functions->origPoint.y *= screen.unitbytes;
+    functions[funcNum] = func;
+    functions[funcNum]->origPoint.x = screen.width - functions[funcNum]->origPoint.x;
+    functions[funcNum]->origPoint.x *= screen.unitbytes;
+    functions[funcNum]->origPoint.y *= screen.unitbytes;
+    funcNum++;
 }
 
 image Imagemanip::getScreen()
@@ -108,13 +112,18 @@ void Imagemanip::clearScreen()
     {
         for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
         {
-            screen.data[x + (y * screen.width)] = background.r;
-            screen.data[(x + 1) + (y * screen.width)] = background.g;
-            screen.data[(x + 2) + (y * screen.width)] = background.b;
+            screen.data[x + (y * screen.width)] = background.r * 255;
+            screen.data[(x + 1) + (y * screen.width)] = background.g * 255;
+            screen.data[(x + 2) + (y * screen.width)] = background.b * 255;
             //the alpha is always at max for now.
             screen.data[(x + 3) + (y * screen.width)] = 255;
         }
     }
+}
+
+void Imagemanip::emptyFunctions()
+{
+    funcNum = 0;
 }
 
 void Imagemanip::fillScreen(int r, int g, int b)
@@ -136,15 +145,165 @@ void Imagemanip::fillScreen(int r, int g, int b)
 
 void Imagemanip::drawConvex()
 {
-    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    if(funcNum > 0)
     {
-        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
         {
-            if(functions->getRelative(glm::vec2(x, y)) <= 0)
+            for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
             {
-                screen.data[x + (y * screen.width)] = foreground.r;
-                screen.data[(x + 1) + (y * screen.width)] = foreground.g;
-                screen.data[(x + 2) + (y * screen.width)] = foreground.b;
+                bool flag = true;
+                for(int i = 0; i < funcNum; i++)
+                {
+                    if(functions[i]->getRelative(glm::vec2(x,y)) > 0)
+                    {
+                        flag = false;
+                        break;
+                    }
+                }
+                if(flag == true)
+                {
+                    screen.data[x + (y * screen.width)] = foreground.r * 255;
+                    screen.data[(x + 1) + (y * screen.width)] = foreground.g * 255;
+                    screen.data[(x + 2) + (y * screen.width)] = foreground.b * 255;
+                    //the alpha is always at max for now.
+                    screen.data[(x + 3) + (y * screen.width)] = 255;
+                }
+            }
+        }
+    }
+}
+
+void Imagemanip::drawStar()
+{
+    if(funcNum > 0)
+    {
+        for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+        {
+            for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+            {
+                int numTrue = 0;
+                for(int i = 0; i < funcNum; i++)
+                {
+                    if(functions[i]->getRelative(glm::vec2(x,y)) <= 0)
+                    {
+                        numTrue++;
+                    }
+                }
+                if(numTrue >= funcNum - 1)
+                {
+                    screen.data[x + (y * screen.width)] = foreground.r * 255;
+                    screen.data[(x + 1) + (y * screen.width)] = foreground.g * 255;
+                    screen.data[(x + 2) + (y * screen.width)] = foreground.b * 255;
+                    //the alpha is always at max for now.
+                    screen.data[(x + 3) + (y * screen.width)] = 255;
+                }
+            }
+        }
+    }
+}
+
+void Imagemanip::drawStarAA(int resolution)
+{
+    if(funcNum > 0)
+    {
+        for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+        {
+            for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+            {
+                int fractionTrue = 0;
+                for(int u = 0; u < resolution; u++)
+                {
+                    for(int v = 0; v < resolution; v++)
+                    {
+                        int numTrue = 0;
+                        float uf = u * (1.0f / resolution);
+                        float vf = v *(1.0f / resolution);
+                        uf = uf + ((1.0f/resolution) * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)));
+                        vf = vf + ((1.0f/resolution) * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)));
+                        for(int i = 0; i < funcNum; i++)
+                        {
+                            if(functions[i]->getRelative(glm::vec2((x + uf),(y + vf))) <= 0)
+                            {
+                                numTrue++;
+                            }
+                        }
+                        if(numTrue >= funcNum - 1)
+                        {
+                            fractionTrue++;
+                        }
+                    }
+                }
+                if(fractionTrue > 0 && fractionTrue < (resolution * resolution))
+                {
+                    int u = 55;
+                    u++;
+                }
+                if(fractionTrue == 0)
+                {
+                    int u = 55;
+                    u++;
+                }
+                glm::vec3 interpolate = background - foreground;
+                interpolate = interpolate * (1 - (float)fractionTrue/(resolution * resolution));
+                interpolate = foreground + interpolate;
+                screen.data[x + (y * screen.width)] = interpolate.r * 255;
+                screen.data[(x + 1) + (y * screen.width)] = interpolate.g * 255;
+                screen.data[(x + 2) + (y * screen.width)] = interpolate.b * 255;
+                //the alpha is always at max for now.
+                screen.data[(x + 3) + (y * screen.width)] = 255;
+            }
+        }
+    }
+}
+
+void Imagemanip::drawConvexAA(int resolution)
+{
+    if(funcNum > 0)
+    {
+        for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+        {
+            for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+            {
+                int fractionTrue = 0;
+                for(int u = 0; u < resolution; u++)
+                {
+                    for(int v = 0; v < resolution; v++)
+                    {
+                        bool flag = true;
+                        float uf = u * (1.0f / resolution);
+                        float vf = v *(1.0f / resolution);
+                        uf = uf + ((1.0f/resolution) * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)));
+                        vf = vf + ((1.0f/resolution) * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)));
+                        for(int i = 0; i < funcNum; i++)
+                        {
+                            if(functions[i]->getRelative(glm::vec2((x + uf),(y + vf))) > 0)
+                            {
+                                flag = false;
+                                break;
+                            }
+                        }
+                        if(flag)
+                        {
+                            fractionTrue++;
+                        }
+                    }
+                }
+                if(fractionTrue > 0 && fractionTrue < (resolution * resolution))
+                {
+                    int u = 55;
+                    u++;
+                }
+                if(fractionTrue == 0)
+                {
+                    int u = 55;
+                    u++;
+                }
+                glm::vec3 interpolate = background - foreground;
+                interpolate = interpolate * (1 - (float)fractionTrue/(resolution * resolution));
+                interpolate = foreground + interpolate;
+                screen.data[x + (y * screen.width)] = interpolate.r * 255;
+                screen.data[(x + 1) + (y * screen.width)] = interpolate.g * 255;
+                screen.data[(x + 2) + (y * screen.width)] = interpolate.b * 255;
                 //the alpha is always at max for now.
                 screen.data[(x + 3) + (y * screen.width)] = 255;
             }

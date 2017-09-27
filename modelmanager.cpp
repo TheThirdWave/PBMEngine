@@ -63,11 +63,11 @@ int ModelManager::readObj(char* filename)
                     {
                     case ' ':
                         strtok(buf, " ");
-                        models[modelIndex].colors[vertIdx] =  static_cast <float> (rand()) / static_cast <float> (RAND_MAX);;
+                        models[modelIndex].colors[vertIdx] =  static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
                         models[modelIndex].vertices[vertIdx++] = stof(strtok(NULL, " "), NULL);
-                        models[modelIndex].colors[vertIdx] =  static_cast <float> (rand()) / static_cast <float> (RAND_MAX);;
+                        models[modelIndex].colors[vertIdx] =  static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
                         models[modelIndex].vertices[vertIdx++] = stof(strtok(NULL, " "), NULL);
-                        models[modelIndex].colors[vertIdx] =  static_cast <float> (rand()) / static_cast <float> (RAND_MAX);;
+                        models[modelIndex].colors[vertIdx] =  static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
                         models[modelIndex].vertices[vertIdx++] = stof(strtok(NULL, " "), NULL);
                         break;
                     case 't':

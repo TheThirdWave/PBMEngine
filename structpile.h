@@ -12,6 +12,7 @@
 #define MAX_MODELS 10
 #define MAX_PHYS_OBJECTS 10
 #define MAX_FORCES 10
+#define MAX_FUNCTIONS 100
 
 #include "../glm-0.9.8.5/glm/glm.hpp"
 
@@ -42,6 +43,11 @@ struct geometry {
 enum collideType{
     SPHERE = 0,
     PLANE = 1
+};
+
+enum progState{
+    CONVEX = 0,
+    STAR = 1
 };
 
 #endif // STRUCTPILE_H
