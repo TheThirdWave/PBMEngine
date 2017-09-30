@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 
 image* flatImageRWStuff(int argc, char** argv)
 {
-    int count = stoi(argv[2], NULL, 10);
+    //int count = stoi(argv[2], NULL, 10);
     Screen.initScreen(800, 800);
     Screen.clearScreen();
     image* img = Screen.getPtr();
@@ -456,6 +456,7 @@ void KeyHandler(unsigned char key, int x, int y)
         Screen.emptyFunctions();
         image* img = Screen.getPtr();
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img->height, img->width, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        break;
     }
     case'b':
     {
