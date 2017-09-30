@@ -14,7 +14,9 @@ SOURCES += main.cpp \
     sphereobject.cpp \
     planeobject.cpp \
     function2d.cpp \
-    linefunction.cpp
+    linefunction.cpp \
+    spherefunction.cpp \
+    trigfunction.cpp
 
 OTHER_FILES += \
     vertshade \
@@ -34,7 +36,9 @@ HEADERS += \
     sphereobject.h \
     planeobject.h \
     function2d.h \
-    linefunction.h
+    linefunction.h \
+    spherefunction.h \
+    trigfunction.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt
 

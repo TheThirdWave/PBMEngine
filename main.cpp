@@ -18,12 +18,15 @@
 #include "imagemanip.h"
 #include "function2d.h"
 #include "linefunction.h"
+#include "spherefunction.h"
+#include "trigfunction.h"
 #include "structpile.h"
 #include "renderobject.h"
 #include "physicsobject.h"
 #include "physicsmanager.h"
 #include "sphereobject.h"
 #include "planeobject.h"
+
 
 
 using namespace std;
@@ -66,8 +69,10 @@ int refreshMills = 30;
 int vShade, fShade, cShade;
 model* hold1;
 
-LineFunction functions[MAX_FUNCTIONS];
+Function2D* functions[MAX_FUNCTIONS];
+
 int numFuncs = 0;
+int numSFuncs = 0;
 bool mouseDown = false;
 glm::vec2 mDownPos;
 glm::vec2 mUpPos;
@@ -132,45 +137,11 @@ int main(int argc, char *argv[])
 
     initPlane(vertices, colors, indicies);
     initMatricies(width, height);
-/*
-    //add gravity and wind resistance
-    physicsManager.addDirectionalForce(glm::vec3(0.0f, -0.00001f, 0.0f));
-    physicsManager.addScalarForce(-0.001);
-
-
-    //set plane normal
-    plane.setGeometry(glm::vec3(0.0f, 1.0f, 0.0f));
-    //set render object
-    plane.setRenderObject(&pModel);
-    //set plane position
-    plane.setPosition(glm::vec3(0.0f, -5.0f, 0.0f));
-    //add to the physics manager for collision detection
-    physicsManager.addPhysObj((PhysicsObject*)&plane);*/
 
     plane1.setGeometry(glm::vec3(0.0f, 0.0f, -1.0f));
     plane1.setRenderObject(&pModel);
     plane1.setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane1);
-
-/*    plane2.setGeometry(glm::vec3(0.0f, 0.0f, 1.0f));
-    plane2.setRenderObject(&pModel);
-    plane2.setPosition(glm::vec3(0.0f, 0.0f, -5.0f));
-    physicsManager.addPhysObj((PhysicsObject*)&plane2);
-
-    plane3.setGeometry(glm::vec3(-1.0f, 0.0f, 0.0f));
-    plane3.setRenderObject(&pModel);
-    plane3.setPosition(glm::vec3(5.0f, 0.0f, 0.0f));
-    physicsManager.addPhysObj((PhysicsObject*)&plane3);
-
-    plane4.setGeometry(glm::vec3(1.0f, 0.0f, 0.0f));
-    plane4.setRenderObject(&pModel);
-    plane4.setPosition(glm::vec3(-5.0f, 0.0f, 0.0f));
-    physicsManager.addPhysObj((PhysicsObject*)&plane4);
-
-    plane5.setGeometry(glm::vec3(0.0f, -1.0f, 0.0f));
-    plane5.setRenderObject(&pModel);
-    plane5.setPosition(glm::vec3(0.0f, 5.0f, 0.0f));
-    physicsManager.addPhysObj((PhysicsObject*)&plane5);*/
 
     glutDisplayFunc(testTexture);
     glutKeyboardFunc(KeyHandler);
@@ -186,21 +157,11 @@ int main(int argc, char *argv[])
 
 image* flatImageRWStuff(int argc, char** argv)
 {
-    //int holdImage = imageManager.openPNG(argv[1]);
-    //if(holdImage < 0) fprintf(stderr,"Error, couldn't read PPM file.\n");
-    //image* img = imageManager.getImgPtr(holdImage);
     int count = stoi(argv[2], NULL, 10);
     Screen.initScreen(800, 800);
     Screen.clearScreen();
-//    functions[numFuncs] = LineFunction(glm::vec2(-1.0f, 0.0f), glm::vec2(100.0f,200.0f));
-//    Screen.addFunction(&functions[numFuncs++]);
-//    functions[numFuncs] = LineFunction(glm::vec2(1.0f, 0.0f), glm::vec2(300.0f,200.0f));
-//    Screen.addFunction(&functions[numFuncs++]);
-    Screen.drawStarAA(1.0f);
-    //Screen.psychedelic(count);
     image* img = Screen.getPtr();
-    //int imgIdx = imageManager.addImage(Screen.getScreen());
-    //if(!imageManager.writePPM(argv[2], holdImage)) fprintf(stderr, "Error: Couldn't write ppm file\n");
+
     return img;
 }
 
@@ -350,12 +311,6 @@ void testRender()
 void update(float tStep)
 {
     physicsManager.runTimeStep(tStep);
-
-    /*
-    glm::mat4 herp = glm::rotate(glm::mat4(1.0f), (0.0005f * tStep), glm::vec3(0.0f, 1.0f, 0.0f));
-    Model = herp;
-    modelViewProj = modelViewProj * Model;
-    */
 }
 
 void display()
@@ -381,41 +336,8 @@ void display()
     model* hold = sphere.getRenderObj()->getData();
     glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
 
-    //draw sphere1
-   /* sphere1.updateRenderObject();
-    Model = *(sphere1.getRenderObj()->getMatrix());
-    modelViewProj = Proj * View * Model;
 
-    puts = sphere1.getRenderObj();
-
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    shaderManager.configure3DShaders(cShade, puts);
-
-
-//    shader = shaderManager.getCombinedShader(cShade);
-//    mvpID = glGetUniformLocation(shader, "MVPMat");
-    glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(modelViewProj));
-
-    hold = sphere1.getRenderObj()->getData();
-    glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
-*/
-    //draw box faces
     glBindVertexArray(vao1);
-    plane.updateRenderObject();
-    Model = *(plane.getRenderObj()->getMatrix());
-    modelViewProj = Proj * View * Model;
-
-    puts = plane.getRenderObj();
-
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    shaderManager.configure3DShaders(cShade, puts);
-
-    glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(modelViewProj));
-
-    hold = plane.getRenderObj()->getData();
-    glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
 
     //draw plane1
     plane1.updateRenderObject();
@@ -430,66 +352,6 @@ void display()
     glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(modelViewProj));
 
     hold = plane1.getRenderObj()->getData();
-    glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
-
-    //draw plane2
-    plane2.updateRenderObject();
-    Model = *(plane2.getRenderObj()->getMatrix());
-    modelViewProj = Proj * View * Model;
-
-    puts = plane2.getRenderObj();
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    shaderManager.configure3DShaders(cShade, puts);
-
-    glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(modelViewProj));
-
-    hold = plane2.getRenderObj()->getData();
-    glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
-
-    //draw plane3
-    plane3.updateRenderObject();
-    Model = *(plane3.getRenderObj()->getMatrix());
-    modelViewProj = Proj * View * Model;
-
-    puts = plane3.getRenderObj();
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    shaderManager.configure3DShaders(cShade, puts);
-
-    glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(modelViewProj));
-
-    hold = plane3.getRenderObj()->getData();
-    glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
-
-    //draw plane4
-    plane4.updateRenderObject();
-    Model = *(plane4.getRenderObj()->getMatrix());
-    modelViewProj = Proj * View * Model;
-
-    puts = plane4.getRenderObj();
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    shaderManager.configure3DShaders(cShade, puts);
-
-    glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(modelViewProj));
-
-    hold = plane4.getRenderObj()->getData();
-    glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
-
-    //draw plane5
-    plane5.updateRenderObject();
-    Model = *(plane5.getRenderObj()->getMatrix());
-    modelViewProj = Proj * View * Model;
-
-    puts = plane5.getRenderObj();
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    shaderManager.configure3DShaders(cShade, puts);
-
-    glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(modelViewProj));
-
-    hold = plane5.getRenderObj()->getData();
     glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
 
     glutSwapBuffers();
@@ -524,27 +386,34 @@ void KeyHandler(unsigned char key, int x, int y)
     case's':
     {
         int imgIdx = imageManager.addImage(Screen.getScreen());
-        if(!imageManager.writePNG("../ping1.png", imgIdx)) fprintf(stderr, "Error: Couldn't write png file\n");
+        if(!imageManager.writePNG("../ping1AA.png", imgIdx)) fprintf(stderr, "Error: Couldn't write png file\n");
         Screen.clearScreen();
         switch(progState)
         {
+        case FUNCTION:
         case CONVEX:
             Screen.drawConvex();
             break;
         case STAR:
             Screen.drawStar();
             break;
+        case BLOBBY:
+            Screen.drawBlobby();
+            break;
+        case MODULUS:
+            Screen.drawMod(2);
         default:
             break;
         }
         imgIdx = imageManager.addImage(Screen.getScreen());
-        if(!imageManager.writePNG("../ping1AA.png", imgIdx)) fprintf(stderr, "Error: Couldn't write png file\n");
+        if(!imageManager.writePNG("../ping1.png", imgIdx)) fprintf(stderr, "Error: Couldn't write png file\n");
         break;
     }
     case'z':
     {
         progState = CONVEX;
         numFuncs = 0;
+        numSFuncs = 0;
         Screen.emptyFunctions();
         Screen.clearScreen();
         image* img = Screen.getPtr();
@@ -555,11 +424,63 @@ void KeyHandler(unsigned char key, int x, int y)
     {
         progState = STAR;
         numFuncs = 0;
+        numSFuncs = 0;
         Screen.emptyFunctions();
         Screen.clearScreen();
         image* img = Screen.getPtr();
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img->height, img->width, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         break;
+    }
+    case'c':
+    {
+        progState = BLOBBY;
+        numFuncs = 0;
+        numSFuncs = 0;
+        Screen.emptyFunctions();
+        Screen.clearScreen();
+        image* img = Screen.getPtr();
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img->height, img->width, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        break;
+    }
+    case 'v':
+    {
+        progState = SHADED;
+        numFuncs = 0;
+        Screen.emptyFunctions();
+        Screen.clearScreen();
+        functions[numFuncs] = new SphereFunction(glm::vec2(0, 400), glm::vec2(400, 400));
+        Screen.addFunction(functions[numFuncs]);
+        numFuncs++;
+        Screen.drawConvexAA(2);
+        numFuncs = 0;
+        Screen.emptyFunctions();
+        image* img = Screen.getPtr();
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img->height, img->width, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+    }
+    case'b':
+    {
+        progState = MODULUS;
+        numFuncs = 0;
+        numSFuncs = 0;
+        Screen.emptyFunctions();
+        Screen.clearScreen();
+        image* img = Screen.getPtr();
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img->height, img->width, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        break;
+    }
+    case'n':
+    {
+        progState = FUNCTION;
+        numFuncs = 0;
+        numSFuncs = 0;
+        Screen.emptyFunctions();
+        Screen.clearScreen();
+        functions[numFuncs] = new TrigFunction(glm::vec2(0, 400), glm::vec2(400, 400));
+        Screen.addFunction(functions[numFuncs]);
+        numFuncs++;
+        Screen.drawConvexAA(3);
+        image* img = Screen.getPtr();
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img->height, img->width, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
     }
     default:
         break;
@@ -582,21 +503,48 @@ void MouseHandler(int button, int state, int x, int y)
             else if(numFuncs < MAX_FUNCTIONS)
             {
                 mUpPos = glm::vec2((float)x, (float)y);
-                glm::vec2 lineDir = glm::normalize(mUpPos - mDownPos);
-                glm::vec2 normal = glm::vec2(lineDir.y, lineDir.x);
-
-                functions[numFuncs] = LineFunction(normal, mDownPos);
-                Screen.addFunction(&functions[numFuncs]);
-                numFuncs++;
-                Screen.clearScreen();
+                glm::vec2 lineDir = mUpPos - mDownPos;
+                glm::vec2 normal = glm::vec2(0.0f, 0.0f);
                 switch(progState)
                 {
                 case CONVEX:
-                    Screen.drawConvexAA(2);
+                case STAR:
+                    lineDir = glm::normalize(lineDir);
+                    normal = glm::vec2(lineDir.y, lineDir.x);
+                    functions[numFuncs] = new LineFunction(normal, mDownPos);
+                    break;
+                case BLOBBY:
+                case SHADED:
+                case MODULUS:
+                    normal = -lineDir;
+                    functions[numFuncs] = new SphereFunction(normal, mDownPos);
+                    break;
+                default:
+                    break;
+                }
+
+                Screen.addFunction(functions[numFuncs]);
+                numFuncs++;
+
+                switch(progState)
+                {
+                case CONVEX:
+                    Screen.clearScreen();
+                    Screen.drawConvexAA(3);
                     break;
                 case STAR:
-                    Screen.drawStarAA(2);
+                    Screen.clearScreen();
+                    Screen.drawStarAA(3);
                     break;
+                case BLOBBY:
+                    Screen.clearScreen();
+                    Screen.drawBlobbyAA(3);
+                    break;
+                case SHADED:
+                    Screen.drawShaded();
+                    break;
+                case MODULUS:
+                    Screen.drawModAA(3, 2);
                 default:
                     break;
                 }

@@ -47,7 +47,11 @@ enum collideType{
 
 enum progState{
     CONVEX = 0,
-    STAR = 1
+    STAR = 1,
+    FUNCTION = 2,
+    BLOBBY = 3,
+    SHADED = 4,
+    MODULUS = 5
 };
 
 #endif // STRUCTPILE_H

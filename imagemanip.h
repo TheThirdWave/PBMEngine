@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <algorithm>
 
 #include "function2d.h"
 #include "structpile.h"
@@ -32,8 +33,13 @@ public:
     void fillScreen(int, int, int);
     void drawConvex();
     void drawStar();
+    void drawMod(int);
+    void drawBlobby();
     void drawConvexAA(int);
     void drawStarAA(int);
+    void drawModAA(int, int);
+    void drawBlobbyAA(int);
+    void drawShaded();
 };
 
 #endif // IMAGEMANIP_H
