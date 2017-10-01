@@ -7,13 +7,17 @@ class Function2D
 {
     friend class Imagemanip;
 protected:
-    glm::vec2 normal;
-    glm::vec2 origPoint;
+    glm::vec2 normal, normal2;
+    glm::vec2 origPoint, point2;
+    int a02, a12, a11, a00, s0, s1;
 public:
     Function2D();
     Function2D(glm::vec2, glm::vec2);
+    Function2D(glm::vec2, glm::vec2, glm::vec2, glm::vec2);
     void setNormal(glm::vec2);
     void setPoint(glm::vec2);
+    void setQParams(int, int, int, int);
+    void setQReals(int, int);
     virtual float getRelative(glm::vec2) = 0;
 };
 

@@ -20,6 +20,7 @@
 #include "linefunction.h"
 #include "spherefunction.h"
 #include "trigfunction.h"
+#include "quadraticfunction.h"
 #include "structpile.h"
 #include "renderobject.h"
 #include "physicsobject.h"
@@ -376,6 +377,24 @@ void KeyHandler(unsigned char key, int x, int y)
 {
     switch(key)
     {
+    case 'q':
+    {
+        progState = SHADED;
+        numFuncs = 0;
+        Screen.emptyFunctions();
+        Screen.clearScreen();
+        //functions[numFuncs] = new QuadraticFunction(glm::normalize(glm::vec2(1, 0)), glm::vec2(70, 50), glm::normalize(glm::vec2(0, 1)), glm::vec2(400, 400));
+        functions[numFuncs] = new QuadraticFunction(glm::normalize(glm::vec2(0.310, 0.951)), glm::vec2(70, 50), glm::normalize(glm::vec2(-0.951, -0.31)), glm::vec2(400, 400));
+        functions[numFuncs]->setQParams(1, 1, 0, -1);
+        functions[numFuncs]->setQReals(15, 20);
+        Screen.addFunction(functions[numFuncs]);
+        numFuncs++;
+        Screen.drawConvex();
+
+        image* img = Screen.getPtr();
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img->height, img->width, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        break;
+    }
     case 'r':
     {
         Screen.psychedelic(7);

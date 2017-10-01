@@ -16,7 +16,8 @@ SOURCES += main.cpp \
     function2d.cpp \
     linefunction.cpp \
     spherefunction.cpp \
-    trigfunction.cpp
+    trigfunction.cpp \
+    quadraticfunction.cpp
 
 OTHER_FILES += \
     vertshade \
@@ -38,7 +39,8 @@ HEADERS += \
     function2d.h \
     linefunction.h \
     spherefunction.h \
-    trigfunction.h
+    trigfunction.h \
+    quadraticfunction.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt
 
