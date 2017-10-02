@@ -51,6 +51,7 @@ public:
     void setAcceleration(glm::vec3);
     void setMass(float);
     void setGeometry(geometry);
+    void addRotation(glm::vec3);
     void addPosition(glm::vec3);
     void addVelocity(glm::vec3);
     void addAcceleration(glm::vec3);

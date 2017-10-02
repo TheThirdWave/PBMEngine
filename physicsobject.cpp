@@ -160,6 +160,11 @@ void PhysicsObject::setGeometry(geometry geo)
     geoDescription = geo;
 }
 
+void PhysicsObject::addRotation(glm::vec3 nr)
+{
+    rotation = rotation + nr;
+}
+
 void PhysicsObject::addPosition(glm::vec3 np)
 {
     position = position + np;

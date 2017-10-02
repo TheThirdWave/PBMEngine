@@ -6,6 +6,8 @@
 #define ZFAR    100.0f
 #define RGBA 4
 
+#define PI 3.14159265359
+
 #define MAX_PICTURES 10
 #define MAX_SHADERS 10
 #define MAX_MODELS 10
@@ -41,6 +43,19 @@ struct geometry {
 enum collideType{
     SPHERE = 0,
     PLANE = 1
+};
+
+enum keyState{
+    FORWARD = 1,
+    SLEFT = 1 << 1,
+    BACK = 1 << 2,
+    SRIGHT = 1 << 3,
+    UP = 1 << 4,
+    DOWN = 1 << 5,
+    LUP = 1 << 6,
+    LDOWN = 1 << 7,
+    LLEFT = 1 << 8,
+    LRIGHT = 1 << 9
 };
 
 #endif // STRUCTPILE_H

@@ -21,6 +21,7 @@
 #include "physicsmanager.h"
 #include "sphereobject.h"
 #include "planeobject.h"
+#include "camera.h"
 
 
 using namespace std;
@@ -37,10 +38,12 @@ void configureAttributes(void);
 void testRender(void);
 void testTexture(void);
 void update(float);
+void handleKeyStates(float);
 void display();
 void reshape(GLsizei width, GLsizei height);
 void Timer(int value);
 void KeyHandler(unsigned char key, int x, int y);
+void KeyUpHandler(unsigned char key, int x, int y);
 unsigned long getTickCount();
 
 ShaderManager shaderManager;
@@ -53,6 +56,9 @@ SphereObject sphere;
 SphereObject sphere1;
 PlaneObject plane, plane1, plane2, plane3, plane4, plane5;
 RenderObject sModel, pModel;
+
+Camera camera;
+unsigned int kState = 0;
 
 unsigned long prev_time, cur_time;
 glm::mat4 modelViewProj, Proj, View, Model;
@@ -79,12 +85,12 @@ int main(int argc, char *argv[])
 
 
 
-    image* img = flatImageRWStuff(argc, argv);
+//    image* img = flatImageRWStuff(argc, argv);
 
     glutInit(&argc, argv);
 
     glutInitWindowPosition(100, 100);
-    glutInitWindowSize(img->width, img->height);
+    glutInitWindowSize(width, height);
 
     glutInitDisplayMode(GLUT_RGBA|GLUT_DOUBLE);
     glutCreateWindow("TestWindow");
@@ -99,7 +105,7 @@ int main(int argc, char *argv[])
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
-    initTexture(img);
+//    initTexture(img);
     initShade();
     initBuf();
     float vertices[] = {
@@ -120,8 +126,10 @@ int main(int argc, char *argv[])
     };
 
     initPlane(vertices, colors, indicies);
+
+    camera.setViewMatrix(&View);
     initMatricies(width, height);
-/*
+
     //add gravity and wind resistance
     physicsManager.addDirectionalForce(glm::vec3(0.0f, -0.00001f, 0.0f));
     physicsManager.addScalarForce(-0.001);
@@ -134,14 +142,14 @@ int main(int argc, char *argv[])
     //set plane position
     plane.setPosition(glm::vec3(0.0f, -5.0f, 0.0f));
     //add to the physics manager for collision detection
-    physicsManager.addPhysObj((PhysicsObject*)&plane);*/
+    physicsManager.addPhysObj((PhysicsObject*)&plane);
 
-    plane1.setGeometry(glm::vec3(0.0f, 0.0f, -1.0f));
+    plane1.setGeometry(glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)));
     plane1.setRenderObject(&pModel);
-    plane1.setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+    plane1.setPosition(glm::vec3(0.0f, 0.0f, 5.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane1);
 
-/*    plane2.setGeometry(glm::vec3(0.0f, 0.0f, 1.0f));
+    plane2.setGeometry(glm::normalize(glm::vec3(0.0f, 0.0f, 1.0f)));
     plane2.setRenderObject(&pModel);
     plane2.setPosition(glm::vec3(0.0f, 0.0f, -5.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane2);
@@ -159,10 +167,11 @@ int main(int argc, char *argv[])
     plane5.setGeometry(glm::vec3(0.0f, -1.0f, 0.0f));
     plane5.setRenderObject(&pModel);
     plane5.setPosition(glm::vec3(0.0f, 5.0f, 0.0f));
-    physicsManager.addPhysObj((PhysicsObject*)&plane5);*/
+    physicsManager.addPhysObj((PhysicsObject*)&plane5);
 
-    glutDisplayFunc(testTexture);
+    glutDisplayFunc(testRender);
     glutKeyboardFunc(KeyHandler);
+    glutKeyboardUpFunc(KeyUpHandler);
     glutTimerFunc(0, Timer, 0);
 
     cur_time = getTickCount();
@@ -177,9 +186,9 @@ image* flatImageRWStuff(int argc, char** argv)
     //int holdImage = imageManager.openPNG(argv[1]);
     //if(holdImage < 0) fprintf(stderr,"Error, couldn't read PPM file.\n");
     //image* img = imageManager.getImgPtr(holdImage);
-    int count = stoi(argv[2], NULL, 10);
+    //int count = stoi(argv[2], NULL, 10);
     Screen.initScreen(500, 500);
-    Screen.psychedelic(count);
+    Screen.psychedelic(1);
     image* img = Screen.getPtr();
     //int imgIdx = imageManager.addImage(Screen.getScreen());
     //if(!imageManager.writePPM(argv[2], holdImage)) fprintf(stderr, "Error: Couldn't write ppm file\n");
@@ -189,18 +198,22 @@ image* flatImageRWStuff(int argc, char** argv)
 
 void initShade()
 {
-    vShade = shaderManager.loadVertexShader("../PBMEngine/vertshade_2d");
-    fShade = shaderManager.loadFragmentShader("../PBMEngine/FragShade_2d");
+    vShade = shaderManager.loadVertexShader("../PBMEngine/vertshade");
+    fShade = shaderManager.loadFragmentShader("../PBMEngine/FragShade");
     cShade = shaderManager.combineShaders(vShade, fShade);
     shaderManager.set3dShaderProgram(cShade);
 }
 
 void initMatricies(int width, int height)
 {
-    Proj = glm::mat4(1.0f);
-    //Proj = glm::perspective(glm::radians(YFOV), ((float)width / (float)height), ZNEAR, ZFAR);
-    //View = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f));
-    View = glm::lookAt(glm::vec3(0,0,-1.0), glm::vec3(0,0,0), glm::vec3(0,1,0));
+    //Proj = glm::mat4(1.0f);
+    Proj = glm::perspective(glm::radians(YFOV), ((float)width / (float)height), ZNEAR, ZFAR);
+    camera.setPosition(glm::vec3(0.0f, 0.0f, -20.f));
+    camera.setRotation(glm::vec3(0.0f, 0, 0.0f));
+    camera.updateViewMatrix();
+    //View = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -0.9f));
+    //View = View * glm::rotate(glm::mat4(1.0f), 180.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+    //View = glm::lookAt(glm::vec3(0,0,-0.01), glm::vec3(0,0,0), glm::vec3(0,1,0));
     Model = glm::mat4(1.0f);
     modelViewProj = Proj * View * Model;
 
@@ -331,6 +344,7 @@ void testRender()
 
 void update(float tStep)
 {
+    handleKeyStates(tStep);
     physicsManager.runTimeStep(tStep);
 
     /*
@@ -338,6 +352,29 @@ void update(float tStep)
     Model = herp;
     modelViewProj = modelViewProj * Model;
     */
+}
+
+void handleKeyStates(float ts)
+{
+    if(kState & FORWARD)
+    {
+        camera.addVelocity(glm::vec3(0.0f, 0.0f, 0.01f));
+    }
+    if(kState & SLEFT) camera.addVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
+    if(kState & BACK) camera.addVelocity(glm::vec3(0.0f, 0.0f, -0.01f));
+    if(kState & SRIGHT) camera.addVelocity(glm::vec3(-0.01f, 0.0f, 0.0f));
+    if(kState & LUP)
+    {
+        camera.addRotation(glm::vec3(0.0f, -0.01f, 0.0f));
+    }
+    if(kState & LLEFT) camera.addRotation(glm::vec3(-0.01f, 0.0f, 0.0f));
+    if(kState & LDOWN) camera.addRotation(glm::vec3(0.0f, 0.01f, 0.0f));
+    if(kState & LRIGHT) camera.addRotation(glm::vec3(0.01f, 0.0f, 0.0f));
+
+    camera.getNextState(ts);
+    camera.updateState();
+    camera.setVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
+    camera.updateViewMatrix();
 }
 
 void display()
@@ -375,8 +412,8 @@ void display()
     shaderManager.configure3DShaders(cShade, puts);
 
 
-//    shader = shaderManager.getCombinedShader(cShade);
-//    mvpID = glGetUniformLocation(shader, "MVPMat");
+    shader = shaderManager.getCombinedShader(cShade);
+    mvpID = glGetUniformLocation(shader, "MVPMat");
     glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(modelViewProj));
 
     hold = sphere1.getRenderObj()->getData();
@@ -496,13 +533,73 @@ void KeyHandler(unsigned char key, int x, int y)
 {
     switch(key)
     {
+    case 'w':
+        kState = kState | FORWARD;
+
+        break;
+    case 'a':
+        kState = kState | SLEFT;
+
+        break;
+    case 's':
+        kState = kState | BACK;
+
+        break;
+    case 'd':
+        kState = kState | SRIGHT;
+
+        break;
+    case 'i':
+        kState = kState | LUP;
+        break;
+    case 'j':
+        kState = kState | LLEFT;
+        break;
+    case 'k':
+        kState = kState | LDOWN;
+        break;
+    case 'l':
+        kState = kState | LRIGHT;
+        break;
     case 'r':
-    {
-        Screen.psychedelic(7);
-        image* img = Screen.getPtr();
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img->height, img->width, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+    default:
         break;
     }
+}
+
+void KeyUpHandler(unsigned char key, int x, int y)
+{
+    switch(key)
+    {
+    case 'w':
+        kState = kState & (~FORWARD);
+
+        break;
+    case 'a':
+        kState = kState & (~SLEFT);
+
+        break;
+    case 's':
+        kState = kState & (~BACK);
+
+        break;
+    case 'd':
+        kState = kState & (~SRIGHT);
+
+        break;
+    case 'i':
+        kState = kState & (~LUP);
+        break;
+    case 'j':
+        kState = kState & (~LLEFT);
+        break;
+    case 'k':
+        kState = kState & (~LDOWN);
+        break;
+    case 'l':
+        kState = kState & (~LRIGHT);
+        break;
+    case 'r':
     default:
         break;
     }
