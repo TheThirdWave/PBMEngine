@@ -1,21 +1,21 @@
-#include "planeobject.h"
+#include "polygonobject.h"
 
-PlaneObject::PlaneObject()
+PolygonObject::PolygonObject()
 {
-    id = PLANE;
+    id = POLYGON;
 }
 
-void PlaneObject::initRenderObj()
+void PolygonObject::initRenderObj()
 {
 }
 
-void PlaneObject::setGeometry(glm::vec3 vec, glm::vec3 uv)
+void PolygonObject::setGeometry(glm::vec3 vec, glm::vec3 uv)
 {
     geoDescription.normal = vec;
     geoDescription.upVec = uv;
 }
 
-void PlaneObject::updateRenderObject()
+void PolygonObject::updateRenderObject()
 {
     glm::mat4 rot;
     if(glm::dot(geoDescription.normal, geoDescription.upVec) != -1) rot = glm::orientation(geoDescription.normal, geoDescription.upVec);
@@ -26,6 +26,6 @@ void PlaneObject::updateRenderObject()
     rendrPtr->setPosMatrix(pos * rot * sca);
 }
 
-void PlaneObject::updateState(){
+void PolygonObject::updateState(){
 
 }

@@ -54,7 +54,8 @@ Imagemanip Screen;
 
 SphereObject sphere;
 SphereObject sphere1;
-PlaneObject plane, plane1, plane2, plane3, plane4, plane5;
+PolygonObject plane1, plane2, plane3, plane4, plane5;
+PolygonObject plane;
 RenderObject sModel, pModel;
 
 Camera camera;
@@ -136,37 +137,43 @@ int main(int argc, char *argv[])
 
 
     //set plane normal
-    plane.setGeometry(glm::vec3(0.0f, 1.0f, 0.0f));
+    plane.setGeometry(glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
     //set render object
     plane.setRenderObject(&pModel);
     //set plane position
     plane.setPosition(glm::vec3(0.0f, -5.0f, 0.0f));
+    plane.setScale(glm::vec3(5.0f, 5.0f, 5.0f));
     //add to the physics manager for collision detection
     physicsManager.addPhysObj((PhysicsObject*)&plane);
 
-    plane1.setGeometry(glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)));
+    plane1.setGeometry(glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), glm::vec3(0.0f, 0.0f, -1.0f));
     plane1.setRenderObject(&pModel);
     plane1.setPosition(glm::vec3(0.0f, 0.0f, 5.0f));
+    plane1.setScale(glm::vec3(5.0f, 5.0f, 5.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane1);
 
-    plane2.setGeometry(glm::normalize(glm::vec3(0.0f, 0.0f, 1.0f)));
+    plane2.setGeometry(glm::normalize(glm::vec3(0.0f, 0.0f, 1.0f)), glm::vec3(0.0f, 0.0f, -1.0f));
     plane2.setRenderObject(&pModel);
     plane2.setPosition(glm::vec3(0.0f, 0.0f, -5.0f));
+    plane2.setScale(glm::vec3(5.0f, 5.0f, 5.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane2);
 
-    plane3.setGeometry(glm::vec3(-1.0f, 0.0f, 0.0f));
+    plane3.setGeometry(glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
     plane3.setRenderObject(&pModel);
     plane3.setPosition(glm::vec3(5.0f, 0.0f, 0.0f));
+    plane3.setScale(glm::vec3(5.0f, 5.0f, 5.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane3);
 
-    plane4.setGeometry(glm::vec3(1.0f, 0.0f, 0.0f));
+    plane4.setGeometry(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
     plane4.setRenderObject(&pModel);
     plane4.setPosition(glm::vec3(-5.0f, 0.0f, 0.0f));
+    plane4.setScale(glm::vec3(5.0f, 5.0f, 5.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane4);
 
-    plane5.setGeometry(glm::vec3(0.0f, -1.0f, 0.0f));
+    plane5.setGeometry(glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
     plane5.setRenderObject(&pModel);
     plane5.setPosition(glm::vec3(0.0f, 5.0f, 0.0f));
+    plane5.setScale(glm::vec3(5.0f, 5.0f, 5.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane5);
 
     glutDisplayFunc(testRender);
@@ -233,7 +240,7 @@ void initBuf()
 
     sphere.setGeometry(0.5f);
     sphere.setRenderObject(&sModel);
-    sphere.setVelocity(glm::vec3(0.002f, 0.0f, 0.03f));
+    sphere.setVelocity(glm::vec3(0.02f, 0.0f, 0.0f));
     physicsManager.addPhysObj((PhysicsObject*)&sphere);
 
     /*sphere1.setGeometry(1.0f);

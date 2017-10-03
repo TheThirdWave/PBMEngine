@@ -1,17 +1,16 @@
-#ifndef PLANEOBJECT_H
-#define PLANEOBJECT_H
+#ifndef POLYGONOBJECT_H
+#define POLYGONOBJECT_H
 
 #include "physicsobject.h"
 
-class PlaneObject: public PhysicsObject
+class PolygonObject:public PhysicsObject
 {
-    friend class PhysicsManager;
 public:
-    PlaneObject();
+    PolygonObject();
     void initRenderObj();
     void setGeometry(glm::vec3, glm::vec3);
     void updateRenderObject();
     void updateState();
 };
 
-#endif // PLANEOBJECT_H
+#endif // POLYGONOBJECT_H

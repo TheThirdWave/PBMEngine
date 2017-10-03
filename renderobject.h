@@ -14,6 +14,7 @@
 
 class RenderObject
 {
+    friend class PhysicsManager;
 private:
     glm::mat4 posMatrix;
     model* data;

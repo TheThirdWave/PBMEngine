@@ -34,15 +34,23 @@ struct model {
 
 struct geometry {
     glm::vec3       normal;
+    glm::vec3       upVec;
     float           radius;
     float           width;
     float           height;
     float           depth;
 };
 
+struct triangle {
+    glm::vec3   a;
+    glm::vec3   b;
+    glm::vec3   c;
+};
+
 enum collideType{
     SPHERE = 0,
-    PLANE = 1
+    PLANE = 1,
+    POLYGON = 2
 };
 
 enum keyState{

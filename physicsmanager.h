@@ -12,6 +12,7 @@
 #include "physicsobject.h"
 #include "sphereobject.h"
 #include "planeobject.h"
+#include "polygonobject.h"
 #include "structpile.h"
 
 
@@ -33,7 +34,9 @@ public:
     float detectCollision(PhysicsObject*, PhysicsObject*, float);
     float determineCollision(PhysicsObject*, PhysicsObject*, float);
     float spherePlane(SphereObject*, PlaneObject*, float);
+    float spherePoly(SphereObject*, PolygonObject*, float);
     float spherePlaneDet(SphereObject*, PlaneObject*);
+    int pointLSeg2D(glm::vec2, glm::vec2, glm::vec2);
 };
 
 #endif // PHYSICSMANAGER_H

@@ -13,7 +13,8 @@ SOURCES += main.cpp \
     physicsmanager.cpp \
     sphereobject.cpp \
     planeobject.cpp \
-    camera.cpp
+    camera.cpp \
+    polygonobject.cpp
 
 OTHER_FILES += \
     vertshade \
@@ -32,7 +33,8 @@ HEADERS += \
     physicsmanager.h \
     sphereobject.h \
     planeobject.h \
-    camera.h
+    camera.h \
+    polygonobject.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt
 
