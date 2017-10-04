@@ -20,6 +20,7 @@
 #include "physicsobject.h"
 #include "physicsmanager.h"
 #include "sphereobject.h"
+#include "particleobject.h"
 #include "planeobject.h"
 #include "camera.h"
 
@@ -28,7 +29,8 @@ using namespace std;
 
 image* flatImageRWStuff(int, char**);
 void loadShades(void);
-void initBuf(void);
+void initSphere(void);
+void initParticle(float*, float*, unsigned int*);
 void initPlane(float*, float*, unsigned int*);
 void initShade(void);
 void initMatricies(int, int);
@@ -52,18 +54,19 @@ ModelManager modelManager;
 PhysicsManager physicsManager;
 Imagemanip Screen;
 
-SphereObject sphere;
-SphereObject sphere1;
+SphereObject sphere, sphere1;
+ParticleObject part;
+ParticleGenerator pGen;
 PolygonObject plane1, plane2, plane3, plane4, plane5;
 PolygonObject plane;
-RenderObject sModel, pModel;
+RenderObject sModel, pModel, poModel;
 
 Camera camera;
 unsigned int kState = 0;
 
 unsigned long prev_time, cur_time;
 glm::mat4 modelViewProj, Proj, View, Model;
-GLuint buf, idx, tex, posAttrib, vao, vao1;
+GLuint buf, idx, tex, posAttrib, vao, vao1, vao2;
 GLfloat angle = 0.0f;
 int refreshMills = 30;
 int vShade, fShade, cShade;
@@ -107,8 +110,47 @@ int main(int argc, char *argv[])
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 //    initTexture(img);
+    camera.setViewMatrix(&View);
+    initMatricies(width, height);
+
     initShade();
-    initBuf();
+/*
+    //create sphere vao
+    initSphere();
+    sphere.setGeometry(0.5f);
+    sphere.setRenderObject(&sModel);
+    sphere.setVelocity(glm::vec3(0.02f, 0.0f, 0.0f));
+    physicsManager.addPhysObj((PhysicsObject*)&sphere);
+
+    /*sphere1.setGeometry(1.0f);
+    sphere1.setRenderObject(&sModel);
+    sphere1.setPosition(glm::vec3(-2.0f, 0.0f, 0.0f));
+    physicsManager.addPhysObj((PhysicsObject*)&sphere1);*/
+
+    float verticies0[] = {
+        0.0f, -(float)std::sin(60)/2, 0.0f,
+        -0.5f, (float)std::sin(60)/2, 0.0f,
+        0.5f, (float)std::sin(60)/2, 0.0f,
+    };
+    float colors0[] = {
+        1.0f, 0.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
+        1.0f, 0.0f, 0.0f
+    };
+    unsigned int indicies0[] = {
+        0, 1, 2,
+    };
+
+    //create polygon vao
+    initParticle(verticies0, colors0, indicies0);
+
+    part.setGeometry(glm::normalize((camera.getPos() - part.getPos())), glm::vec3(0.0f, 0.0f, -1.0f));
+    part.setRenderObject(&poModel);
+    part.setVelocity(glm::vec3(0.02f, 0.0f, 0.0f));
+    part.setTTL(timeStep * 600);
+    physicsManager.addPhysObj((PhysicsObject*)&part);
+
+
     float vertices[] = {
         -1.0f, 1.0f, 0.0f,
         1.0f, 1.0f, 0.0f,
@@ -126,16 +168,21 @@ int main(int argc, char *argv[])
         3, 2, 1
     };
 
+    //create plane vao
     initPlane(vertices, colors, indicies);
 
-    camera.setViewMatrix(&View);
-    initMatricies(width, height);
+
 
     //add gravity and wind resistance
     physicsManager.addDirectionalForce(glm::vec3(0.0f, -0.00001f, 0.0f));
-    physicsManager.addScalarForce(-0.001);
+//    physicsManager.addScalarForce(-0.001);
+    pGen.setGeometry(1.0f, glm::normalize(glm::vec3(1.0f, 0.0f, 0.0f)));
+    pGen.setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+    pGen.setVelocity(0.02f);
+    pGen.setTTL(timeStep * 600);
+    physicsManager.addParticleGen(&pGen);
 
-
+/*
     //set plane normal
     plane.setGeometry(glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
     //set render object
@@ -157,13 +204,13 @@ int main(int argc, char *argv[])
     plane2.setPosition(glm::vec3(0.0f, 0.0f, -5.0f));
     plane2.setScale(glm::vec3(5.0f, 5.0f, 5.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane2);
-
-    plane3.setGeometry(glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+*/
+    plane3.setGeometry(glm::normalize(glm::vec3(-0.5f, 0.5f, 0.0f)), glm::vec3(0.0f, 0.0f, -1.0f));
     plane3.setRenderObject(&pModel);
-    plane3.setPosition(glm::vec3(5.0f, 0.0f, 0.0f));
+    plane3.setPosition(glm::vec3(8.0f, 0.0f, 0.0f));
     plane3.setScale(glm::vec3(5.0f, 5.0f, 5.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane3);
-
+/*
     plane4.setGeometry(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
     plane4.setRenderObject(&pModel);
     plane4.setPosition(glm::vec3(-5.0f, 0.0f, 0.0f));
@@ -175,7 +222,7 @@ int main(int argc, char *argv[])
     plane5.setPosition(glm::vec3(0.0f, 5.0f, 0.0f));
     plane5.setScale(glm::vec3(5.0f, 5.0f, 5.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane5);
-
+*/
     glutDisplayFunc(testRender);
     glutKeyboardFunc(KeyHandler);
     glutKeyboardUpFunc(KeyUpHandler);
@@ -230,7 +277,7 @@ void initMatricies(int width, int height)
     glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(modelViewProj));
 }
 
-void initBuf()
+void initSphere()
 {
     int index = modelManager.readObj("../testObj.obj");
     glGenVertexArrays(1, &vao);
@@ -238,19 +285,25 @@ void initBuf()
 
     sModel.setModel(modelManager.getModel(index));
 
-    sphere.setGeometry(0.5f);
-    sphere.setRenderObject(&sModel);
-    sphere.setVelocity(glm::vec3(0.02f, 0.0f, 0.0f));
-    physicsManager.addPhysObj((PhysicsObject*)&sphere);
-
-    /*sphere1.setGeometry(1.0f);
-    sphere1.setRenderObject(&sModel);
-    sphere1.setPosition(glm::vec3(-2.0f, 0.0f, 0.0f));
-    physicsManager.addPhysObj((PhysicsObject*)&sphere1);*/
-
 
     GLuint tough = shaderManager.getCombinedShader(cShade);
     shaderManager.configure3DShaders(tough, &sModel);
+}
+
+void initParticle(float* vertices, float* colors, unsigned int* indicies)
+{
+    glGenVertexArrays(1, &vao2);
+    glBindVertexArray(vao2);
+
+
+    poModel.setVertexBuffer(vertices, 9);
+    poModel.setColorBuffer(colors, 9);
+    poModel.setIndexBuffer(indicies, 3);
+
+
+
+    GLuint tough = shaderManager.getCombinedShader(cShade);
+    shaderManager.configure3DShaders(tough, &poModel);
 }
 
 void initPlane(float* vertices, float* colors, unsigned int* indicies)
@@ -387,7 +440,7 @@ void handleKeyStates(float ts)
 void display()
 {
     //draw sphere
-    glBindVertexArray(vao);
+    /*glBindVertexArray(vao);
     sphere.updateRenderObject();
     Model = *(sphere.getRenderObj()->getMatrix());
     modelViewProj = Proj * View * Model;
@@ -405,6 +458,27 @@ void display()
     glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(modelViewProj));
 
     model* hold = sphere.getRenderObj()->getData();
+    glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);*/
+
+    glBindVertexArray(vao2);
+    part.setGeometry(glm::normalize((camera.getPos() - part.getPos())));
+    part.updateRenderObject();
+    Model = *(part.getRenderObj()->getMatrix());
+    modelViewProj = Proj * View * Model;
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    RenderObject* puts = part.getRenderObj();
+
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    shaderManager.configure3DShaders(cShade, puts);
+
+
+    int shader = shaderManager.getCombinedShader(cShade);
+    GLint mvpID = glGetUniformLocation(shader, "MVPMat");
+    glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(modelViewProj));
+
+    model* hold = part.getRenderObj()->getData();
     glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
 
     //draw sphere1
@@ -428,7 +502,7 @@ void display()
 */
     //draw box faces
     glBindVertexArray(vao1);
-    plane.updateRenderObject();
+/*    plane.updateRenderObject();
     Model = *(plane.getRenderObj()->getMatrix());
     modelViewProj = Proj * View * Model;
 
@@ -472,7 +546,7 @@ void display()
 
     hold = plane2.getRenderObj()->getData();
     glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
-
+*/
     //draw plane3
     plane3.updateRenderObject();
     Model = *(plane3.getRenderObj()->getMatrix());
@@ -487,7 +561,7 @@ void display()
 
     hold = plane3.getRenderObj()->getData();
     glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
-
+/*
     //draw plane4
     plane4.updateRenderObject();
     Model = *(plane4.getRenderObj()->getMatrix());
@@ -517,7 +591,7 @@ void display()
 
     hold = plane5.getRenderObj()->getData();
     glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
-
+*/
     glutSwapBuffers();
 }
 

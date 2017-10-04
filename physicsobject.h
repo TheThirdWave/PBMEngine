@@ -28,6 +28,7 @@ protected:
    glm::vec3 scale;
    geometry geoDescription;
 
+   double ttl;
    float mass;
    int id;
 
@@ -52,6 +53,7 @@ public:
     void setAcceleration(glm::vec3);
     void setScale(glm::vec3);
     void setMass(float);
+    void setTTL(double);
     void setGeometry(geometry);
     void addRotation(glm::vec3);
     void addPosition(glm::vec3);
@@ -62,6 +64,7 @@ public:
     virtual void updateState();
     float getVelMag();
     float getAccelMag();
+    glm::vec3 getPos();
     RenderObject* getRenderObj();
 
 };

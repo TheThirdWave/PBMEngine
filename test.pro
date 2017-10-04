@@ -14,7 +14,9 @@ SOURCES += main.cpp \
     sphereobject.cpp \
     planeobject.cpp \
     camera.cpp \
-    polygonobject.cpp
+    polygonobject.cpp \
+    particleobject.cpp \
+    particlegenerator.cpp
 
 OTHER_FILES += \
     vertshade \
@@ -34,7 +36,9 @@ HEADERS += \
     sphereobject.h \
     planeobject.h \
     camera.h \
-    polygonobject.h
+    polygonobject.h \
+    particleobject.h \
+    particlegenerator.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt
 
