@@ -22,10 +22,12 @@ class PhysicsManager
 {
 private:
     PhysicsObject* objList[MAX_PHYS_OBJECTS];
-    ParticleGenerator* generators[MAX_GENERATORS];
+    ParticleObject* partList;
+    ParticleGenerator** generators;
     float       scalarGlobalForces[MAX_FORCES];
     glm::vec3   directonalGlobalForces[MAX_FORCES];
-    int objLen, scaGFLen, dirGFLen, genLen;
+    geometry    attractorGlobalForces[MAX_FORCES];
+    int objLen, scaGFLen, dirGFLen, attGFLen, genLen, partLen;
     float elasticity;
     float fcoefficient;
 public:
@@ -33,7 +35,9 @@ public:
     void addPhysObj(PhysicsObject*);
     void addScalarForce(float);
     void addDirectionalForce(glm::vec3);
+    void addAttractorForce(geometry);
     void addParticleGen(ParticleGenerator*);
+    void addParticleList(ParticleObject*, int);
     void runTimeStep(float);
     float detectCollision(PhysicsObject*, PhysicsObject*, float);
     float determineCollision(PhysicsObject*, PhysicsObject*, float);

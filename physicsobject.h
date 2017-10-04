@@ -60,7 +60,7 @@ public:
     void addVelocity(glm::vec3);
     void addAcceleration(glm::vec3);
     void addScale(glm::vec3);
-    void getNextState(float);
+    virtual void getNextState(float);
     virtual void updateState();
     float getVelMag();
     float getAccelMag();

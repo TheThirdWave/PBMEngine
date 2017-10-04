@@ -26,6 +26,11 @@ void PlaneObject::updateRenderObject()
     rendrPtr->setPosMatrix(pos * rot * sca);
 }
 
+void PlaneObject::getNextState(float t)
+{
+
+}
+
 void PlaneObject::updateState(){
 
 }

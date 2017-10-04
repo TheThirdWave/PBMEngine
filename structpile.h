@@ -11,9 +11,11 @@
 #define MAX_PICTURES 10
 #define MAX_SHADERS 10
 #define MAX_MODELS 10
-#define MAX_PHYS_OBJECTS 10
+#define MAX_PHYS_OBJECTS 100000
 #define MAX_FORCES 10
 #define MAX_GENERATORS 10
+
+#define NUM_PARTS 1000
 
 #include "../glm-0.9.8.5/glm/glm.hpp"
 

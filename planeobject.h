@@ -11,6 +11,7 @@ public:
     void initRenderObj();
     void setGeometry(glm::vec3, glm::vec3);
     void updateRenderObject();
+    void getNextState(float);
     void updateState();
 };
 

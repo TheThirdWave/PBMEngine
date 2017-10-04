@@ -2,10 +2,13 @@
 
 PhysicsManager::PhysicsManager()
 {
+    generators = new ParticleGenerator*[MAX_GENERATORS];
     scaGFLen = 0;
     dirGFLen = 0;
+    attGFLen = 0;
     objLen = 0;
     genLen = 0;
+    partLen = 0;
     elasticity = 1.0f;
     fcoefficient = 0.1f;
 }
@@ -25,6 +28,17 @@ void PhysicsManager::addDirectionalForce(glm::vec3 f)
     directonalGlobalForces[dirGFLen++] = f;
 }
 
+void PhysicsManager::addAttractorForce(geometry g)
+{
+    attractorGlobalForces[attGFLen++] = g;
+}
+
+void PhysicsManager::addParticleList(ParticleObject* p, int len)
+{
+    partList = p;
+    partLen = len;
+}
+
 void PhysicsManager::addParticleGen(ParticleGenerator * pG)
 {
     generators[genLen++] = pG;
@@ -35,11 +49,6 @@ void PhysicsManager::runTimeStep(float ts)
     //set accelerations
     for(int i = 0; i < objLen; i++)
     {
-        if(objList[i]->ttl < 0 && objList[i]->id == PARTICLE)
-        {
-            int lucky = rand() % genLen;
-            generators[lucky]->createParticle((ParticleObject*)objList[i]);
-        }
         glm::vec3 hold = glm::vec3(0.0f);
         for(int j = 0; j < dirGFLen; j++)
         {
@@ -50,7 +59,38 @@ void PhysicsManager::runTimeStep(float ts)
             glm::vec3 blah = objList[i]->velocity * scalarGlobalForces[j];
             hold = hold + blah;
         }
+        for(int j = 0; j < attGFLen; j++)
+        {
+            glm::vec3 point = glm::normalize(attractorGlobalForces[j].normal - objList[i]->position);
+            hold = hold + (point * attractorGlobalForces[j].radius);
+        }
         objList[i]->setAcceleration(hold);
+    }
+
+    for(int i = 0; i < partLen; i++)
+    {
+        if(partList[i].ttl < 0)
+        {
+            int lucky = rand() % genLen;
+            generators[lucky]->createParticle(&partList[i]);
+        }
+        glm::vec3 hold = glm::vec3(0.0f);
+        for(int j = 0; j < dirGFLen; j++)
+        {
+            hold = hold + directonalGlobalForces[j];
+        }
+        for(int j = 0; j < scaGFLen; j++)
+        {
+            glm::vec3 blah = partList[i].velocity * scalarGlobalForces[j];
+            hold = hold + blah;
+        }
+        for(int j = 0; j < attGFLen; j++)
+        {
+            glm::vec3 point = glm::normalize(attractorGlobalForces[j].normal - partList[i].position);
+            hold = hold + (point * attractorGlobalForces[j].radius);
+        }
+        partList[i].setAcceleration(hold);
+        partList[i].getNextState(ts);
     }
 
     float timeLeft = ts;
@@ -58,7 +98,7 @@ void PhysicsManager::runTimeStep(float ts)
     for(int i = 0; i < objLen; i++)
     {
         objList[i]->getNextState(ts);
-    }
+    } 
 
     //check for collisions
     for(int i = 0; i < objLen-1; i++)
@@ -73,6 +113,18 @@ void PhysicsManager::runTimeStep(float ts)
             timeLeft = ts;
         }
     }
+    for(int i = 0; i < partLen; i++)
+    {
+        for(int j = 0; j < objLen; j++)
+        {
+            while(timeLeft > 0)
+            {
+                timeLeft = detectCollision(&partList[i], objList[j], timeLeft);
+
+            }
+            timeLeft = ts;
+        }
+    }
 
     //update state
     for(int i = 0; i< objLen; i++)
@@ -80,6 +132,16 @@ void PhysicsManager::runTimeStep(float ts)
         objList[i]->updateState();
         objList[i]->updateRenderObject();
         objList[i]->ttl -= ts;
+    }
+    for(int i = 0; i< partLen; i++)
+    {
+        partList[i].updateState();
+        partList[i].updateRenderObject();
+        partList[i].ttl -= ts;
+    }
+    for(int i = 0; i < genLen; i++)
+    {
+        generators[i]->setpartsMade(100);
     }
 }
 

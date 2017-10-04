@@ -7,6 +7,7 @@ ParticleGenerator::ParticleGenerator()
     geoDescription.normal = glm::vec3(0.0f, 1.0f, 0.0f);
     geoDescription.radius = 1.0f;
     ttl = 60;
+    partsMade = 1;
 }
 
 void ParticleGenerator::setPosition(glm::vec3 p)
@@ -30,14 +31,25 @@ void ParticleGenerator::setTTL(double t)
     ttl = t;
 }
 
+void ParticleGenerator::setpartsMade(int p)
+{
+    partsMade = p;
+}
+
 void ParticleGenerator::createParticle(ParticleObject* part)
 {
-    glm::vec3 discUnit = glm::rotate(geoDescription.normal, (float)PI/2, glm::vec3(0.0f, 1.0f, 0.0f));
-    float discDir = 2 * PI * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX));
-    discUnit = glm::rotate(discUnit, discDir, geoDescription.normal);
-    float discLen = (1 - geoDescription.radius * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX))) * geoDescription.radius;
-    discUnit = discUnit * discLen;
-    part->setPosition(position + discUnit);
-    part->setVelocity(geoDescription.normal * velocity);
-    part->setTTL(ttl);
+    if(partsMade > 0)
+    {
+        glm::vec3 discUnit = glm::rotate(geoDescription.normal, (float)PI/2, glm::vec3(0.0f, 1.0f, 0.0f));
+        float discDir = 2 * PI * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX));
+        discUnit = glm::rotate(discUnit, discDir, geoDescription.normal);
+        float discLen = (1 - geoDescription.radius * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX))) * geoDescription.radius;
+        discUnit = discUnit * discLen;
+        part->setPosition(position + discUnit);
+        part->setVelocity(geoDescription.normal * velocity);
+        part->setNewPosition(position + discUnit);
+        part->setNewVelocity(geoDescription.normal * velocity);
+        part->setTTL(ttl * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)));
+        partsMade--;
+    }
 }
