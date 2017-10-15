@@ -5,7 +5,7 @@
 #include "../glm-0.9.8.5/glm/gtc/matrix_transform.hpp"
 #include "../glm-0.9.8.5/glm/gtc/type_ptr.hpp"
 #include "../glm-0.9.8.5/glm/gtx/transform.hpp"
-#include "../glm-0.9.8.5/glm/gtx/rotate_vector.hpp".hpp"
+#include "../glm-0.9.8.5/glm/gtx/rotate_vector.hpp"
 
 
 #include "renderobject.h"
@@ -25,8 +25,10 @@ protected:
    glm::vec3 velocity;
    glm::vec3 newVelocity;
    glm::vec3 acceleration;
+   glm::vec3 scale;
    geometry geoDescription;
 
+   double ttl;
    float mass;
    int id;
 
@@ -49,15 +51,20 @@ public:
     void setVelocity(glm::vec3);
     void setNewVelocity(glm::vec3);
     void setAcceleration(glm::vec3);
+    void setScale(glm::vec3);
     void setMass(float);
+    void setTTL(double);
     void setGeometry(geometry);
+    void addRotation(glm::vec3);
     void addPosition(glm::vec3);
     void addVelocity(glm::vec3);
     void addAcceleration(glm::vec3);
-    void getNextState(float);
+    void addScale(glm::vec3);
+    virtual void getNextState(float);
     virtual void updateState();
     float getVelMag();
     float getAccelMag();
+    glm::vec3 getPos();
     RenderObject* getRenderObj();
 
 };

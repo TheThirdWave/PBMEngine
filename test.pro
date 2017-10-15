@@ -17,7 +17,11 @@ SOURCES += main.cpp \
     linefunction.cpp \
     spherefunction.cpp \
     trigfunction.cpp \
-    quadraticfunction.cpp
+    quadraticfunction.cpp \
+    camera.cpp \
+    polygonobject.cpp \
+    particleobject.cpp \
+    particlegenerator.cpp
 
 OTHER_FILES += \
     vertshade \
@@ -40,7 +44,11 @@ HEADERS += \
     linefunction.h \
     spherefunction.h \
     trigfunction.h \
-    quadraticfunction.h
+    quadraticfunction.h \
+    camera.h \
+    polygonobject.h \
+    particleobject.h \
+    particlegenerator.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt
 

@@ -4,11 +4,13 @@ PhysicsObject::PhysicsObject()
 {
     rotation = glm::vec3(0.0f);
     position = glm::vec3(0.0f);
+    scale = glm::vec3(1.0f);
     velocity = glm::vec3(0.0f, 0.0f, 0.0f);
     acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
     newPosition = position;
     newVelocity = velocity;
     mass = 1;
+    ttl = -1;
     rendrPtr = NULL;
 }
 
@@ -17,9 +19,11 @@ PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos, glm::vec3 vel, gl
     rotation = glm::vec3(0.0f);
     rendrPtr = ptr;
     position = pos;
+    scale = glm::vec3(1.0f);
     velocity = vel;
     acceleration = accel;
     mass = 1;
+    ttl = -1;
     newPosition = position;
     newVelocity = velocity;
 }
@@ -29,11 +33,13 @@ PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos, glm::vec3 vel)
     rotation = glm::vec3(0.0f);
     rendrPtr = ptr;
     position = pos;
+    scale = glm::vec3(1.0f);
     velocity = vel;
     acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
     mass = 1;
     newPosition = position;
     newVelocity = velocity;
+    ttl = -1;
 }
 
 PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos)
@@ -41,11 +47,13 @@ PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos)
     rotation = glm::vec3(0.0f);
     rendrPtr = ptr;
     position = pos;
+    scale = glm::vec3(1.0f);
     velocity = glm::vec3(0.0f, 0.0f, 0.0f);
     acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
     mass = 1;
     newPosition = position;
     newVelocity = velocity;
+    ttl = -1;
 }
 
 PhysicsObject::PhysicsObject(RenderObject* ptr, float x, float y, float z)
@@ -54,10 +62,12 @@ PhysicsObject::PhysicsObject(RenderObject* ptr, float x, float y, float z)
     rendrPtr = ptr;
     position = glm::vec3(x, y, z);
     velocity = glm::vec3(0.0f, 0.0f, 0.0f);
+    scale = glm::vec3(1.0f);
     acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
     mass = 1;
     newPosition = position;
     newVelocity = velocity;
+    ttl = -1;
 }
 
 PhysicsObject::PhysicsObject(glm::vec3 pos, glm::vec3 vel, glm::vec3 accel)
@@ -66,10 +76,12 @@ PhysicsObject::PhysicsObject(glm::vec3 pos, glm::vec3 vel, glm::vec3 accel)
     rendrPtr = NULL;
     position = pos;
     velocity = vel;
+    scale = glm::vec3(1.0f);
     acceleration = accel;
     mass = 1;
     newPosition = position;
     newVelocity = velocity;
+    ttl = -1;
 }
 
 PhysicsObject::PhysicsObject(glm::vec3 pos, glm::vec3 vel)
@@ -77,11 +89,13 @@ PhysicsObject::PhysicsObject(glm::vec3 pos, glm::vec3 vel)
     rotation = glm::vec3(0.0f);
     rendrPtr = NULL;
     position = pos;
+    scale = glm::vec3(1.0f);
     velocity = vel;
     acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
     mass = 1;
     newPosition = position;
     newVelocity = velocity;
+    ttl = -1;
 }
 
 PhysicsObject::PhysicsObject(glm::vec3 pos)
@@ -89,11 +103,13 @@ PhysicsObject::PhysicsObject(glm::vec3 pos)
     rotation = glm::vec3(0.0f);
     rendrPtr = NULL;
     position = pos;
+    scale = glm::vec3(1.0f);
     velocity = glm::vec3(0.0f, 0.0f, 0.0f);
     acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
     mass = 1;
     newPosition = position;
     newVelocity = velocity;
+    ttl = -1;
 }
 
 PhysicsObject::PhysicsObject(float x, float y, float z)
@@ -102,17 +118,20 @@ PhysicsObject::PhysicsObject(float x, float y, float z)
     rendrPtr = NULL;
     position = glm::vec3(x, y, z);
     velocity = glm::vec3(0.0f, 0.0f, 0.0f);
+    scale = glm::vec3(1.0f);
     acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
     mass = 1;
     newPosition = position;
     newVelocity = velocity;
+    ttl = -1;
 }
 
 void PhysicsObject::updateRenderObject()
 {
     glm::mat4 pos = glm::translate(glm::mat4(1.0f), position);
+    glm::mat4 sca = glm::scale(glm::mat4(1.0f), scale);
 
-    rendrPtr->setPosMatrix(pos);
+    rendrPtr->setPosMatrix(pos * sca);
 }
 
 void PhysicsObject::setRenderObject(RenderObject* ptr)
@@ -128,6 +147,11 @@ void PhysicsObject::setRotation(glm::vec3 rot)
 void PhysicsObject::setPosition(glm::vec3 pos)
 {
     position = pos;
+}
+
+void PhysicsObject::setScale(glm::vec3 sca)
+{
+    scale = sca;
 }
 
 void PhysicsObject::setNewPosition(glm::vec3 pos)
@@ -155,9 +179,19 @@ void PhysicsObject::setMass(float ma)
     mass = ma;
 }
 
+void PhysicsObject::setTTL(double t)
+{
+    ttl = t;
+}
+
 void PhysicsObject::setGeometry(geometry geo)
 {
     geoDescription = geo;
+}
+
+void PhysicsObject::addRotation(glm::vec3 nr)
+{
+    rotation = rotation + nr;
 }
 
 void PhysicsObject::addPosition(glm::vec3 np)
@@ -168,6 +202,11 @@ void PhysicsObject::addPosition(glm::vec3 np)
 void PhysicsObject::addVelocity(glm::vec3 nv)
 {
     velocity = velocity + nv;
+}
+
+void PhysicsObject::addScale(glm::vec3 sc)
+{
+    scale = scale + sc;
 }
 
 void PhysicsObject::addAcceleration(glm::vec3 na)
@@ -195,6 +234,11 @@ float PhysicsObject::getVelMag()
 float PhysicsObject::getAccelMag()
 {
     return glm::length(acceleration);
+}
+
+
+glm::vec3 PhysicsObject::getPos(){
+    return position;
 }
 
 RenderObject* PhysicsObject::getRenderObj()
