@@ -9,11 +9,13 @@
 
 #include "function2d.h"
 #include "structpile.h"
+#include "kernel.h"
 
 class Imagemanip
 {
 private:
-    image screen;
+    image screen, filterScreen;
+    Kernel kern;
     glm::vec3 background, foreground;
     Function2D* functions[MAX_FUNCTIONS];
     int funcNum;
@@ -21,6 +23,12 @@ public:
     Imagemanip();
     ~Imagemanip();
     Imagemanip(int, int);
+    Imagemanip(image*);
+    void setScreen(image*);
+    void setKernel(int, int);
+    void setKernelValues(float);
+    void setKernelValuesF(Function2D*);
+    void initScreen(image*);
     void initScreen(int, int);
     void setBackground(char, char, char);
     void setForeground(char, char, char);
@@ -40,6 +48,9 @@ public:
     void drawModAA(int, int);
     void drawBlobbyAA(int);
     void drawShaded();
+    void simpleBlur();
+    void motionBlur(Function2D*);
+    void emboss();
 };
 
 #endif // IMAGEMANIP_H

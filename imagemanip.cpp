@@ -4,6 +4,19 @@ Imagemanip::Imagemanip()
 {
 }
 
+Imagemanip::Imagemanip(image* i)
+{
+    screen.width = i->width;
+    screen.height = i->height;
+    screen.unitbytes = i->unitbytes;
+    screen.size = i->size;
+    screen.data = new unsigned char[sizeof(unsigned char) * screen.size];
+    memcpy(screen.data, i->data, sizeof(unsigned char) * screen.size);
+    foreground = glm::vec3(0, 0, 0);
+    background = glm::vec3(1.0f, 1.0f, 1.0f);
+    funcNum = 0;
+}
+
 Imagemanip::Imagemanip(int width, int height)
 {
     screen.width = width;
@@ -22,6 +35,32 @@ Imagemanip::~Imagemanip()
     delete screen.data;
 }
 
+void Imagemanip::setScreen(image* i)
+{
+    screen.width = i->width;
+    screen.height = i->height;
+    screen.unitbytes = i->unitbytes;
+    screen.size = i->size;
+    screen.data = new unsigned char[sizeof(unsigned char) * screen.size];
+    memcpy(screen.data, i->data, sizeof(unsigned char) * screen.size);
+}
+
+void Imagemanip::setKernel(int w, int h)
+{
+    kern = Kernel(w, h);
+    kern.setWeights(1.0f / (kern.height * kern.width));
+}
+
+void Imagemanip::setKernelValues(float v)
+{
+    kern.setWeights(v);
+}
+
+void Imagemanip::setKernelValuesF(Function2D * func)
+{
+    kern.setFuncWeights(func);
+}
+
 void Imagemanip::initScreen(int width, int height)
 {
     screen.width = width;
@@ -30,6 +69,31 @@ void Imagemanip::initScreen(int width, int height)
     screen.size = width * height * screen.unitbytes;
     screen.data = new unsigned char[sizeof(unsigned char) * screen.size];
     memset(screen.data, 0 , (sizeof(unsigned char) * screen.size));
+    filterScreen.width = width;
+    filterScreen.height = height;
+    filterScreen.unitbytes = RGBA;
+    filterScreen.size = width * height * screen.unitbytes;
+    filterScreen.data = new unsigned char[sizeof(unsigned char) * screen.size];
+    memset(filterScreen.data, 0 , (sizeof(unsigned char) * screen.size));
+    foreground = glm::vec3(0, 0, 0);
+    background = glm::vec3(1.0f, 1.0f, 1.0f);
+    funcNum = 0;
+}
+
+void Imagemanip::initScreen(image* i)
+{
+    screen.width = i->width;
+    screen.height = i->height;
+    screen.unitbytes = i->unitbytes;
+    screen.size = i->size;
+    screen.data = new unsigned char[sizeof(unsigned char) * screen.size];
+    memcpy(screen.data, i->data, (sizeof(unsigned char) * screen.size));
+    filterScreen.width = screen.width;
+    filterScreen.height = screen.height;
+    filterScreen.unitbytes = RGBA;
+    filterScreen.size = screen.size;
+    filterScreen.data = new unsigned char[sizeof(unsigned char) * filterScreen.size];
+    memset(filterScreen.data, 0 , (sizeof(unsigned char) * filterScreen.size));
     foreground = glm::vec3(0, 0, 0);
     background = glm::vec3(1.0f, 1.0f, 1.0f);
     funcNum = 0;
@@ -517,3 +581,163 @@ void Imagemanip::drawShaded()
         }
     }
 }
+
+void Imagemanip::simpleBlur()
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            float agR = 0.0f;
+            float agG = 0.0f;
+            float agB = 0.0f;
+            for(int i = 0; i < kern.height; i++)
+            {
+                for(int j = 0; j < kern.width; j++)
+                {
+                    int xk = x + ((j - kern.wr) * screen.unitbytes);
+                    int yk = y + ((i - kern.hr) * screen.unitbytes);
+                    xk = abs(xk);
+                    yk = abs(yk);
+                    if(!(xk < 0 || xk > screen.width * screen.unitbytes || yk < 0 || yk > screen.height * screen.unitbytes))
+                    {
+                        agR += screen.data[xk + (yk * screen.width)] * kern.weights[i][j];
+                        agG += screen.data[(xk + 1) + (yk * screen.width)] * kern.weights[i][j];
+                        agB += screen.data[(xk + 2) + (yk * screen.width)] * kern.weights[i][j];
+                    }
+                }
+            }
+
+            filterScreen.data[x + (y * screen.width)] = agR;
+            filterScreen.data[(x + 1) + (y * screen.width)] = agG;
+            filterScreen.data[(x + 2) + (y * screen.width)] = agB;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = 255;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
+void Imagemanip::motionBlur(Function2D* func)
+{
+    kern.setFuncWeights(func);
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            float agR = 0.0f;
+            float agG = 0.0f;
+            float agB = 0.0f;
+            for(int i = 0; i < kern.height; i++)
+            {
+                for(int j = 0; j < kern.width; j++)
+                {
+                    int xk = x + ((j - kern.wr) * screen.unitbytes);
+                    int yk = y + ((i - kern.hr) * screen.unitbytes);
+                    if(!(xk < 0 || xk > screen.width * screen.unitbytes || yk < 0 || yk > screen.height * screen.unitbytes))
+                    {
+                        agR += screen.data[xk + (yk * screen.width)] * kern.weights[i][j];
+                        agG += screen.data[(xk + 1) + (yk * screen.width)] * kern.weights[i][j];
+                        agB += screen.data[(xk + 2) + (yk * screen.width)] * kern.weights[i][j];
+                    }
+                }
+            }
+
+            filterScreen.data[x + (y * screen.width)] = agR;
+            filterScreen.data[(x + 1) + (y * screen.width)] = agG;
+            filterScreen.data[(x + 2) + (y * screen.width)] = agB;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = 255;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
+void Imagemanip::emboss()
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            float agR = 0.0f;
+            float agG = 0.0f;
+            float agB = 0.0f;
+            float agRY = 0.0f;
+            float agGY = 0.0f;
+            float agBY = 0.0f;
+            float agRNY = 0.0f;
+            float agGNY = 0.0f;
+            float agBNY = 0.0f;
+            float agRX = 0.0f;
+            float agGX = 0.0f;
+            float agBX = 0.0f;
+            float agRNX = 0.0f;
+            float agGNX = 0.0f;
+            float agBNX = 0.0f;
+
+            int xk = x - (kern.wr * screen.unitbytes);
+            int xnk = x + (kern.wr * screen.unitbytes);
+            if(xk < 0) xk = xnk;
+            if(xnk > screen.width * screen.unitbytes) xnk = xk;
+
+            int yk = y - (kern.hr * screen.unitbytes);
+            int ynk = y + (kern.hr * screen.unitbytes);
+            if(yk < 0) yk = ynk;
+            if(ynk > screen.height * screen.unitbytes) ynk = yk;
+
+            agRX += screen.data[xk + (y * screen.width)] * kern.weights[0][kern.hr + 1];
+            agGX += screen.data[(xk + 1) + (y * screen.width)] * kern.weights[0][kern.hr + 1];
+            agBX += screen.data[(xk + 2) + (y * screen.width)] * kern.weights[0][kern.hr + 1];
+            agRNX += screen.data[xnk + (y * screen.width)] * kern.weights[kern.width-1][kern.hr + 1];
+            agGNX += screen.data[(xnk + 1) + (y * screen.width)] * kern.weights[kern.width-1][kern.hr + 1];
+            agBNX += screen.data[(xnk + 2) + (y * screen.width)] * kern.weights[kern.width-1][kern.hr + 1];
+
+            agRY += screen.data[x + (yk * screen.width)] * kern.weights[kern.wr +1][0];
+            agGY += screen.data[(x + 1) + (yk * screen.width)] * kern.weights[kern.wr +1][0];
+            agBY += screen.data[(x + 2) + (yk * screen.width)] * kern.weights[kern.wr +1][0];
+            agRNY += screen.data[x + (ynk * screen.width)] * kern.weights[kern.wr +1][kern.height - 1];
+            agGNY += screen.data[(x + 1) + (ynk * screen.width)] * kern.weights[kern.wr +1][kern.height - 1];
+            agBNY += screen.data[(x + 2) + (ynk * screen.width)] * kern.weights[kern.wr +1][kern.height - 1];
+
+            agR = abs(agRX - agRNX) + abs(agRY - agRNY)/2;
+            agG = abs(agGX - agGNX) + abs(agGY - agGNY)/2;
+            agB = abs(agBX - agBNX) + abs(agBY - agBNY)/2;
+
+
+            filterScreen.data[x + (y * screen.width)] = agR;
+            filterScreen.data[(x + 1) + (y * screen.width)] = agG;
+            filterScreen.data[(x + 2) + (y * screen.width)] = agB;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = 255;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
