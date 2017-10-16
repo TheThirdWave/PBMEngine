@@ -80,7 +80,9 @@ enum progState{
     SHADED = 4,
     MODULUS = 5,
     BLUR = 6,
-    EMBOSS = 7
+    EMBOSS = 7,
+    DILATION = 8,
+    EROSION = 9
 };
 
 #endif // STRUCTPILE_H

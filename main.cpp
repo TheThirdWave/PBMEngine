@@ -183,11 +183,11 @@ image* flatImageRWStuff(int argc, char** argv)
     //int count = stoi(argv[2], NULL, 10);
 
     //int count = stoi(argv[2], NULL, 10);
-    //Screen.initScreen(img);
-    Screen.initScreen(800, 800);
-    Screen.clearScreen();
-    Screen.psychedelic(1);
-    Screen.setKernel(2, 2);
+    Screen.initScreen(img);
+    //Screen.initScreen(800, 800);
+    //Screen.clearScreen();
+    //Screen.psychedelic(1);
+    Screen.setKernel(3, 3);
 
     img = Screen.getPtr();
 
@@ -419,7 +419,7 @@ void KeyHandler(unsigned char key, int x, int y)
         progState = CONVEX;
         Screen.clearScreen();
         image* img = Screen.getPtr();
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img->height, img->width, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         numFuncs = 0;
         Screen.emptyFunctions();
     }
@@ -438,6 +438,44 @@ void KeyHandler(unsigned char key, int x, int y)
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }
+    }
+        break;
+    case 'v':
+    {
+        if(progState != DILATION)
+        {
+            progState = DILATION;
+            Screen.setKernelValues(1.0f);
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.dilation();
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+    }
+        break;
+    case 'b':
+    {
+        if(progState != EROSION)
+        {
+            progState = EROSION;
+            Screen.setKernelValues(1.0f);
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.erosion();
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+    }
+        break;
+    case 'q':
+    {
+        int idx = imageManager.addImage(*Screen.getPtr());
+        imageManager.writePNG("../filtered.png", idx);
     }
         break;
     case 'w':
@@ -547,17 +585,15 @@ void MouseHandler(int button, int state, int x, int y)
                 case BLUR:
                 {
                     lineDir = glm::normalize(lineDir);
-                    normal = glm::vec2(lineDir.y, lineDir.x);
-                    LineFunction l = LineFunction(glm::normalize(normal), glm::vec2(0.0f, 0.0f));
+                    LineFunction l = LineFunction(lineDir, glm::vec2(0.0f, 0.0f));
                     Screen.setKernelValuesF(&l);
-                    //Screen.simpleBlur();
                 }
                     break;
                 default:
                     break;
                 }
 
-                if(progState != BLUR && progState != EMBOSS)
+                if(progState != BLUR && progState != EMBOSS && progState != DILATION && progState!= EROSION)
                 {
                     Screen.addFunction(functions[numFuncs]);
                     numFuncs++;
@@ -586,7 +622,7 @@ void MouseHandler(int button, int state, int x, int y)
                     break;
                 }
                 image* img = Screen.getPtr();
-                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img->height, img->width, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
             }
             else fprintf(stderr, "ERROR: MAX_FUNCTIONS reached\n");
         }

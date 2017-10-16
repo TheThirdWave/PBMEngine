@@ -198,9 +198,9 @@ void Imagemanip::fillScreen(int r, int g, int b)
         {
             //modulus 256 to keep things the size of a byte, I probably don't need to do it
             //'cause it truncates everything to put it into the char but whatever.
-            screen.data[x + (y * screen.width)] = r % 256;
-            screen.data[(x + 1) + (y * screen.width)] = g % 256;
-            screen.data[(x + 2) + (y * screen.width)] = b % 256;
+            screen.data[x + (y * screen.width)] = r % 255;
+            screen.data[(x + 1) + (y * screen.width)] = g % 255;
+            screen.data[(x + 2) + (y * screen.width)] = b % 255;
             //the alpha is always at max for now.
             screen.data[(x + 3) + (y * screen.width)] = 255;
         }
@@ -718,6 +718,194 @@ void Imagemanip::emboss()
     unsigned char* hold = screen.data;
     screen.data = filterScreen.data;
     filterScreen.data = hold;
+}
+
+void Imagemanip::dilation()
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            glm::vec3 rgb(1.0f);
+            glm::vec3 hsv(0.0f);
+            glm::vec3 holdHSV(0.0f);
+
+            rgb.r = screen.data[x + (y * screen.width)];
+            rgb.g = screen.data[(x + 1) + (y * screen.width)];
+            rgb.b = screen.data[(x + 2) + (y * screen.width)];
+            rgb = rgb / 255.0f;
+            hsv = rgbtohsv(rgb);
+
+            for(int i = 0; i < kern.height; i++)
+            {
+                for(int j = 0; j < kern.width; j++)
+                {
+
+                    int xk = x + ((j - kern.wr) * screen.unitbytes);
+                    int yk = y + ((i - kern.hr) * screen.unitbytes);
+                    xk = abs(xk);
+                    yk = abs(yk);
+                    if(!(xk < 0 || xk > screen.width * screen.unitbytes || yk < 0 || yk > screen.height * screen.unitbytes))
+                    {
+                        rgb.r = screen.data[xk + (yk * screen.width)] * kern.weights[i][j];
+                        rgb.g = screen.data[(xk + 1) + (yk * screen.width)] * kern.weights[i][j];
+                        rgb.b = screen.data[(xk + 2) + (yk * screen.width)] * kern.weights[i][j];
+                        rgb = rgb / 255.0f;
+                        holdHSV = rgbtohsv(rgb);
+                        if(hsv.z < holdHSV.z) hsv.z = holdHSV.z;
+                    }
+                }
+            }
+
+            rgb = hsvtorgb(hsv);
+
+            filterScreen.data[x + (y * screen.width)] = rgb.r * 255;
+            filterScreen.data[(x + 1) + (y * screen.width)] = rgb.g * 255;
+            filterScreen.data[(x + 2) + (y * screen.width)] = rgb.b * 255;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = 255;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
+void Imagemanip::erosion()
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            glm::vec3 rgb(1.0f);
+            glm::vec3 hsv(0.0f);
+            glm::vec3 holdHSV(0.0f);
+
+            rgb.r = screen.data[x + (y * screen.width)];
+            rgb.g = screen.data[(x + 1) + (y * screen.width)];
+            rgb.b = screen.data[(x + 2) + (y * screen.width)];
+            rgb = rgb / 255.0f;
+            hsv = rgbtohsv(rgb);
+
+            for(int i = 0; i < kern.height; i++)
+            {
+                for(int j = 0; j < kern.width; j++)
+                {
+
+                    int xk = x + ((j - kern.wr) * screen.unitbytes);
+                    int yk = y + ((i - kern.hr) * screen.unitbytes);
+                    xk = abs(xk);
+                    yk = abs(yk);
+                    if(!(xk < 0 || xk > screen.width * screen.unitbytes || yk < 0 || yk > screen.height * screen.unitbytes))
+                    {
+                        rgb.r = screen.data[xk + (yk * screen.width)] * kern.weights[i][j];
+                        rgb.g = screen.data[(xk + 1) + (yk * screen.width)] * kern.weights[i][j];
+                        rgb.b = screen.data[(xk + 2) + (yk * screen.width)] * kern.weights[i][j];
+                        rgb = rgb / 255.0f;
+                        holdHSV = rgbtohsv(rgb);
+                        if(hsv.z > holdHSV.z) hsv.z = holdHSV.z;
+                    }
+                }
+            }
+
+            rgb = hsvtorgb(hsv);
+
+            filterScreen.data[x + (y * screen.width)] = rgb.r * 255;
+            filterScreen.data[(x + 1) + (y * screen.width)] = rgb.g * 255;
+            filterScreen.data[(x + 2) + (y * screen.width)] = rgb.b * 255;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = 255;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
+glm::vec3 Imagemanip::rgbtohsv(glm::vec3 rgb)
+{
+    float max = std::max(rgb.r, rgb.g);
+    max = std::max(max, rgb.b);
+    float min = std::min(rgb.r, rgb.g);
+    min = std::min(min, rgb.b);
+
+    float v = max;
+    float s;
+    float h;
+    float delta;
+
+    if(v == 0)
+    {
+        s = 0;
+        h = 0;
+    }
+    else
+    {
+        delta = max - min;
+        s = delta / max;
+
+        if(delta == 0) h = 0;
+        else
+        {
+            if(rgb.r == max) h = (rgb.g - rgb.b) / delta;
+            else if (rgb.g == max) h = 2.0 + (rgb.b - rgb.r) / delta;
+            else h = 4.0 + (rgb.r - rgb.g) / delta;
+            h = h * 60.0;
+            if(h < 0) h = h + 360.0;
+        }
+    }
+
+    return glm::vec3(h, s, v);
+}
+
+glm::vec3 Imagemanip::hsvtorgb(glm::vec3 hsv)
+{
+    double nh, t, opp, back, forward;
+    int i;
+    glm::vec3 rgb;
+
+    nh = hsv.x / 60.0;
+    i = (int)nh;
+    t = nh - i;
+    opp = hsv.z * (1.0 - hsv.y);
+    back = hsv.z * (1.0 - (hsv.y * t));
+    forward = hsv.z * (1.0 - (hsv.y * (1.0 - t)));
+
+    switch(i)
+    {
+    case 0:
+        rgb.r = hsv.z;
+        rgb.g = forward;
+        rgb.b = opp;
+        break;
+    case 1:
+        rgb.r = back;
+        rgb.g = hsv.z;
+        rgb.b = opp;
+        break;
+    case 2:
+        rgb.r = opp;
+        rgb.g = hsv.z;
+        rgb.b = forward;
+        break;
+    case 3:
+        rgb.r = opp;
+        rgb.g = back;
+        rgb.b = hsv.z;
+        break;
+    case 4:
+        rgb.r = forward;
+        rgb.g = opp;
+        rgb.b = hsv.z;
+        break;
+    case 5:
+    default:
+        rgb.r = hsv.z;
+        rgb.g = opp;
+        rgb.b = back;
+        break;
+    }
+    return rgb;
 }
 
 

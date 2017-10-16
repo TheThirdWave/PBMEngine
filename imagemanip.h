@@ -51,6 +51,10 @@ public:
     void simpleBlur();
     void motionBlur(Function2D*);
     void emboss();
+    void dilation();
+    void erosion();
+    glm::vec3 rgbtohsv(glm::vec3);
+    glm::vec3 hsvtorgb(glm::vec3);
 };
 
 #endif // IMAGEMANIP_H
