@@ -85,7 +85,8 @@ enum progState{
     EROSION = 9,
     MBLUR = 10,
     MDILATION = 11,
-    MEROSION = 12
+    MEROSION = 12,
+    BDLPF = 13
 };
 
 #endif // STRUCTPILE_H

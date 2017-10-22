@@ -59,6 +59,7 @@ public:
     void erosion();
     void maskedDilation(Imagemanip*);
     void maskedErosion(Imagemanip*);
+    void bdlpf();
     glm::vec3 rgbtohsv(glm::vec3);
     glm::vec3 hsvtorgb(glm::vec3);
 };

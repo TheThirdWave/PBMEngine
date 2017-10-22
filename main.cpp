@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
 
 image* flatImageRWStuff(int argc, char** argv)
 {
-    int holdImage = imageManager.openPNG("../ObjectsNMap.png");
+    int holdImage = imageManager.openPNG("../crumpled2DMask.png");
     if(holdImage < 0) fprintf(stderr,"Error, couldn't read PPM file.\n");
     image* img = imageManager.getImgPtr(holdImage);
     //int count = stoi(argv[2], NULL, 10);
@@ -191,7 +191,7 @@ image* flatImageRWStuff(int argc, char** argv)
     //Screen.initScreen(800, 800);
     //Screen.clearScreen();
     //Screen.psychedelic(1);
-    Screen.setKernel(5, 5);
+    Screen.setKernel(7, 7);
 
     img = Screen.getPtr();
 
@@ -524,6 +524,22 @@ void KeyHandler(unsigned char key, int x, int y)
         }
     }
         break;
+    case 'k':
+    {
+        if(progState != BDLPF)
+        {
+            progState = BDLPF;
+            Screen.setKernelValues(1.0f);
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.bdlpf();
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+    }
+        break;
     case 'q':
     {
         int idx = imageManager.addImage(*Screen.getPtr());
@@ -616,7 +632,7 @@ void MouseHandler(int button, int state, int x, int y)
                     break;
                 }
 
-                if(progState != BLUR && progState != EMBOSS && progState != DILATION && progState!= EROSION && progState != MBLUR)
+                if(progState != BLUR && progState != EMBOSS && progState != DILATION && progState!= EROSION && progState != MBLUR && progState!= BDLPF)
                 {
                     Screen.addFunction(functions[numFuncs]);
                     numFuncs++;

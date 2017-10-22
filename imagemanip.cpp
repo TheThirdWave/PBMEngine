@@ -63,7 +63,7 @@ void Imagemanip::setKernelValuesF(Function2D * func)
 
 void Imagemanip::setKernelValuesEF(Function2D * func)
 {
-    kern.setFExactWeights(func);
+    kern.setFExactWeightsAvg(func);
 }
 
 void Imagemanip::initScreen(int width, int height)
@@ -642,7 +642,7 @@ void Imagemanip::simpleBlur()
 
 void Imagemanip::motionBlur(Function2D* func)
 {
-    kern.setFExactWeights(func);
+    kern.setFExactWeightsAvg(func);
     for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
     {
         for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
@@ -696,7 +696,7 @@ void Imagemanip::maskedMBlur(Imagemanip * vMask)
             {
                 glm::vec2 nv = glm::normalize(v);
                 LineFunction l = LineFunction(nv, glm::vec2(0.0f, 0.0f));
-                kern.setFExactWeights(&l);
+                kern.setFExactWeightsAvg(&l);
             }
             for(int i = 0; i < kern.height; i++)
             {
@@ -917,7 +917,6 @@ void Imagemanip::maskedDilation(Imagemanip* vMask)
                 glm::vec2 nv = glm::normalize(v);
                 LineFunction l = LineFunction(nv, glm::vec2(0.0f, 0.0f));
                 kern.setFExactWeights(&l);
-                //kern.setWeights(1.0f);
             }
 
             for(int i = 0; i < kern.height; i++)
@@ -982,7 +981,6 @@ void Imagemanip::maskedErosion(Imagemanip* vMask)
                 glm::vec2 nv = glm::normalize(v);
                 LineFunction l = LineFunction(nv, glm::vec2(0.0f, 0.0f));
                 kern.setFExactWeights(&l);
-                kern.setWeights(1.0f);
             }
 
             for(int i = 0; i < kern.height; i++)
@@ -1018,6 +1016,66 @@ void Imagemanip::maskedErosion(Imagemanip* vMask)
     unsigned char* hold = screen.data;
     screen.data = filterScreen.data;
     filterScreen.data = hold;
+}
+
+void Imagemanip::bdlpf()
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            float agR = 0.0f;
+            float agG = 0.0f;
+            float agB = 0.0f;
+            float agRY = 0.0f;
+            float agGY = 0.0f;
+            float agBY = 0.0f;
+            float agRNY = 0.0f;
+            float agGNY = 0.0f;
+            float agBNY = 0.0f;
+            float agRX = 0.0f;
+            float agGX = 0.0f;
+            float agBX = 0.0f;
+            float agRNX = 0.0f;
+            float agGNX = 0.0f;
+            float agBNX = 0.0f;
+
+            int xk = x - (kern.wr * screen.unitbytes);
+            int xnk = x + (kern.wr * screen.unitbytes);
+            if(xk < 0) xk = xnk;
+            if(xnk > screen.width * screen.unitbytes) xnk = xk;
+
+            int yk = y - (kern.hr * screen.unitbytes);
+            int ynk = y + (kern.hr * screen.unitbytes);
+            if(yk < 0) yk = ynk;
+            if(ynk > screen.height * screen.unitbytes) ynk = yk;
+
+            agRX += screen.data[xk + (y * screen.width)] * kern.weights[0][kern.hr + 1];
+            agGX += screen.data[(xk + 1) + (y * screen.width)] * kern.weights[0][kern.hr + 1];
+            agBX += screen.data[(xk + 2) + (y * screen.width)] * kern.weights[0][kern.hr + 1];
+            agRNX += screen.data[xnk + (y * screen.width)] * kern.weights[kern.width-1][kern.hr + 1];
+            agGNX += screen.data[(xnk + 1) + (y * screen.width)] * kern.weights[kern.width-1][kern.hr + 1];
+            agBNX += screen.data[(xnk + 2) + (y * screen.width)] * kern.weights[kern.width-1][kern.hr + 1];
+
+            agRY += screen.data[x + (yk * screen.width)] * kern.weights[kern.wr +1][0];
+            agGY += screen.data[(x + 1) + (yk * screen.width)] * kern.weights[kern.wr +1][0];
+            agBY += screen.data[(x + 2) + (yk * screen.width)] * kern.weights[kern.wr +1][0];
+            agRNY += screen.data[x + (ynk * screen.width)] * kern.weights[kern.wr +1][kern.height - 1];
+            agGNY += screen.data[(x + 1) + (ynk * screen.width)] * kern.weights[kern.wr +1][kern.height - 1];
+            agBNY += screen.data[(x + 2) + (ynk * screen.width)] * kern.weights[kern.wr +1][kern.height - 1];
+
+            agR = abs(agRX - agRNX) + abs(agGX - agGNX) + abs(agBX - agBNX)/3;
+            agG = abs(agGY - agGNY) + abs(agRY - agRNY) + (agBY + agBNY)/3;
+
+
+            filterScreen.data[x + (y * screen.width)] = ((int)agR + 128) % 256;
+            filterScreen.data[(x + 1) + (y * screen.width)] = ((int)agG + 128) % 256;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = 255;
+        }
+    }
+    Imagemanip test = Imagemanip(&filterScreen);
+    maskedDilation(&test);
 }
 
 glm::vec3 Imagemanip::rgbtohsv(glm::vec3 rgb)
