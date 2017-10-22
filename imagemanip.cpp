@@ -61,6 +61,11 @@ void Imagemanip::setKernelValuesF(Function2D * func)
     kern.setFuncWeights(func);
 }
 
+void Imagemanip::setKernelValuesEF(Function2D * func)
+{
+    kern.setFExactWeights(func);
+}
+
 void Imagemanip::initScreen(int width, int height)
 {
     screen.width = width;
@@ -179,6 +184,21 @@ void Imagemanip::clearScreen()
             screen.data[x + (y * screen.width)] = background.r * 255;
             screen.data[(x + 1) + (y * screen.width)] = background.g * 255;
             screen.data[(x + 2) + (y * screen.width)] = background.b * 255;
+            //the alpha is always at max for now.
+            screen.data[(x + 3) + (y * screen.width)] = 255;
+        }
+    }
+}
+
+void Imagemanip::noise()
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            screen.data[x + (y * screen.width)] = rand() % 255;
+            screen.data[(x + 1) + (y * screen.width)] = rand() % 255;
+            screen.data[(x + 2) + (y * screen.width)] = rand() % 255;
             //the alpha is always at max for now.
             screen.data[(x + 3) + (y * screen.width)] = 255;
         }
@@ -622,7 +642,7 @@ void Imagemanip::simpleBlur()
 
 void Imagemanip::motionBlur(Function2D* func)
 {
-    kern.setFuncWeights(func);
+    kern.setFExactWeights(func);
     for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
     {
         for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
@@ -630,6 +650,54 @@ void Imagemanip::motionBlur(Function2D* func)
             float agR = 0.0f;
             float agG = 0.0f;
             float agB = 0.0f;
+            for(int i = 0; i < kern.height; i++)
+            {
+                for(int j = 0; j < kern.width; j++)
+                {
+                    int xk = x + ((j - kern.wr) * screen.unitbytes);
+                    int yk = y + ((i - kern.hr) * screen.unitbytes);
+                    if(!(xk < 0 || xk > screen.width * screen.unitbytes || yk < 0 || yk > screen.height * screen.unitbytes))
+                    {
+                        agR += screen.data[xk + (yk * screen.width)] * kern.weights[i][j];
+                        agG += screen.data[(xk + 1) + (yk * screen.width)] * kern.weights[i][j];
+                        agB += screen.data[(xk + 2) + (yk * screen.width)] * kern.weights[i][j];
+                    }
+                }
+            }
+
+            filterScreen.data[x + (y * screen.width)] = agR;
+            filterScreen.data[(x + 1) + (y * screen.width)] = agG;
+            filterScreen.data[(x + 2) + (y * screen.width)] = agB;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = 255;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
+void Imagemanip::maskedMBlur(Imagemanip * vMask)
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            float agR = 0.0f;
+            float agG = 0.0f;
+            float agB = 0.0f;
+            image* mask = &vMask->screen;
+            glm::vec2 v = glm::vec2(-(mask->data[(x + 1) + (y * mask->width)] - 128), mask->data[(x) + (y * mask->width)] - 128);
+            if(glm::length(v) == 0)
+            {
+                kern.makeIdentity();
+            }
+            else
+            {
+                glm::vec2 nv = glm::normalize(v);
+                LineFunction l = LineFunction(nv, glm::vec2(0.0f, 0.0f));
+                kern.setFExactWeights(&l);
+            }
             for(int i = 0; i < kern.height; i++)
             {
                 for(int j = 0; j < kern.width; j++)
@@ -797,6 +865,136 @@ void Imagemanip::erosion()
                     xk = abs(xk);
                     yk = abs(yk);
                     if(!(xk < 0 || xk > screen.width * screen.unitbytes || yk < 0 || yk > screen.height * screen.unitbytes))
+                    {
+                        rgb.r = screen.data[xk + (yk * screen.width)] * kern.weights[i][j];
+                        rgb.g = screen.data[(xk + 1) + (yk * screen.width)] * kern.weights[i][j];
+                        rgb.b = screen.data[(xk + 2) + (yk * screen.width)] * kern.weights[i][j];
+                        rgb = rgb / 255.0f;
+                        holdHSV = rgbtohsv(rgb);
+                        if(hsv.z > holdHSV.z) hsv.z = holdHSV.z;
+                    }
+                }
+            }
+
+            rgb = hsvtorgb(hsv);
+
+            filterScreen.data[x + (y * screen.width)] = rgb.r * 255;
+            filterScreen.data[(x + 1) + (y * screen.width)] = rgb.g * 255;
+            filterScreen.data[(x + 2) + (y * screen.width)] = rgb.b * 255;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = 255;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
+void Imagemanip::maskedDilation(Imagemanip* vMask)
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            glm::vec3 rgb(1.0f);
+            glm::vec3 hsv(0.0f);
+            glm::vec3 holdHSV(0.0f);
+
+            rgb.r = screen.data[x + (y * screen.width)];
+            rgb.g = screen.data[(x + 1) + (y * screen.width)];
+            rgb.b = screen.data[(x + 2) + (y * screen.width)];
+            rgb = rgb / 255.0f;
+            hsv = rgbtohsv(rgb);
+
+            image* mask = &vMask->screen;
+            glm::vec2 v = glm::vec2(-(mask->data[(x + 1) + (y * mask->width)] - 128), mask->data[(x) + (y * mask->width)] - 128);
+            if(glm::length(v) == 0)
+            {
+                kern.makeIdentity();
+            }
+            else
+            {
+                glm::vec2 nv = glm::normalize(v);
+                LineFunction l = LineFunction(nv, glm::vec2(0.0f, 0.0f));
+                kern.setFExactWeights(&l);
+                //kern.setWeights(1.0f);
+            }
+
+            for(int i = 0; i < kern.height; i++)
+            {
+                for(int j = 0; j < kern.width; j++)
+                {
+
+                    int xk = x + ((j - kern.wr) * screen.unitbytes);
+                    int yk = y + ((i - kern.hr) * screen.unitbytes);
+                    xk = abs(xk);
+                    yk = abs(yk);
+                    if(!(xk < 0 || xk > screen.width * screen.unitbytes || yk < 0 || yk > screen.height * screen.unitbytes) && kern.weights[i][j] != 0)
+                    {
+                        rgb.r = screen.data[xk + (yk * screen.width)] * kern.weights[i][j];
+                        rgb.g = screen.data[(xk + 1) + (yk * screen.width)] * kern.weights[i][j];
+                        rgb.b = screen.data[(xk + 2) + (yk * screen.width)] * kern.weights[i][j];
+                        rgb = rgb / 255.0f;
+                        holdHSV = rgbtohsv(rgb);
+                        if(hsv.z < holdHSV.z) hsv.z = holdHSV.z;
+                    }
+                }
+            }
+
+            rgb = hsvtorgb(hsv);
+
+            filterScreen.data[x + (y * screen.width)] = rgb.r * 255;
+            filterScreen.data[(x + 1) + (y * screen.width)] = rgb.g * 255;
+            filterScreen.data[(x + 2) + (y * screen.width)] = rgb.b * 255;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = 255;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
+void Imagemanip::maskedErosion(Imagemanip* vMask)
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            glm::vec3 rgb(1.0f);
+            glm::vec3 hsv(0.0f);
+            glm::vec3 holdHSV(0.0f);
+
+            rgb.r = screen.data[x + (y * screen.width)];
+            rgb.g = screen.data[(x + 1) + (y * screen.width)];
+            rgb.b = screen.data[(x + 2) + (y * screen.width)];
+            rgb = rgb / 255.0f;
+            hsv = rgbtohsv(rgb);
+
+            image* mask = &vMask->screen;
+            glm::vec2 v = glm::vec2(-(mask->data[(x + 1) + (y * mask->width)] - 128), mask->data[(x) + (y * mask->width)] - 128);
+            if(glm::length(v) == 0)
+            {
+                kern.makeIdentity();
+            }
+            else
+            {
+                glm::vec2 nv = glm::normalize(v);
+                LineFunction l = LineFunction(nv, glm::vec2(0.0f, 0.0f));
+                kern.setFExactWeights(&l);
+                kern.setWeights(1.0f);
+            }
+
+            for(int i = 0; i < kern.height; i++)
+            {
+                for(int j = 0; j < kern.width; j++)
+                {
+
+                    int xk = x + ((j - kern.wr) * screen.unitbytes);
+                    int yk = y + ((i - kern.hr) * screen.unitbytes);
+                    xk = abs(xk);
+                    yk = abs(yk);
+                    if(!(xk < 0 || xk > screen.width * screen.unitbytes || yk < 0 || yk > screen.height * screen.unitbytes) && kern.weights[i][j] != 0)
                     {
                         rgb.r = screen.data[xk + (yk * screen.width)] * kern.weights[i][j];
                         rgb.g = screen.data[(xk + 1) + (yk * screen.width)] * kern.weights[i][j];

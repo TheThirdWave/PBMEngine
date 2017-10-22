@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "function2d.h"
+#include "linefunction.h"
 #include "structpile.h"
 #include "kernel.h"
 
@@ -28,6 +29,7 @@ public:
     void setKernel(int, int);
     void setKernelValues(float);
     void setKernelValuesF(Function2D*);
+    void setKernelValuesEF(Function2D*);
     void initScreen(image*);
     void initScreen(int, int);
     void setBackground(char, char, char);
@@ -39,6 +41,7 @@ public:
     void psychedelic(int);
     void clearScreen();
     void fillScreen(int, int, int);
+    void noise();
     void drawConvex();
     void drawStar();
     void drawMod(int);
@@ -50,9 +53,12 @@ public:
     void drawShaded();
     void simpleBlur();
     void motionBlur(Function2D*);
+    void maskedMBlur(Imagemanip*);
     void emboss();
     void dilation();
     void erosion();
+    void maskedDilation(Imagemanip*);
+    void maskedErosion(Imagemanip*);
     glm::vec3 rgbtohsv(glm::vec3);
     glm::vec3 hsvtorgb(glm::vec3);
 };

@@ -60,7 +60,7 @@ ShaderManager shaderManager;
 ReaderWriter imageManager;
 ModelManager modelManager;
 PhysicsManager physicsManager;
-Imagemanip Screen;
+Imagemanip Screen, vecMask;
 
 SphereObject sphere, sphere1;
 ParticleObject* part;
@@ -177,17 +177,21 @@ int main(int argc, char *argv[])
 
 image* flatImageRWStuff(int argc, char** argv)
 {
-    int holdImage = imageManager.openPNG("../1.png");
+    int holdImage = imageManager.openPNG("../ObjectsNMap.png");
     if(holdImage < 0) fprintf(stderr,"Error, couldn't read PPM file.\n");
     image* img = imageManager.getImgPtr(holdImage);
     //int count = stoi(argv[2], NULL, 10);
 
     //int count = stoi(argv[2], NULL, 10);
+    vecMask.initScreen(img);
+
+    holdImage = imageManager.openPNG("../1.png");
+    img = imageManager.getImgPtr(holdImage);
     Screen.initScreen(img);
     //Screen.initScreen(800, 800);
     //Screen.clearScreen();
     //Screen.psychedelic(1);
-    Screen.setKernel(3, 3);
+    Screen.setKernel(5, 5);
 
     img = Screen.getPtr();
 
@@ -472,41 +476,60 @@ void KeyHandler(unsigned char key, int x, int y)
         }
     }
         break;
+    case 'n':
+    {
+        if(progState != MBLUR)
+        {
+            progState = MBLUR;
+            Screen.setKernelValues(1.0f);
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.maskedMBlur(&vecMask);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+    }
+        break;
+    case 'm':
+    {
+        if(progState != MDILATION)
+        {
+            progState = MDILATION;
+            Screen.setKernelValues(1.0f);
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.maskedDilation(&vecMask);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+    }
+        break;
+    case 'l':
+    {
+        if(progState != MEROSION)
+        {
+            progState = MEROSION;
+            Screen.setKernelValues(1.0f);
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.maskedErosion(&vecMask);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+    }
+        break;
     case 'q':
     {
         int idx = imageManager.addImage(*Screen.getPtr());
         imageManager.writePNG("../filtered.png", idx);
     }
         break;
-    case 'w':
-        kState = kState | FORWARD;
-
-        break;
-    case 'a':
-        kState = kState | SLEFT;
-
-        break;
-    case 's':
-        kState = kState | BACK;
-
-        break;
-    case 'd':
-        kState = kState | SRIGHT;
-
-        break;
-    case 'i':
-        kState = kState | LUP;
-        break;
-    case 'j':
-        kState = kState | LLEFT;
-        break;
-    case 'k':
-        kState = kState | LDOWN;
-        break;
-    case 'l':
-        kState = kState | LRIGHT;
-        break;
-    case 'r':
     default:
         break;
     }
@@ -586,14 +609,14 @@ void MouseHandler(int button, int state, int x, int y)
                 {
                     lineDir = glm::normalize(lineDir);
                     LineFunction l = LineFunction(lineDir, glm::vec2(0.0f, 0.0f));
-                    Screen.setKernelValuesF(&l);
+                    Screen.setKernelValuesEF(&l);
                 }
                     break;
                 default:
                     break;
                 }
 
-                if(progState != BLUR && progState != EMBOSS && progState != DILATION && progState!= EROSION)
+                if(progState != BLUR && progState != EMBOSS && progState != DILATION && progState!= EROSION && progState != MBLUR)
                 {
                     Screen.addFunction(functions[numFuncs]);
                     numFuncs++;
