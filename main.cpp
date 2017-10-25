@@ -132,18 +132,17 @@ int main(int argc, char *argv[])
 
     initShade();
 
-
     float vertices[] = {
-        -1.0f, 1.0f, 0.0f,
-        1.0f, 1.0f, 0.0f,
-        -1.0f, -1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f
+        -1.0f, 1.0f, 2.0f,
+        1.0f, 1.0f, 1.0f,
+        -1.0f, -1.0f, 1.0f,
+        1.0f, -1.0f, 1.0f
     };
     float colors[] = {
         0.0f, 0.0f, 0.0f,
-        1.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f,
-        1.0f, 1.0f, 0.0f
+        1.0f, 0.0f, 0.5f,
+        0.0f, 1.0f, 0.5f,
+        1.0f, 1.0f, 0.5f
     };
     unsigned int indicies[] = {
         0, 1, 2,

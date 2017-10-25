@@ -5,10 +5,15 @@ layout(location = 1) in vec3 color;
 
 uniform mat4 MVPMat;
 
-out vec2 Color;
+out vec3 Color;
+out vec3 Pos;
 
 void main()
 {
-        gl_Position = MVPMat * vec4(position, 1.0);
-        Color = vec2(color.x, color.y);
+        Pos = position;
+        Pos.x = Pos.x/Pos.z;
+        Pos.y = Pos.y/Pos.z;
+        Color = color;
+        Pos.z = 0.0;
+        gl_Position =  MVPMat * vec4(Pos, 1.0);
 }
