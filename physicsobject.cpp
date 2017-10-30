@@ -194,6 +194,11 @@ void PhysicsObject::setGeometry(geometry geo)
     geoDescription = geo;
 }
 
+void PhysicsObject::addChild(PhysicsObject*)
+{
+
+}
+
 void PhysicsObject::addRotation(glm::vec3 nr)
 {
     curState.rotation = curState.rotation + nr;
@@ -221,7 +226,7 @@ void PhysicsObject::addScale(glm::vec3 sc)
 
 void PhysicsObject::addAcceleration(glm::vec3 na)
 {
-    curState.acceleration = curState.acceleration + na;
+    curState.acceleration = curState.acceleration + (na / mass);
 }
 
 void PhysicsObject::getNextState(float ts)
@@ -233,8 +238,6 @@ void PhysicsObject::getNextState(float ts)
 void PhysicsObject::updateState()
 {
     curState = newState;
-    curState.velocity = newState.velocity;
-    curState.position = newState.position;
 }
 
 float PhysicsObject::getVelMag()

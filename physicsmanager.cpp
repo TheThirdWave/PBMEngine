@@ -46,27 +46,46 @@ void PhysicsManager::addParticleGen(ParticleGenerator * pG)
 
 void PhysicsManager::runTimeStep(float ts)
 {
-    //set accelerations
+    //forces
     for(int i = 0; i < objLen; i++)
     {
-        glm::vec3 hold = glm::vec3(0.0f);
-        for(int j = 0; j < dirGFLen; j++)
+        //apply global forces to objects
+        if(objList[i]->id != EDGE)
         {
-            hold = hold + directonalGlobalForces[j];
+            glm::vec3 hold = glm::vec3(0.0f);
+            for(int j = 0; j < dirGFLen; j++)
+            {
+                hold = hold + directonalGlobalForces[j];
+            }
+            for(int j = 0; j < scaGFLen; j++)
+            {
+                glm::vec3 blah = objList[i]->getVelocity() * scalarGlobalForces[j];
+                hold = hold + blah;
+            }
+            for(int j = 0; j < attGFLen; j++)
+            {
+                glm::vec3 point = glm::normalize(attractorGlobalForces[j].normal - objList[i]->getPosition());
+                hold = hold + (point * attractorGlobalForces[j].radius);
+            }
+            objList[i]->setAcceleration(hold);
         }
-        for(int j = 0; j < scaGFLen; j++)
+        //spring forces.
+        else
         {
-            glm::vec3 blah = objList[i]->getVelocity() * scalarGlobalForces[j];
-            hold = hold + blah;
+            glm::vec3 pt1 = objList[i]->childPtrs[0]->getPosition();
+            glm::vec3 pt2 = objList[i]->childPtrs[1]->getPosition();
+            glm::vec3 v1 = objList[i]->childPtrs[0]->getVelocity();
+            glm::vec3 v2 = objList[i]->childPtrs[1]->getVelocity();
+            glm::vec3 pt12 = pt2 - pt1;
+            glm::vec3 npt12 = glm::normalize(pt12);
+            glm::vec3 sf = objList[i]->springK * (glm::length(pt12) - objList[i]->springL) * npt12;
+            glm::vec3 df = objList[i]->springD * (glm::dot((v2 - v1), npt12)) * npt12;
+            objList[i]->childPtrs[0]->addAcceleration(sf + df);
+            objList[i]->childPtrs[1]->addAcceleration(-sf + -df);
         }
-        for(int j = 0; j < attGFLen; j++)
-        {
-            glm::vec3 point = glm::normalize(attractorGlobalForces[j].normal - objList[i]->getPosition());
-            hold = hold + (point * attractorGlobalForces[j].radius);
-        }
-        objList[i]->setAcceleration(hold);
     }
 
+    //apply global forces for particles
     for(int i = 0; i < partLen; i++)
     {
         if(partList[i].ttl < 0)
@@ -100,7 +119,7 @@ void PhysicsManager::runTimeStep(float ts)
         objList[i]->getNextState(ts);
     } 
 
-    //check for collisions
+    //check for collisions for objects
     for(int i = 0; i < objLen-1; i++)
     {
         for(int j = i + 1; j < objLen; j++)
@@ -113,6 +132,7 @@ void PhysicsManager::runTimeStep(float ts)
             timeLeft = ts;
         }
     }
+    //check for collisions for particles
     for(int i = 0; i < partLen; i++)
     {
         for(int j = 0; j < objLen; j++)
@@ -133,12 +153,14 @@ void PhysicsManager::runTimeStep(float ts)
         objList[i]->updateRenderObject();
         objList[i]->ttl -= ts;
     }
+    //update state for particles.
     for(int i = 0; i< partLen; i++)
     {
         partList[i].updateState();
         partList[i].updateRenderObject();
         partList[i].ttl -= ts;
     }
+    //reset generators.
     for(int i = 0; i < genLen; i++)
     {
         generators[i]->setpartsMade(100);
@@ -153,6 +175,7 @@ float PhysicsManager::detectCollision(PhysicsObject* one, PhysicsObject* two, fl
     if(one->id == POLYGON && two->id == SPHERE) return spherePoly((SphereObject*)two, (PolygonObject*)one, timeLeft);
     if(one->id == PARTICLE && two->id == POLYGON) return partPoly((ParticleObject*)one, (PolygonObject*)two, timeLeft);
     if(one->id == POLYGON && two->id == PARTICLE) return partPoly((ParticleObject*)two, (PolygonObject*)one, timeLeft);
+    if(one->id == EDGE && two->id == EDGE) return edgeEdge((EdgeObject*)one, (EdgeObject*)two);
     return 0;
 }
 
@@ -405,6 +428,39 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
 
 
     return timeLeft;
+
+}
+
+float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLeft)
+{
+    //points for each edge
+    glm::vec3 pt1 = eo1->childPtrs[0]->getPosition();
+    glm::vec3 pt2 = eo2->childPtrs[0]->getPosition();
+    //vectors for the line that describes the edge.
+    glm::vec3 e1 = eo1->childPtrs[1]->getPosition() - pt1;
+    glm::vec3 e2 = eo2->childPtrs[1]->getPosition() - pt2;
+    //The normal that describes a plane between the two edges.
+    glm::vec3 plane = glm::normalize(glm::cross(e1, e2));
+
+    //do the same thing with for the new positions of the edges.
+    glm::vec3 npt1 = eo1->childPtrs[0]->getNewPosition();
+    glm::vec3 npt2 = eo2->childPtrs[0]->getNewPosition();
+
+    glm::vec3 ne1 = eo1->childPtrs[1]->getNewPosition() - pt1;
+    glm::vec3 ne2 = eo2->childPtrs[1]->getNewPosition() - pt2;
+
+    //get the old and new vector between the edges.
+    glm::vec3 dist = pt2 - pt1;
+    glm::vec3 ndist = npt2-npt1;
+
+    //if the dot product changes sign between the old and new distance, we know that the lines have crossed the plane between them,
+    //and we need to check if they actually hit or if they're miles away from each other.
+    float norm = glm::dot(dist, plane);
+    float nnorm = glm::dot(ndist, plane);
+
+    //return if they don't pass through the plane
+    if((norm > 0 && nnorm > 0) || norm < 0 && nnorm < 0) return 0;
+
 
 }
 

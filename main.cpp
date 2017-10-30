@@ -25,6 +25,7 @@
 #include "renderobject.h"
 #include "physicsobject.h"
 #include "physicsmanager.h"
+#include "edgeobject.h"
 #include "sphereobject.h"
 #include "particleobject.h"
 #include "planeobject.h"
@@ -63,6 +64,7 @@ PhysicsManager physicsManager;
 Imagemanip Screen;
 
 SphereObject sphere, sphere1;
+EdgeObject edge;
 ParticleObject* part;
 ParticleGenerator pGen;
 PolygonObject plane1, plane2, plane3, plane4, plane5;
@@ -89,7 +91,7 @@ glm::vec2 mDownPos;
 glm::vec2 mUpPos;
 int progState = CONVEX;
 
-const float timeStep = 1000 / (60.0f);
+const float timeStep = 1000 / (60.0f * 20);
 
 int rotation = 15;
 
@@ -135,11 +137,14 @@ int main(int argc, char *argv[])
 
     //create sphere vao
     initSphere();
+
     sphere.setGeometry(0.5f);
     sphere.setRenderObject(&sModel);
-    sphere.setVelocity(glm::vec3(-0.02f, 0.0f, 0.0f));
+    sphere.setVelocity(glm::vec3(-0.00f, 0.0f, 0.0f));
     sphere.setScale(glm::vec3(1.0f, 1.0f, 1.0f));
+    sphere.setPosition(glm::vec3(-100.0f, 1.0f, 1.0f));
     physicsManager.addPhysObj((PhysicsObject*)&sphere);
+
 
     /*sphere1.setGeometry(1.0f);
     sphere1.setRenderObject(&sModel);
@@ -162,7 +167,7 @@ int main(int argc, char *argv[])
 
     //create polygon vao
     initParticle(verticies0, colors0, indicies0);
-
+/*
     for(int i = 0; i < NUM_PARTS; i++)
     {
         part[i].setGeometry(glm::normalize((camera.getPosition() - part[i].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
@@ -172,6 +177,26 @@ int main(int argc, char *argv[])
         part[i].setTTL(-0);
     }
     physicsManager.addParticleList(part, NUM_PARTS);
+*/
+
+    part[0].setGeometry(glm::normalize((camera.getPosition() - part[0].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
+    part[0].setRenderObject(&sModel);
+    part[0].setPosition(glm::vec3(-1.0, 1.0f, 0.0f));
+    part[0].setVelocity(glm::vec3(0.001f, 0.0f, 0.0f));
+    part[0].setScale(glm::vec3(0.5f, 0.5f, 0.5f));
+    part[0].setTTL(-0);
+    part[1].setGeometry(glm::normalize((camera.getPosition() - part[1].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
+    part[1].setRenderObject(&sModel);
+    part[1].setPosition(glm::vec3(1.0, 1.0f, 0.0f));
+    part[1].setScale(glm::vec3(0.5f, 0.5f, 0.5f));
+    part[1].setTTL(-0);
+    physicsManager.addPhysObj(&part[0]);
+    physicsManager.addPhysObj(&part[1]);
+
+    edge.addChild(&part[0]);
+    edge.addChild(&part[1]);
+    edge.setSpring(3.0, 0.001, 0.0005);
+    physicsManager.addPhysObj(&edge);
 
 
     float vertices[] = {
@@ -198,17 +223,21 @@ int main(int argc, char *argv[])
 
 
     //add gravity and wind resistance
-    geometry george;
-    george.radius = 0.00001f;
-    george.normal = glm::vec3(10.0f, 30.0f, 0.0f);
-    physicsManager.addDirectionalForce(glm::vec3(0.0f, -0.00001f, 0.0f));
-    physicsManager.addAttractorForce(george);
+//    geometry george;
+//    george.radius = 0.00001f;
+//    george.normal = glm::vec3(10.0f, 30.0f, 0.0f);
+//    physicsManager.addDirectionalForce(glm::vec3(0.0f, -0.00001f, 0.0f));
+//    physicsManager.addAttractorForce(george);
 //    physicsManager.addScalarForce(-0.001);
+
+    //create particle generator
+/*
     pGen.setGeometry(1.0f, glm::normalize(glm::vec3(1.0f, 0.0f, 0.0f)));
     pGen.setPosition(glm::vec3(0.0f, -1.0f, 0.0f));
     pGen.setVelocity(0.02f);
     pGen.setTTL(timeStep * 600);
     physicsManager.addParticleGen(&pGen);
+*/
 
 /*
     //set plane normal
@@ -241,7 +270,7 @@ int main(int argc, char *argv[])
 */
     plane3.setGeometry(glm::normalize(glm::vec3(-0.5f, 0.5f, 0.0f)), glm::vec3(0.0f, 0.0f, -1.0f));
     plane3.setRenderObject(&pModel);
-    plane3.setPosition(glm::vec3(8.0f, 0.0f, 0.0f));
+    plane3.setPosition(glm::vec3(3.0f, 0.0f, 0.0f));
     plane3.setScale(glm::vec3(5.0f, 5.0f, 5.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane3);
 /*
@@ -298,7 +327,7 @@ void initMatricies(int width, int height)
 {
     //Proj = glm::mat4(1.0f);
     Proj = glm::perspective(glm::radians(YFOV), ((float)width / (float)height), ZNEAR, ZFAR);
-    camera.setPosition(glm::vec3(0.0f, 0.0f, -20.f));
+    camera.setPosition(glm::vec3(0.0f, 0.0f, -10.f));
     camera.setRotation(glm::vec3(0.0f, 0, 0.0f));
     camera.updateViewMatrix();
     //View = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -0.9f));

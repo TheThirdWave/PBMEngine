@@ -18,22 +18,18 @@ class PhysicsObject
    friend class PhysicsManager;
 
 protected:
+   PhysicsObject** childPtrs;
    RenderObject* rendrPtr;
-   glm::vec3 rotation;
-   glm::vec3 position;
-   glm::vec3 newPosition;
-   glm::vec3 velocity;
-   glm::vec3 newVelocity;
-   glm::vec3 acceleration;
+
    glm::vec3 scale;
    state    curState;
    state    newState;
-   state    derivState;
    geometry geoDescription;
 
    double ttl;
-   float mass;
+   float mass, springL, springD, springK;
    int id;
+   int numChildren;
 
 public:
     PhysicsObject(void);
@@ -59,6 +55,7 @@ public:
     void setMass(float);
     void setTTL(double);
     void setGeometry(geometry);
+    void addChild(PhysicsObject*);
     void addRotation(glm::vec3);
     void addNewRotation(glm::vec3);
     void addPosition(glm::vec3);
