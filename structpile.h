@@ -46,6 +46,14 @@ struct geometry {
     float           depth;
 };
 
+struct state
+{
+    glm::vec3 rotation;
+    glm::vec3 position;
+    glm::vec3 velocity;
+    glm::vec3 acceleration;
+};
+
 struct triangle {
     glm::vec3   a;
     glm::vec3   b;

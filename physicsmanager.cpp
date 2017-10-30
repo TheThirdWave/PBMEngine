@@ -56,12 +56,12 @@ void PhysicsManager::runTimeStep(float ts)
         }
         for(int j = 0; j < scaGFLen; j++)
         {
-            glm::vec3 blah = objList[i]->velocity * scalarGlobalForces[j];
+            glm::vec3 blah = objList[i]->getVelocity() * scalarGlobalForces[j];
             hold = hold + blah;
         }
         for(int j = 0; j < attGFLen; j++)
         {
-            glm::vec3 point = glm::normalize(attractorGlobalForces[j].normal - objList[i]->position);
+            glm::vec3 point = glm::normalize(attractorGlobalForces[j].normal - objList[i]->getPosition());
             hold = hold + (point * attractorGlobalForces[j].radius);
         }
         objList[i]->setAcceleration(hold);
@@ -81,12 +81,12 @@ void PhysicsManager::runTimeStep(float ts)
         }
         for(int j = 0; j < scaGFLen; j++)
         {
-            glm::vec3 blah = partList[i].velocity * scalarGlobalForces[j];
+            glm::vec3 blah = partList[i].getVelocity() * scalarGlobalForces[j];
             hold = hold + blah;
         }
         for(int j = 0; j < attGFLen; j++)
         {
-            glm::vec3 point = glm::normalize(attractorGlobalForces[j].normal - partList[i].position);
+            glm::vec3 point = glm::normalize(attractorGlobalForces[j].normal - partList[i].getPosition());
             hold = hold + (point * attractorGlobalForces[j].radius);
         }
         partList[i].setAcceleration(hold);
@@ -165,10 +165,10 @@ float PhysicsManager::determineCollision(PhysicsObject* one, PhysicsObject* two,
 float PhysicsManager::spherePlane(SphereObject * sph, PlaneObject * pla, float timeLeft)
 {
     //check collisions
-    glm::vec3 spherePos = sph->position;
-    glm::vec3 nextSpherePos = sph->newPosition;
+    glm::vec3 spherePos = sph->getPosition();
+    glm::vec3 nextSpherePos = sph->getNewPosition();
     float radius = sph->geoDescription.radius;
-    glm::vec3 planePos = pla->position;
+    glm::vec3 planePos = pla->getPosition();
     glm::vec3 planeNorm = pla->geoDescription.normal;
 
     glm::vec3 direction = nextSpherePos - spherePos;
@@ -187,9 +187,9 @@ float PhysicsManager::spherePlane(SphereObject * sph, PlaneObject * pla, float t
     sph->getNextState(timeLeft * f);
     sph->updateState();
 
-    glm::vec3 cross = glm::dot(sph->velocity, planeNorm) * planeNorm;
+    glm::vec3 cross = glm::dot(sph->getVelocity(), planeNorm) * planeNorm;
     glm::vec3 up = -elasticity * cross;
-    glm::vec3 accross = sph->velocity - cross;
+    glm::vec3 accross = sph->getVelocity() - cross;
 
     if(glm::length(accross) != 0)
     {
@@ -209,10 +209,10 @@ float PhysicsManager::spherePlane(SphereObject * sph, PlaneObject * pla, float t
 float PhysicsManager::spherePoly(SphereObject * sph, PolygonObject * pla, float timeLeft)
 {
     //check collision w/plane
-    glm::vec3 spherePos = sph->position;
-    glm::vec3 nextSpherePos = sph->newPosition;
+    glm::vec3 spherePos = sph->getPosition();
+    glm::vec3 nextSpherePos = sph->getNewPosition();
     float radius = sph->geoDescription.radius;
-    glm::vec3 planePos = pla->position;
+    glm::vec3 planePos = pla->getPosition();
     glm::vec3 planeNorm = pla->geoDescription.normal;
     glm::vec3 planeUp = pla->geoDescription.upVec;
 
@@ -244,7 +244,7 @@ float PhysicsManager::spherePoly(SphereObject * sph, PolygonObject * pla, float 
     glm::mat4 rot;
     if(glm::dot(planeNorm, planeUp) != -1) rot = glm::orientation(planeNorm, planeUp);
     else rot = glm::rotate(glm::mat4(1.0f), (float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 pos = glm::translate(glm::mat4(1.0f), pla->position);
+    glm::mat4 pos = glm::translate(glm::mat4(1.0f), pla->getPosition());
     glm::mat4 sca = glm::scale(glm::mat4(1.0f), pla->scale);
     glm::mat4 trans = pos * rot * sca;
 
@@ -269,29 +269,29 @@ float PhysicsManager::spherePoly(SphereObject * sph, PolygonObject * pla, float 
     {
         if(m == std::abs(planeNorm.x))
         {
-            numIntercepts += pointLSeg2D(glm::vec2(sph->position.y, sph->position.z), glm::vec2(tris[i].a.y, tris[i].a.z), glm::vec2(tris[i].b.y, tris[i].b.z));
-            numIntercepts += pointLSeg2D(glm::vec2(sph->position.y, sph->position.z), glm::vec2(tris[i].c.y, tris[i].c.z), glm::vec2(tris[i].b.y, tris[i].b.z));
-            numIntercepts += pointLSeg2D(glm::vec2(sph->position.y, sph->position.z), glm::vec2(tris[i].a.y, tris[i].a.z), glm::vec2(tris[i].c.y, tris[i].c.z));
+            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().y, sph->getPosition().z), glm::vec2(tris[i].a.y, tris[i].a.z), glm::vec2(tris[i].b.y, tris[i].b.z));
+            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().y, sph->getPosition().z), glm::vec2(tris[i].c.y, tris[i].c.z), glm::vec2(tris[i].b.y, tris[i].b.z));
+            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().y, sph->getPosition().z), glm::vec2(tris[i].a.y, tris[i].a.z), glm::vec2(tris[i].c.y, tris[i].c.z));
         }
         else if(m == std::abs(planeNorm.y))
         {
-            numIntercepts += pointLSeg2D(glm::vec2(sph->position.x, sph->position.z), glm::vec2(tris[i].a.x, tris[i].a.z), glm::vec2(tris[i].b.x, tris[i].b.z));
-            numIntercepts += pointLSeg2D(glm::vec2(sph->position.x, sph->position.z), glm::vec2(tris[i].c.x, tris[i].c.z), glm::vec2(tris[i].b.x, tris[i].b.z));
-            numIntercepts += pointLSeg2D(glm::vec2(sph->position.x, sph->position.z), glm::vec2(tris[i].a.x, tris[i].a.z), glm::vec2(tris[i].c.x, tris[i].c.z));
+            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().x, sph->getPosition().z), glm::vec2(tris[i].a.x, tris[i].a.z), glm::vec2(tris[i].b.x, tris[i].b.z));
+            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().x, sph->getPosition().z), glm::vec2(tris[i].c.x, tris[i].c.z), glm::vec2(tris[i].b.x, tris[i].b.z));
+            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().x, sph->getPosition().z), glm::vec2(tris[i].a.x, tris[i].a.z), glm::vec2(tris[i].c.x, tris[i].c.z));
         }
         else
         {
-            numIntercepts += pointLSeg2D(glm::vec2(sph->position.x, sph->position.y), glm::vec2(tris[i].a.x, tris[i].a.y), glm::vec2(tris[i].b.x, tris[i].b.y));
-            numIntercepts += pointLSeg2D(glm::vec2(sph->position.x, sph->position.y), glm::vec2(tris[i].c.x, tris[i].c.y), glm::vec2(tris[i].b.x, tris[i].b.y));
-            numIntercepts += pointLSeg2D(glm::vec2(sph->position.x, sph->position.y), glm::vec2(tris[i].a.x, tris[i].a.y), glm::vec2(tris[i].c.x, tris[i].c.y));
+            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().x, sph->getPosition().y), glm::vec2(tris[i].a.x, tris[i].a.y), glm::vec2(tris[i].b.x, tris[i].b.y));
+            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().x, sph->getPosition().y), glm::vec2(tris[i].c.x, tris[i].c.y), glm::vec2(tris[i].b.x, tris[i].b.y));
+            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().x, sph->getPosition().y), glm::vec2(tris[i].a.x, tris[i].a.y), glm::vec2(tris[i].c.x, tris[i].c.y));
         }
     }
     timeLeft = timeLeft * (1-f);
     if(numIntercepts % 2 == 0) return timeLeft;
 
-    glm::vec3 cross = glm::dot(sph->velocity, planeNorm) * planeNorm;
+    glm::vec3 cross = glm::dot(sph->getVelocity(), planeNorm) * planeNorm;
     glm::vec3 up = -elasticity * cross;
-    glm::vec3 accross = sph->velocity - cross;
+    glm::vec3 accross = sph->getVelocity() - cross;
 
     if(glm::length(accross) != 0)
     {
@@ -311,9 +311,9 @@ float PhysicsManager::spherePoly(SphereObject * sph, PolygonObject * pla, float 
 float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float timeLeft)
 {
     //check collision w/plane
-    glm::vec3 spherePos = par->position;
-    glm::vec3 nextSpherePos = par->newPosition;
-    glm::vec3 planePos = pla->position;
+    glm::vec3 spherePos = par->getPosition();
+    glm::vec3 nextSpherePos = par->getNewPosition();
+    glm::vec3 planePos = pla->getPosition();
     glm::vec3 planeNorm = pla->geoDescription.normal;
     glm::vec3 planeUp = pla->geoDescription.upVec;
 
@@ -339,7 +339,7 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
     glm::mat4 rot;
     if(glm::dot(planeNorm, planeUp) != -1) rot = glm::orientation(planeNorm, planeUp);
     else rot = glm::rotate(glm::mat4(1.0f), (float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 pos = glm::translate(glm::mat4(1.0f), pla->position);
+    glm::mat4 pos = glm::translate(glm::mat4(1.0f), pla->getPosition());
     glm::mat4 sca = glm::scale(glm::mat4(1.0f), pla->scale);
     glm::mat4 trans = pos * rot * sca;
 
@@ -364,29 +364,29 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
     {
         if(m == std::abs(planeNorm.x))
         {
-            numIntercepts += pointLSeg2D(glm::vec2(par->position.y, par->position.z), glm::vec2(tris[i].a.y, tris[i].a.z), glm::vec2(tris[i].b.y, tris[i].b.z));
-            numIntercepts += pointLSeg2D(glm::vec2(par->position.y, par->position.z), glm::vec2(tris[i].c.y, tris[i].c.z), glm::vec2(tris[i].b.y, tris[i].b.z));
-            numIntercepts += pointLSeg2D(glm::vec2(par->position.y, par->position.z), glm::vec2(tris[i].a.y, tris[i].a.z), glm::vec2(tris[i].c.y, tris[i].c.z));
+            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().y, par->getPosition().z), glm::vec2(tris[i].a.y, tris[i].a.z), glm::vec2(tris[i].b.y, tris[i].b.z));
+            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().y, par->getPosition().z), glm::vec2(tris[i].c.y, tris[i].c.z), glm::vec2(tris[i].b.y, tris[i].b.z));
+            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().y, par->getPosition().z), glm::vec2(tris[i].a.y, tris[i].a.z), glm::vec2(tris[i].c.y, tris[i].c.z));
         }
         else if(m == std::abs(planeNorm.y))
         {
-            numIntercepts += pointLSeg2D(glm::vec2(par->position.x, par->position.z), glm::vec2(tris[i].a.x, tris[i].a.z), glm::vec2(tris[i].b.x, tris[i].b.z));
-            numIntercepts += pointLSeg2D(glm::vec2(par->position.x, par->position.z), glm::vec2(tris[i].c.x, tris[i].c.z), glm::vec2(tris[i].b.x, tris[i].b.z));
-            numIntercepts += pointLSeg2D(glm::vec2(par->position.x, par->position.z), glm::vec2(tris[i].a.x, tris[i].a.z), glm::vec2(tris[i].c.x, tris[i].c.z));
+            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().x, par->getPosition().z), glm::vec2(tris[i].a.x, tris[i].a.z), glm::vec2(tris[i].b.x, tris[i].b.z));
+            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().x, par->getPosition().z), glm::vec2(tris[i].c.x, tris[i].c.z), glm::vec2(tris[i].b.x, tris[i].b.z));
+            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().x, par->getPosition().z), glm::vec2(tris[i].a.x, tris[i].a.z), glm::vec2(tris[i].c.x, tris[i].c.z));
         }
         else
         {
-            numIntercepts += pointLSeg2D(glm::vec2(par->position.x, par->position.y), glm::vec2(tris[i].a.x, tris[i].a.y), glm::vec2(tris[i].b.x, tris[i].b.y));
-            numIntercepts += pointLSeg2D(glm::vec2(par->position.x, par->position.y), glm::vec2(tris[i].c.x, tris[i].c.y), glm::vec2(tris[i].b.x, tris[i].b.y));
-            numIntercepts += pointLSeg2D(glm::vec2(par->position.x, par->position.y), glm::vec2(tris[i].a.x, tris[i].a.y), glm::vec2(tris[i].c.x, tris[i].c.y));
+            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().x, par->getPosition().y), glm::vec2(tris[i].a.x, tris[i].a.y), glm::vec2(tris[i].b.x, tris[i].b.y));
+            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().x, par->getPosition().y), glm::vec2(tris[i].c.x, tris[i].c.y), glm::vec2(tris[i].b.x, tris[i].b.y));
+            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().x, par->getPosition().y), glm::vec2(tris[i].a.x, tris[i].a.y), glm::vec2(tris[i].c.x, tris[i].c.y));
         }
     }
     timeLeft = timeLeft * (1-f);
     if(numIntercepts % 2 == 0) return timeLeft;
 
-    glm::vec3 cross = glm::dot(par->velocity, planeNorm) * planeNorm;
+    glm::vec3 cross = glm::dot(par->getVelocity(), planeNorm) * planeNorm;
     glm::vec3 up = -elasticity * cross;
-    glm::vec3 accross = par->velocity - cross;
+    glm::vec3 accross = par->getVelocity() - cross;
 
     if(glm::length(accross) != 0)
     {
@@ -400,7 +400,7 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
     float newnewDist = (planeNorm.x * nextSpherePos.x) + (planeNorm.y * nextSpherePos.y) + (planeNorm.z * nextSpherePos.z) + -(glm::dot(planePos, planeNorm));
     if((newnewDist > 0 && newDist > 0) || (newnewDist < 0 && newDist < 0))
     {
-        par->newPosition = par->newPosition + (planeNorm * - newnewDist);
+        par->getNewPosition() = par->getNewPosition() + (planeNorm * - newnewDist);
     }
 
 
@@ -410,10 +410,10 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
 
 float PhysicsManager::spherePlaneDet(SphereObject * sph, PlaneObject * pla)
 {
-    glm::vec3 spherePos = sph->position;
-    glm::vec3 nextSpherePos = sph->newPosition;
+    glm::vec3 spherePos = sph->getPosition();
+    glm::vec3 nextSpherePos = sph->getNewPosition();
     float radius = sph->geoDescription.radius;
-    glm::vec3 planePos = pla->position;
+    glm::vec3 planePos = pla->getPosition();
     glm::vec3 planeNorm = pla->geoDescription.normal;
 
     glm::vec3 direction = nextSpherePos - spherePos;

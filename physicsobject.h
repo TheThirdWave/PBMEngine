@@ -26,6 +26,9 @@ protected:
    glm::vec3 newVelocity;
    glm::vec3 acceleration;
    glm::vec3 scale;
+   state    curState;
+   state    newState;
+   state    derivState;
    geometry geoDescription;
 
    double ttl;
@@ -46,6 +49,7 @@ public:
     virtual void updateRenderObject();
     virtual void setRenderObject(RenderObject*);
     void setRotation(glm::vec3);
+    void setNewRotation(glm::vec3);
     void setPosition(glm::vec3);
     void setNewPosition(glm::vec3);
     void setVelocity(glm::vec3);
@@ -56,6 +60,7 @@ public:
     void setTTL(double);
     void setGeometry(geometry);
     void addRotation(glm::vec3);
+    void addNewRotation(glm::vec3);
     void addPosition(glm::vec3);
     void addVelocity(glm::vec3);
     void addAcceleration(glm::vec3);
@@ -64,7 +69,10 @@ public:
     virtual void updateState();
     float getVelMag();
     float getAccelMag();
-    glm::vec3 getPos();
+    glm::vec3 getPosition();
+    glm::vec3 getVelocity();
+    glm::vec3 getNewPosition();
+    glm::vec3 getNewVelocity();
     RenderObject* getRenderObj();
 
 };

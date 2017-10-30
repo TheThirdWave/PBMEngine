@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
 
     for(int i = 0; i < NUM_PARTS; i++)
     {
-        part[i].setGeometry(glm::normalize((camera.getPos() - part[i].getPos())), glm::vec3(0.0f, 0.0f, -1.0f));
+        part[i].setGeometry(glm::normalize((camera.getPosition() - part[i].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
         part[i].setRenderObject(&sModel);
         part[i].setVelocity(glm::vec3(0.02f, 0.0f, 0.0f));
         part[i].setScale(glm::vec3(0.5f, 0.5f, 0.5f));
@@ -458,11 +458,11 @@ void handleKeyStates(float ts)
     if(kState & SRIGHT) camera.addVelocity(glm::vec3(-0.01f, 0.0f, 0.0f));
     if(kState & LUP)
     {
-        camera.addRotation(glm::vec3(0.0f, -0.01f, 0.0f));
+        camera.addNewRotation(glm::vec3(0.0f, -0.01f, 0.0f));
     }
-    if(kState & LLEFT) camera.addRotation(glm::vec3(-0.01f, 0.0f, 0.0f));
-    if(kState & LDOWN) camera.addRotation(glm::vec3(0.0f, 0.01f, 0.0f));
-    if(kState & LRIGHT) camera.addRotation(glm::vec3(0.01f, 0.0f, 0.0f));
+    if(kState & LLEFT) camera.addNewRotation(glm::vec3(-0.01f, 0.0f, 0.0f));
+    if(kState & LDOWN) camera.addNewRotation(glm::vec3(0.0f, 0.01f, 0.0f));
+    if(kState & LRIGHT) camera.addNewRotation(glm::vec3(0.01f, 0.0f, 0.0f));
 
     camera.getNextState(ts);
     camera.updateState();
