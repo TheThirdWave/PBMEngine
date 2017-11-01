@@ -33,6 +33,18 @@ void EdgeObject::getNextState(float ts)
     newState.velocity = newState.position - curState.position;
 }
 
+void EdgeObject::getNextChildStates(float ts)
+{
+    childPtrs[0]->getNextState(ts);
+    childPtrs[1]->getNextState(ts);
+}
+
+void EdgeObject::updateChildren()
+{
+    childPtrs[0]->updateState();
+    childPtrs[1]->updateState();
+}
+
 void EdgeObject::setRenderObject(RenderObject * e)
 {
 

@@ -18,7 +18,7 @@
 #define MAX_GENERATORS 10
 #define MAX_EDGE_CHILDREN 2
 
-#define NUM_PARTS 2
+#define NUM_PARTS 4
 
 #include "../glm-0.9.8.5/glm/glm.hpp"
 

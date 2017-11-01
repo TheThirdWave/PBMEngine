@@ -12,6 +12,8 @@ public:
     void setRenderObject(RenderObject *);
     void updateRenderObject();
     void getNextState(float);
+    void getNextChildStates(float);
+    void updateChildren();
     void addChild(PhysicsObject *);
     void setSpring(float, float, float);
 };

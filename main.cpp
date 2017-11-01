@@ -64,7 +64,7 @@ PhysicsManager physicsManager;
 Imagemanip Screen;
 
 SphereObject sphere, sphere1;
-EdgeObject edge;
+EdgeObject edge, edge1;
 ParticleObject* part;
 ParticleGenerator pGen;
 PolygonObject plane1, plane2, plane3, plane4, plane5;
@@ -182,12 +182,12 @@ int main(int argc, char *argv[])
     part[0].setGeometry(glm::normalize((camera.getPosition() - part[0].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
     part[0].setRenderObject(&sModel);
     part[0].setPosition(glm::vec3(-1.0, 1.0f, 0.0f));
-    part[0].setVelocity(glm::vec3(0.001f, 0.0f, 0.0f));
+    part[0].setVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
     part[0].setScale(glm::vec3(0.5f, 0.5f, 0.5f));
     part[0].setTTL(-0);
     part[1].setGeometry(glm::normalize((camera.getPosition() - part[1].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
     part[1].setRenderObject(&sModel);
-    part[1].setPosition(glm::vec3(1.0, 1.0f, 0.0f));
+    part[1].setPosition(glm::vec3(-1.0, -1.0f, 0.0f));
     part[1].setScale(glm::vec3(0.5f, 0.5f, 0.5f));
     part[1].setTTL(-0);
     physicsManager.addPhysObj(&part[0]);
@@ -195,8 +195,28 @@ int main(int argc, char *argv[])
 
     edge.addChild(&part[0]);
     edge.addChild(&part[1]);
-    edge.setSpring(3.0, 0.001, 0.0005);
+    edge.setSpring(2.0, 0.001, 0.0005);
     physicsManager.addPhysObj(&edge);
+
+    part[2].setGeometry(glm::normalize((camera.getPosition() - part[0].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
+    part[2].setRenderObject(&sModel);
+    part[2].setPosition(glm::vec3(1.0, 0.0f, 1.0f));
+    part[2].setVelocity(glm::vec3(-0.001f, 0.0f, 0.0f));
+    part[2].setScale(glm::vec3(0.5f, 0.5f, 0.5f));
+    part[2].setTTL(-0);
+    part[3].setGeometry(glm::normalize((camera.getPosition() - part[1].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
+    part[3].setRenderObject(&sModel);
+    part[3].setPosition(glm::vec3(1.0, 0.0f, -1.0f));
+    part[3].setVelocity(glm::vec3(-0.001f, 0.0f, 0.0f));
+    part[3].setScale(glm::vec3(0.5f, 0.5f, 0.5f));
+    part[3].setTTL(-0);
+    physicsManager.addPhysObj(&part[2]);
+    physicsManager.addPhysObj(&part[3]);
+
+    edge1.addChild(&part[2]);
+    edge1.addChild(&part[3]);
+    edge1.setSpring(2.0, 0.001, 0.0005);
+    physicsManager.addPhysObj(&edge1);
 
 
     float vertices[] = {
@@ -270,7 +290,7 @@ int main(int argc, char *argv[])
 */
     plane3.setGeometry(glm::normalize(glm::vec3(-0.5f, 0.5f, 0.0f)), glm::vec3(0.0f, 0.0f, -1.0f));
     plane3.setRenderObject(&pModel);
-    plane3.setPosition(glm::vec3(3.0f, 0.0f, 0.0f));
+    plane3.setPosition(glm::vec3(5.0f, 0.0f, 0.0f));
     plane3.setScale(glm::vec3(5.0f, 5.0f, 5.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane3);
 /*

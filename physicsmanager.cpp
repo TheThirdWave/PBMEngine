@@ -175,7 +175,7 @@ float PhysicsManager::detectCollision(PhysicsObject* one, PhysicsObject* two, fl
     if(one->id == POLYGON && two->id == SPHERE) return spherePoly((SphereObject*)two, (PolygonObject*)one, timeLeft);
     if(one->id == PARTICLE && two->id == POLYGON) return partPoly((ParticleObject*)one, (PolygonObject*)two, timeLeft);
     if(one->id == POLYGON && two->id == PARTICLE) return partPoly((ParticleObject*)two, (PolygonObject*)one, timeLeft);
-    if(one->id == EDGE && two->id == EDGE) return edgeEdge((EdgeObject*)one, (EdgeObject*)two);
+    if(one->id == EDGE && two->id == EDGE) return edgeEdge((EdgeObject*)one, (EdgeObject*)two, timeLeft);
     return 0;
 }
 
@@ -461,6 +461,55 @@ float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLef
     //return if they don't pass through the plane
     if((norm > 0 && nnorm > 0) || norm < 0 && nnorm < 0) return 0;
 
+    //update edges to the point where they were at the plane (I think)
+    float f;
+    if(norm-nnorm != 0) f = std::abs(norm/(norm-nnorm));
+    else f = 0;
+
+    eo1->getNextChildStates(timeLeft * f);
+    eo2->getNextChildStates(timeLeft * f);
+    eo1->updateChildren();
+    eo2->updateChildren();
+    eo1->getNextState(timeLeft * f);
+    eo2->getNextState(timeLeft * f);
+    eo1->updateState();
+    eo2->updateState();
+
+    //get lines at the updated positions
+    pt1 = eo1->childPtrs[0]->getPosition();
+    pt2 = eo2->childPtrs[0]->getPosition();
+    e1 = eo1->childPtrs[1]->getPosition() - pt1;
+    e2 = eo2->childPtrs[1]->getPosition() - pt2;
+
+    dist = pt2 - pt1;
+
+    //find whether the lines intersect inside the marked segments
+    float s = (glm::dot(dist, glm::cross(glm::normalize(e2), plane)))/(glm::dot(e1, glm::cross(glm::normalize(e2), plane)));
+    float t = -(glm::dot(dist, glm::cross(glm::normalize(e1), plane)))/(glm::dot(e2, glm::cross(glm::normalize(e1), plane)));
+
+    //if they meet outside the segments just return.
+    //HACK ALERT: I don't handle the time left correctly in the collision detection loop, and so this is all wrong and I need
+    //to go back through all of my collision handlers to fix it all and I'll never actually get around to it but I just need
+    //to remember that this is a a whole thing.
+    timeLeft = timeLeft * (1-f);
+    if(s < 0 || s > 1 || t < 0 || t > 1) return timeLeft;
+
+    glm::vec3 velColl1 = s*eo1->childPtrs[0]->getVelocity() + (1-s)*eo1->childPtrs[1]->getVelocity();
+    glm::vec3 velColl2 = t*eo2->childPtrs[0]->getVelocity() + (1-t)*eo2->childPtrs[1]->getVelocity();
+    glm::vec3 deltaV1 = velColl1 + velColl2;
+    glm::vec3 pDeltaV1 = deltaV1/(s * s + (1-s) * (1-s));
+    glm::vec3 pDeltaV2 = -deltaV1/(t * t + (1-t) * (1-t));
+    eo1->childPtrs[0]->addVelocity(s * pDeltaV1);
+    eo1->childPtrs[1]->addVelocity((1-s) * pDeltaV1);
+    eo2->childPtrs[0]->addVelocity(t * pDeltaV2);
+    eo2->childPtrs[1]->addVelocity((1-t) * pDeltaV2);
+
+    eo1->getNextChildStates(timeLeft);
+    eo2->getNextChildStates(timeLeft);
+    eo1->getNextState(timeLeft);
+    eo2->getNextState(timeLeft);
+
+    return timeLeft;
 
 }
 
