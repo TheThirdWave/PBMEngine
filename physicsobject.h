@@ -19,6 +19,7 @@ class PhysicsObject
 
 protected:
    PhysicsObject** childPtrs;
+   PhysicsObject** parentPtrs;
    RenderObject* rendrPtr;
 
    glm::vec3 scale;
@@ -29,7 +30,7 @@ protected:
    double ttl;
    float mass, springL, springD, springK;
    int id;
-   int numChildren;
+   int numChildren, numParents;
 
 public:
     PhysicsObject(void);
@@ -53,9 +54,11 @@ public:
     void setAcceleration(glm::vec3);
     void setScale(glm::vec3);
     void setMass(float);
+    void setID(int);
     void setTTL(double);
     void setGeometry(geometry);
     void addChild(PhysicsObject*);
+    void addParent(PhysicsObject*);
     void addRotation(glm::vec3);
     void addNewRotation(glm::vec3);
     void addPosition(glm::vec3);
@@ -66,6 +69,7 @@ public:
     virtual void updateState();
     float getVelMag();
     float getAccelMag();
+    float getMass();
     glm::vec3 getPosition();
     glm::vec3 getVelocity();
     glm::vec3 getNewPosition();

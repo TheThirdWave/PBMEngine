@@ -12,13 +12,17 @@
 #define MAX_PICTURES 10
 #define MAX_SHADERS 10
 #define MAX_MODELS 10
-#define MAX_PHYS_OBJECTS 10
+#define MAX_PHYS_OBJECTS 100
 #define MAX_FORCES 10
 #define MAX_FUNCTIONS 100
 #define MAX_GENERATORS 10
+#define MAX_CHILDREN 10
+#define MAX_PARENTS 10
 #define MAX_EDGE_CHILDREN 2
+#define MAX_POLYGON_CHILDREN MAX_CHILDREN
+#define MAX_PARTICLE_PARENTS MAX_PARENTS
 
-#define NUM_PARTS 4
+#define NUM_PARTS 8
 
 #include "../glm-0.9.8.5/glm/glm.hpp"
 
@@ -66,7 +70,8 @@ enum collideType{
     PLANE = 1,
     POLYGON = 2,
     PARTICLE = 3,
-    EDGE = 4
+    EDGE = 4,
+    ROOT = 5
 };
 
 enum keyState{

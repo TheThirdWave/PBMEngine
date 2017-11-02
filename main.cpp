@@ -44,6 +44,8 @@ void initShade(void);
 void initMatricies(int, int);
 void initTexture();
 void initTexture(image*);
+void setFace(ParticleObject*, ParticleObject*, ParticleObject*, ParticleObject*, int idx);
+void setFace1(ParticleObject*, ParticleObject*, ParticleObject*, ParticleObject*, int idx);
 void configureAttributes(void);
 void testRender(void);
 void testTexture(void);
@@ -64,11 +66,11 @@ PhysicsManager physicsManager;
 Imagemanip Screen;
 
 SphereObject sphere, sphere1;
-EdgeObject edge, edge1;
+EdgeObject edge[18];
 ParticleObject* part;
 ParticleGenerator pGen;
 PolygonObject plane1, plane2, plane3, plane4, plane5;
-PolygonObject plane;
+PolygonObject plane[6];
 RenderObject sModel, pModel, poModel;
 
 Camera camera;
@@ -178,7 +180,7 @@ int main(int argc, char *argv[])
     }
     physicsManager.addParticleList(part, NUM_PARTS);
 */
-
+/*
     part[0].setGeometry(glm::normalize((camera.getPosition() - part[0].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
     part[0].setRenderObject(&sModel);
     part[0].setPosition(glm::vec3(-1.0, 1.0f, 0.0f));
@@ -188,6 +190,7 @@ int main(int argc, char *argv[])
     part[1].setGeometry(glm::normalize((camera.getPosition() - part[1].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
     part[1].setRenderObject(&sModel);
     part[1].setPosition(glm::vec3(-1.0, -1.0f, 0.0f));
+    part[1].setVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
     part[1].setScale(glm::vec3(0.5f, 0.5f, 0.5f));
     part[1].setTTL(-0);
     physicsManager.addPhysObj(&part[0]);
@@ -195,18 +198,18 @@ int main(int argc, char *argv[])
 
     edge.addChild(&part[0]);
     edge.addChild(&part[1]);
-    edge.setSpring(2.0, 0.001, 0.0005);
+    edge.setSpring(3.0, 0.001, 0.0005);
     physicsManager.addPhysObj(&edge);
 
     part[2].setGeometry(glm::normalize((camera.getPosition() - part[0].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
     part[2].setRenderObject(&sModel);
-    part[2].setPosition(glm::vec3(1.0, 0.0f, 1.0f));
+    part[2].setPosition(glm::vec3(1.0, 1.0f, 1.0f));
     part[2].setVelocity(glm::vec3(-0.001f, 0.0f, 0.0f));
     part[2].setScale(glm::vec3(0.5f, 0.5f, 0.5f));
     part[2].setTTL(-0);
     part[3].setGeometry(glm::normalize((camera.getPosition() - part[1].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
     part[3].setRenderObject(&sModel);
-    part[3].setPosition(glm::vec3(1.0, 0.0f, -1.0f));
+    part[3].setPosition(glm::vec3(1.0, 1.0f, -1.0f));
     part[3].setVelocity(glm::vec3(-0.001f, 0.0f, 0.0f));
     part[3].setScale(glm::vec3(0.5f, 0.5f, 0.5f));
     part[3].setTTL(-0);
@@ -217,7 +220,7 @@ int main(int argc, char *argv[])
     edge1.addChild(&part[3]);
     edge1.setSpring(2.0, 0.001, 0.0005);
     physicsManager.addPhysObj(&edge1);
-
+*/
 
     float vertices[] = {
         -1.0f, 1.0f, 0.0f,
@@ -288,11 +291,59 @@ int main(int argc, char *argv[])
     plane2.setScale(glm::vec3(5.0f, 5.0f, 5.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane2);
 */
-    plane3.setGeometry(glm::normalize(glm::vec3(-0.5f, 0.5f, 0.0f)), glm::vec3(0.0f, 0.0f, -1.0f));
-    plane3.setRenderObject(&pModel);
-    plane3.setPosition(glm::vec3(5.0f, 0.0f, 0.0f));
-    plane3.setScale(glm::vec3(5.0f, 5.0f, 5.0f));
-    physicsManager.addPhysObj((PhysicsObject*)&plane3);
+    for(int i = 0; i < NUM_PARTS; i++)
+    {
+        part[i].setGeometry(glm::normalize((camera.getPosition() - part[0].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
+        part[i].setRenderObject(&sModel);
+        part[i].setVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
+        part[i].setScale(glm::vec3(0.5f, 0.5f, 0.5f));
+        part[i].setTTL(-0);
+        physicsManager.addPhysObj(&part[i]);
+    }
+    part[0].setPosition(glm::vec3(-1.0f, 1.0f, 1.0f));
+    part[1].setPosition(glm::vec3(-1.0f, 1.0f, -1.0f));
+    part[2].setPosition(glm::vec3(1.0f, 1.0f, -1.0f));
+    part[3].setPosition(glm::vec3(1.0f, 1.0f, 1.0f));
+    part[4].setPosition(glm::vec3(-1.0f, -1.0f, 1.0f));
+    part[5].setPosition(glm::vec3(-1.0f, -1.0f, -1.0f));
+    part[6].setPosition(glm::vec3(1.0f, -1.0f, -1.0f));
+    part[7].setPosition(glm::vec3(1.0f, -1.0f, 1.0f));
+
+    setFace(&part[0], &part[1], &part[2], &part[3], 0);
+    setFace(&part[4], &part[5], &part[6], &part[7], 5);
+    edge[10].addChild(&part[0]);
+    edge[10].addChild(&part[4]);
+    edge[10].setSpring(2.0, 0.001, 0.0005);
+    edge[11].addChild(&part[1]);
+    edge[11].addChild(&part[7]);
+    edge[11].setSpring(2.0, 0.001, 0.0005);
+    edge[12].addChild(&part[3]);
+    edge[12].addChild(&part[7]);
+    edge[12].setSpring(2.0, 0.001, 0.0005);
+    edge[13].addChild(&part[3]);
+    edge[13].addChild(&part[6]);
+    edge[13].setSpring(2.0, 0.001, 0.0005);
+    edge[14].addChild(&part[2]);
+    edge[14].addChild(&part[6]);
+    edge[14].setSpring(2.0, 0.001, 0.0005);
+    edge[15].addChild(&part[2]);
+    edge[15].addChild(&part[5]);
+    edge[15].setSpring(2.0, 0.001, 0.0005);
+    edge[16].addChild(&part[1]);
+    edge[16].addChild(&part[5]);
+    edge[16].setSpring(2.0, 0.001, 0.0005);
+    edge[17].addChild(&part[1]);
+    edge[17].addChild(&part[4]);
+    edge[17].setSpring(2.0, 0.001, 0.0005);
+    for(int i = 0; i < 18; i++) physicsManager.addPhysObj(&edge[i]);
+    /*
+    setFace1(&part[0], &part[1], &part[2], &part[3], 0);
+    setFace1(&part[0], &part[3], &part[7], &part[4], 1);
+    setFace1(&part[3], &part[2], &part[6], &part[7], 2);
+    setFace1(&part[2], &part[1], &part[5], &part[6], 3);
+    setFace1(&part[1], &part[0], &part[4], &part[5], 4);
+    setFace1(&part[4], &part[5], &part[6], &part[7], 5);
+    for(int i = 0; i < 6; i++) physicsManager.addPhysObj((PhysicsObject*)&plane[i]);
 /*
     plane4.setGeometry(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
     plane4.setRenderObject(&pModel);
@@ -317,6 +368,36 @@ int main(int argc, char *argv[])
     glutMainLoop();
 
     return 0;
+}
+
+void setFace(ParticleObject* o, ParticleObject* t, ParticleObject* th, ParticleObject* f, int idx)
+{
+    edge[idx].addChild(o);
+    edge[idx].addChild(t);
+    edge[idx].setSpring(2.0, 0.001, 0.0005);
+    edge[idx + 1].addChild(t);
+    edge[idx + 1].addChild(th);
+    edge[idx + 1].setSpring(2.0, 0.001, 0.0005);
+    edge[idx + 2].addChild(th);
+    edge[idx + 2].addChild(f);
+    edge[idx + 2].setSpring(2.0, 0.001, 0.0005);
+    edge[idx + 3].addChild(f);
+    edge[idx + 3].addChild(o);
+    edge[idx + 3].setSpring(2.0, 0.001, 0.0005);
+    edge[idx + 4].addChild(o);
+    edge[idx + 4].addChild(th);
+    edge[idx + 4].setSpring(2.0, 0.001, 0.0005);
+}
+
+void setFace1(ParticleObject* o, ParticleObject* t, ParticleObject* th, ParticleObject* f, int idx)
+{
+    plane[idx].addChild(o);
+    plane[idx].addChild(t);
+    plane[idx].addChild(th);
+    plane[idx].addChild(f);
+    plane[idx].setGeometry(glm::normalize(glm::normalize(glm::cross(o->getPosition() - t->getPosition(),o->getPosition() - th->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
+    plane[idx].setRenderObject(&pModel);
+    plane[idx].setScale(glm::vec3(1.0f, 1.0f, 1.0f));
 }
 
 image* flatImageRWStuff(int argc, char** argv)
@@ -638,7 +719,7 @@ void display()
     glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
 */
     //draw plane3
-    plane3.updateRenderObject();
+/*    plane3.updateRenderObject();
     Model = *(plane3.getRenderObj()->getMatrix());
     modelViewProj = Proj * View * Model;
 
@@ -646,6 +727,18 @@ void display()
 
     hold = plane3.getRenderObj()->getData();
     glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
+*//*
+    for(int i = 0; i < 6; i++)
+    {
+        plane[i].updateRenderObject();
+        Model = *(plane[i].getRenderObj()->getMatrix());
+        modelViewProj = Proj * View * Model;
+
+        glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(modelViewProj));
+
+        hold = plane[i].getRenderObj()->getData();
+        glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
+    }
 /*
     //draw plane4
     plane4.updateRenderObject();

@@ -9,7 +9,11 @@ public:
     PolygonObject();
     void initRenderObj();
     void setGeometry(glm::vec3, glm::vec3);
+    void addChild(PhysicsObject*);
+    void getNextChildStates(float);
+    void updateChildren();
     void updateRenderObject();
+    void getNextState(float);
     void updateState();
 };
 

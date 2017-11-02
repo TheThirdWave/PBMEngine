@@ -22,6 +22,7 @@ void ParticleObject::updateRenderObject()
     rendrPtr->setPosMatrix(pos * sca);
 }
 
+
 void ParticleObject::setGeometry(glm::vec3 v)
 {
     geoDescription.normal = glm::vec3(-v.x, -v.y, v.z);

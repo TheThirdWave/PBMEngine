@@ -12,6 +12,8 @@ PhysicsObject::PhysicsObject()
     mass = 1;
     ttl = -1;
     rendrPtr = NULL;
+    numChildren = 0;
+    numParents = 0;
 }
 
 PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos, glm::vec3 vel, glm::vec3 accel)
@@ -26,6 +28,8 @@ PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos, glm::vec3 vel, gl
     ttl = -1;
     newState.position = curState.position;
     newState.velocity = curState.velocity;
+    numChildren = 0;
+    numParents = 0;
 }
 
 PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos, glm::vec3 vel)
@@ -40,6 +44,8 @@ PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos, glm::vec3 vel)
     newState.position = curState.position;
     newState.velocity = curState.velocity;
     ttl = -1;
+    numChildren = 0;
+    numParents = 0;
 }
 
 PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos)
@@ -54,6 +60,8 @@ PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos)
     newState.position = curState.position;
     newState.velocity = curState.velocity;
     ttl = -1;
+    numChildren = 0;
+    numParents = 0;
 }
 
 PhysicsObject::PhysicsObject(RenderObject* ptr, float x, float y, float z)
@@ -68,6 +76,8 @@ PhysicsObject::PhysicsObject(RenderObject* ptr, float x, float y, float z)
     newState.position = curState.position;
     newState.velocity = curState.velocity;
     ttl = -1;
+    numChildren = 0;
+    numParents = 0;
 }
 
 PhysicsObject::PhysicsObject(glm::vec3 pos, glm::vec3 vel, glm::vec3 accel)
@@ -82,6 +92,8 @@ PhysicsObject::PhysicsObject(glm::vec3 pos, glm::vec3 vel, glm::vec3 accel)
     newState.position = curState.position;
     newState.velocity = curState.velocity;
     ttl = -1;
+    numChildren = 0;
+    numParents = 0;
 }
 
 PhysicsObject::PhysicsObject(glm::vec3 pos, glm::vec3 vel)
@@ -96,6 +108,8 @@ PhysicsObject::PhysicsObject(glm::vec3 pos, glm::vec3 vel)
     newState.position = curState.position;
     newState.velocity = curState.velocity;
     ttl = -1;
+    numChildren = 0;
+    numParents = 0;
 }
 
 PhysicsObject::PhysicsObject(glm::vec3 pos)
@@ -110,6 +124,8 @@ PhysicsObject::PhysicsObject(glm::vec3 pos)
     newState.position = curState.position;
     newState.velocity = curState.velocity;
     ttl = -1;
+    numChildren = 0;
+    numParents = 0;
 }
 
 PhysicsObject::PhysicsObject(float x, float y, float z)
@@ -124,6 +140,8 @@ PhysicsObject::PhysicsObject(float x, float y, float z)
     newState.position = curState.position;
     newState.velocity = curState.velocity;
     ttl = -1;
+    numChildren = 0;
+    numParents = 0;
 }
 
 void PhysicsObject::updateRenderObject()
@@ -184,6 +202,11 @@ void PhysicsObject::setMass(float ma)
     mass = ma;
 }
 
+void PhysicsObject::setID(int i)
+{
+    id = i;
+}
+
 void PhysicsObject::setTTL(double t)
 {
     ttl = t;
@@ -194,9 +217,16 @@ void PhysicsObject::setGeometry(geometry geo)
     geoDescription = geo;
 }
 
-void PhysicsObject::addChild(PhysicsObject*)
+void PhysicsObject::addChild(PhysicsObject* c)
 {
+    if(numChildren = 0) childPtrs = new PhysicsObject*[MAX_CHILDREN];
+    childPtrs[numChildren++] = c;
+}
 
+void PhysicsObject::addParent(PhysicsObject* p)
+{
+    if(numParents = 0) parentPtrs = new PhysicsObject*[MAX_PARENTS];
+    parentPtrs[numParents++] = p;
 }
 
 void PhysicsObject::addRotation(glm::vec3 nr)
@@ -250,6 +280,10 @@ float PhysicsObject::getAccelMag()
     return glm::length(curState.acceleration);
 }
 
+float PhysicsObject::getMass()
+{
+    return mass;
+}
 
 glm::vec3 PhysicsObject::getPosition(){
     return curState.position;

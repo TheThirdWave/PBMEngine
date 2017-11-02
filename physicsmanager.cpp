@@ -340,9 +340,17 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
     glm::vec3 planeNorm = pla->geoDescription.normal;
     glm::vec3 planeUp = pla->geoDescription.upVec;
 
-    float origDist = (planeNorm.x * spherePos.x) + (planeNorm.y * spherePos.y) + (planeNorm.z * spherePos.z) + -(glm::dot(planePos, planeNorm));
-    float newDist = (planeNorm.x * nextSpherePos.x) + (planeNorm.y * nextSpherePos.y) + (planeNorm.z * nextSpherePos.z) + -(glm::dot(planePos, planeNorm));
-    if(!(newDist < 0 && origDist > 0 || newDist > 0 && origDist < 0 || newDist == 0 && origDist == 0)) return 0;
+    //get the position of the sphere in relation to some arbitrary point on the plane.
+    glm::vec3 srefPlane = spherePos - planePos;
+    glm::vec3 nSRefPlane = nextSpherePos - planePos;
+
+    //use that to get the distance of the sphere from the plane by taking the dot product of the normal and the position of the sphere in terms of the point on the plane.
+    float origDist = glm::dot(srefPlane, planeNorm);
+    float newDist = glm::dot(nSRefPlane, planeNorm);
+
+    //if the sign of the distance changes between the old position of the sphere and the new position of the sphere we know that it has crossed the plane and we need to do
+    //more collision handling, otherwise there hasn't been a collision and we're done.
+    if((origDist >= 0 && newDist >= 0) || (origDist <= 0 && newDist <= 0)) return 0;
 
 
     //move sphere up to where it connects with the plane
@@ -351,62 +359,91 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
     par->getNextState(timeLeft * f);
     par->updateState();
 
-    //get the verticies from the polygon and get them into world coordinates.
-    int numIdx = pla->rendrPtr->data->idxLen;
-    int numTris = numIdx / 3;
-    unsigned int *indicies = pla->rendrPtr->data->indicies;
-    float* verticies = pla->rendrPtr->data->vertices;
-    glm::vec3 vecs[numIdx];
-    triangle tris[numTris];
-
-    glm::mat4 rot;
-    if(glm::dot(planeNorm, planeUp) != -1) rot = glm::orientation(planeNorm, planeUp);
-    else rot = glm::rotate(glm::mat4(1.0f), (float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 pos = glm::translate(glm::mat4(1.0f), pla->getPosition());
-    glm::mat4 sca = glm::scale(glm::mat4(1.0f), pla->scale);
-    glm::mat4 trans = pos * rot * sca;
-
-    for(int i = 0; i < numTris; i ++)
-    {
-        for(int j = 3 * i; j < 3 * (i + 1); j++)
-        {
-            glm::vec4 h = glm::vec4(verticies[(indicies[j] * 3)], verticies[(indicies[j] * 3) + 1], verticies[(indicies[j] * 3) + 2], 1.0f);
-            h = trans * h;
-            vecs[j] = glm::vec3(h.x, h.y, h.z);
-        }
-        tris[i].a = vecs[(i * 3)];
-        tris[i].b = vecs[(i * 3) + 1];
-        tris[i].c = vecs[(i * 3) + 2];
-    }
-
-    //discard one of the vector components and check the polygon in 2D
+    //We assume edges between successive child objects, so there's a line between child 0 and child 1,
+    //a line between child 1 and child 2, a line between hild 3 and child 4, and so on.  We also assume a line between the last child and the first, so if there
+    //are n children there's a line between child n and child 0.
+    //We use the children to check to see if the position of the colliding object on the collision plane is within the bounds of the polygon.
+    //To do that, we discard one of the coordinate components and check the position of the colliding object against the line segements defined by the children of the polygon.
+    //To avoid a degenerative case, we make sure that we're discarding the largest component of the polygon's surface normal.
     float m = std::max(std::abs(planeNorm.x), std::abs(planeNorm.y));
     m = std::max(m, std::abs(planeNorm.z));
     int numIntercepts = 0;
-    for(int i = 0; i < numTris; i++)
+    for(int i = 0; i < pla->numChildren; i++)
     {
-        if(m == std::abs(planeNorm.x))
+        glm::vec3 pt1, pt2;
+        if(i < pla->numChildren - 1)
         {
-            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().y, par->getPosition().z), glm::vec2(tris[i].a.y, tris[i].a.z), glm::vec2(tris[i].b.y, tris[i].b.z));
-            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().y, par->getPosition().z), glm::vec2(tris[i].c.y, tris[i].c.z), glm::vec2(tris[i].b.y, tris[i].b.z));
-            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().y, par->getPosition().z), glm::vec2(tris[i].a.y, tris[i].a.z), glm::vec2(tris[i].c.y, tris[i].c.z));
-        }
-        else if(m == std::abs(planeNorm.y))
-        {
-            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().x, par->getPosition().z), glm::vec2(tris[i].a.x, tris[i].a.z), glm::vec2(tris[i].b.x, tris[i].b.z));
-            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().x, par->getPosition().z), glm::vec2(tris[i].c.x, tris[i].c.z), glm::vec2(tris[i].b.x, tris[i].b.z));
-            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().x, par->getPosition().z), glm::vec2(tris[i].a.x, tris[i].a.z), glm::vec2(tris[i].c.x, tris[i].c.z));
+            pt1 = pla->childPtrs[i]->getPosition();
+            pt2 = pla->childPtrs[i + 1]->getPosition();
         }
         else
         {
-            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().x, par->getPosition().y), glm::vec2(tris[i].a.x, tris[i].a.y), glm::vec2(tris[i].b.x, tris[i].b.y));
-            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().x, par->getPosition().y), glm::vec2(tris[i].c.x, tris[i].c.y), glm::vec2(tris[i].b.x, tris[i].b.y));
-            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().x, par->getPosition().y), glm::vec2(tris[i].a.x, tris[i].a.y), glm::vec2(tris[i].c.x, tris[i].c.y));
+            pt1 = pla->childPtrs[i]->getPosition();
+            pt2 = pla->childPtrs[0]->getPosition();
+        }
+        if(m == std::abs(planeNorm.x))
+        {
+            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().y, par->getPosition().z), glm::vec2(pt1.y, pt1.z), glm::vec2(pt2.y, pt2.z));
+        }
+        else if(m == std::abs(planeNorm.y))
+        {
+            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().x, par->getPosition().z), glm::vec2(pt1.x, pt1.z), glm::vec2(pt2.x, pt2.z));
+        }
+        else
+        {
+            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().b, par->getPosition().y), glm::vec2(pt1.b, pt1.y), glm::vec2(pt2.b, pt2.y));
         }
     }
     timeLeft = timeLeft * (1-f);
     if(numIntercepts % 2 == 0) return timeLeft;
 
+    //get the total mass of the object hit, we give different weights to each of the vertices of the object depending on how far away they are from
+    //the point of collision.
+    float addedWeights = 0;
+    float* weights = new float[pla->numChildren];
+    float mass = 0;
+    float cWeights = 0;
+    glm::vec3 velCollPoly = glm::vec3(0.0f);
+    for(int i = 0; i< pla->numChildren; i++) addedWeights += glm::length(par->getPosition() - pla->childPtrs[i]->getPosition());
+    for(int i = 0; i < pla->numChildren; i++)
+    {
+        weights[i] = 1 - (glm::length(par->getPosition() - pla->childPtrs[i]->getPosition()) / addedWeights);
+        cWeights += weights[i] * weights[i];
+        mass += weights[i] * pla->childPtrs[i]->getMass();
+        velCollPoly += weights[i] * pla->childPtrs[i]->getVelocity();
+    }
+
+    float totalMass = mass / cWeights;
+
+    //to get the center of momentum we add the moments of inertia of both objects (the face and the vector) and divide by the masses.
+
+    glm::vec3 com = (par->getMass() * par->getVelocity() + totalMass * velCollPoly) / (par->getMass() + totalMass);
+
+    //then we put the velocities of the colliding objects in terms of the center of mass.
+    glm::vec3 deltaV1 = velCollPoly - com;
+    glm::vec3 deltaV2 = (par->getVelocity()) - com;
+    //we get the normal vectors and tangent vectors.
+    glm::vec3 normV1 = glm::dot(deltaV1, planeNorm) * planeNorm;
+    glm::vec3 tanV1 = deltaV1 - normV1;
+    glm::vec3 normV2 = glm::dot(deltaV2, planeNorm) * planeNorm;
+    glm::vec3 tanV2 = deltaV2 - normV2;
+    //get the new velocities in terms of center of mass, accounting for elasticity and friction.
+    normV1 = -elasticity * normV1;
+    tanV1 = fcoefficient * tanV1;
+    normV2 = -elasticity * normV2;
+    tanV2 = fcoefficient * tanV2;
+    deltaV1 = normV1 + tanV1;
+    deltaV2 = normV2 + tanV2;
+
+    par->setVelocity(deltaV2 + com);
+    par->getNextState(timeLeft);
+    for(int i = 0; i < pla->numChildren; i++)
+    {
+        pla->childPtrs[i]->setVelocity((deltaV1 + com) * weights[i]);
+        pla->childPtrs[i]->getNextState(timeLeft);
+    }
+    pla->getNextState(timeLeft);
+/*
     glm::vec3 cross = glm::dot(par->getVelocity(), planeNorm) * planeNorm;
     glm::vec3 up = -elasticity * cross;
     glm::vec3 accross = par->getVelocity() - cross;
@@ -426,8 +463,8 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
         par->getNewPosition() = par->getNewPosition() + (planeNorm * - newnewDist);
     }
 
-
-    return timeLeft;
+*/
+    return timeLeft;//timeLeft;
 
 }
 
@@ -459,7 +496,7 @@ float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLef
     float nnorm = glm::dot(ndist, plane);
 
     //return if they don't pass through the plane
-    if((norm > 0 && nnorm > 0) || norm < 0 && nnorm < 0) return 0;
+    if((norm >= 0 && nnorm >= 0) || (norm <= 0 && nnorm <= 0)) return 0;
 
     //update edges to the point where they were at the plane (I think)
     float f;
@@ -494,15 +531,19 @@ float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLef
     timeLeft = timeLeft * (1-f);
     if(s < 0 || s > 1 || t < 0 || t > 1) return timeLeft;
 
+
+    //HACK ALERT: I don't think I take elasticity into account when calculating the velocities.
+    //HACK ALERT: Also I'm not taking mass into account.
     glm::vec3 velColl1 = s*eo1->childPtrs[0]->getVelocity() + (1-s)*eo1->childPtrs[1]->getVelocity();
     glm::vec3 velColl2 = t*eo2->childPtrs[0]->getVelocity() + (1-t)*eo2->childPtrs[1]->getVelocity();
-    glm::vec3 deltaV1 = velColl1 + velColl2;
-    glm::vec3 pDeltaV1 = deltaV1/(s * s + (1-s) * (1-s));
-    glm::vec3 pDeltaV2 = -deltaV1/(t * t + (1-t) * (1-t));
-    eo1->childPtrs[0]->addVelocity(s * pDeltaV1);
-    eo1->childPtrs[1]->addVelocity((1-s) * pDeltaV1);
-    eo2->childPtrs[0]->addVelocity(t * pDeltaV2);
-    eo2->childPtrs[1]->addVelocity((1-t) * pDeltaV2);
+    glm::vec3 deltaV1 = velColl1 - velColl2;
+    glm::vec3 deltaV2 = velColl2 - velColl1;
+    glm::vec3 pDeltaV1 = deltaV2/(s * s + (1-s) * (1-s));
+    glm::vec3 pDeltaV2 = deltaV1/(t * t + (1-t) * (1-t));
+    eo1->childPtrs[0]->addVelocity((1-s) * pDeltaV1);
+    eo1->childPtrs[1]->addVelocity((s) * pDeltaV1);
+    eo2->childPtrs[0]->addVelocity((1-t) * pDeltaV2);
+    eo2->childPtrs[1]->addVelocity((t) * pDeltaV2);
 
     eo1->getNextChildStates(timeLeft);
     eo2->getNextChildStates(timeLeft);
