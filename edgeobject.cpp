@@ -33,6 +33,11 @@ void EdgeObject::getNextState(float ts)
     newState.velocity = newState.position - curState.position;
 }
 
+void EdgeObject::getNextRKState(float ts, int idx)
+{
+    getNextState(ts);
+}
+
 void EdgeObject::getNextChildStates(float ts)
 {
     childPtrs[0]->getNextState(ts);

@@ -66,7 +66,7 @@ PhysicsManager physicsManager;
 Imagemanip Screen;
 
 SphereObject sphere, sphere1;
-EdgeObject edge[18];
+EdgeObject edge[24];
 ParticleObject* part;
 ParticleGenerator pGen;
 PolygonObject plane1, plane2, plane3, plane4, plane5;
@@ -93,7 +93,7 @@ glm::vec2 mDownPos;
 glm::vec2 mUpPos;
 int progState = CONVEX;
 
-const float timeStep = 1000 / (60.0f * 20);
+const float timeStep = 1000 / (60.0f * 40);
 
 int rotation = 15;
 
@@ -300,16 +300,46 @@ int main(int argc, char *argv[])
         part[i].setTTL(-0);
         physicsManager.addPhysObj(&part[i]);
     }
-    part[0].setPosition(glm::vec3(-1.0f, 1.0f, 1.0f));
+    part[0].setPosition(glm::vec3(-1.5f, 1.0f, 1.0f));
+    part[0].setVelocity(glm::vec3(0.000f, 0.0f, 0.0f));
     part[1].setPosition(glm::vec3(-1.0f, 1.0f, -1.0f));
     part[2].setPosition(glm::vec3(1.0f, 1.0f, -1.0f));
-    part[3].setPosition(glm::vec3(1.0f, 1.0f, 1.0f));
+    part[3].setPosition(glm::vec3(1.0f, 1.0f, 1.5f));
     part[4].setPosition(glm::vec3(-1.0f, -1.0f, 1.0f));
     part[5].setPosition(glm::vec3(-1.0f, -1.0f, -1.0f));
     part[6].setPosition(glm::vec3(1.0f, -1.0f, -1.0f));
     part[7].setPosition(glm::vec3(1.0f, -1.0f, 1.0f));
+/*
+    edge[0].addChild(&part[0]);
+    edge[0].addChild(&part[1]);
+    edge[0].setSpring(2.0, 0.001, 0.00005);
+    physicsManager.addPhysObj(&edge[0]);
+    edge[1].addChild(&part[1]);
+    edge[1].addChild(&part[2]);
+    edge[1].setSpring(2.0, 0.001, 0.00005);
+    physicsManager.addPhysObj(&edge[1]);
+    edge[2].addChild(&part[2]);
+    edge[2].addChild(&part[3]);
+    edge[2].setSpring(2.0, 0.001, 0.00005);
+    physicsManager.addPhysObj(&edge[2]);
+    edge[3].addChild(&part[3]);
+    edge[3].addChild(&part[0]);
+    edge[3].setSpring(2.0, 0.001, 0.00005);
+    physicsManager.addPhysObj(&edge[3]);
+    edge[4].addChild(&part[2]);
+    edge[4].addChild(&part[0]);
+    edge[4].setSpring(sqrt((2 * 2 + 2 * 2)), 0.001, 0.00005);
+    physicsManager.addPhysObj(&edge[4]);
+*/
 
     setFace(&part[0], &part[1], &part[2], &part[3], 0);
+    physicsManager.addPhysObj(&edge[0]);
+    physicsManager.addPhysObj(&edge[1]);
+    physicsManager.addPhysObj(&edge[2]);
+    physicsManager.addPhysObj(&edge[3]);
+    physicsManager.addPhysObj(&edge[4]);
+    physicsManager.addPhysObj(&edge[5]);
+    /*
     setFace(&part[4], &part[5], &part[6], &part[7], 5);
     edge[10].addChild(&part[0]);
     edge[10].addChild(&part[4]);
@@ -374,19 +404,22 @@ void setFace(ParticleObject* o, ParticleObject* t, ParticleObject* th, ParticleO
 {
     edge[idx].addChild(o);
     edge[idx].addChild(t);
-    edge[idx].setSpring(2.0, 0.001, 0.0005);
+    edge[idx].setSpring(2.0, 0.001, 0.00005);
     edge[idx + 1].addChild(t);
     edge[idx + 1].addChild(th);
-    edge[idx + 1].setSpring(2.0, 0.001, 0.0005);
+    edge[idx + 1].setSpring(2.0, 0.001, 0.00005);
     edge[idx + 2].addChild(th);
     edge[idx + 2].addChild(f);
-    edge[idx + 2].setSpring(2.0, 0.001, 0.0005);
+    edge[idx + 2].setSpring(2.0, 0.001, 0.00005);
     edge[idx + 3].addChild(f);
     edge[idx + 3].addChild(o);
-    edge[idx + 3].setSpring(2.0, 0.001, 0.0005);
+    edge[idx + 3].setSpring(2.0, 0.001, 0.00005);
     edge[idx + 4].addChild(o);
     edge[idx + 4].addChild(th);
-    edge[idx + 4].setSpring(2.0, 0.001, 0.0005);
+    edge[idx + 4].setSpring(2.0, 0.001, 0.00005);
+    edge[idx + 5].addChild(t);
+    edge[idx + 5].addChild(f);
+    edge[idx + 5].setSpring(2.0, 0.001, 0.00005);
 }
 
 void setFace1(ParticleObject* o, ParticleObject* t, ParticleObject* th, ParticleObject* f, int idx)
@@ -574,7 +607,8 @@ void testRender()
 void update(float tStep)
 {
     handleKeyStates(tStep);
-    physicsManager.runTimeStep(tStep);
+    //physicsManager.runTimeStep(tStep);
+    physicsManager.runRK4TimeStep(tStep);
 }
 
 void handleKeyStates(float ts)

@@ -64,6 +64,11 @@ void PolygonObject::getNextState(float ts)
     newState.velocity = newState.position - curState.position;
 }
 
+void PolygonObject::getNextRKState(float ts, int idx)
+{
+    getNextState(ts);
+}
+
 void PolygonObject::updateState()
 {
     curState = newState;

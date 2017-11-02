@@ -23,6 +23,7 @@
 #define MAX_PARTICLE_PARENTS MAX_PARENTS
 
 #define NUM_PARTS 8
+#define NUM_DERIV_STATES 4
 
 #include "../glm-0.9.8.5/glm/glm.hpp"
 

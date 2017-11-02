@@ -70,7 +70,7 @@ void PhysicsManager::runTimeStep(float ts)
             objList[i]->setAcceleration(hold);
         }
         //spring forces.
-        else
+        else if(objList[i]->id == EDGE)
         {
             glm::vec3 pt1 = objList[i]->childPtrs[0]->getPosition();
             glm::vec3 pt2 = objList[i]->childPtrs[1]->getPosition();
@@ -118,6 +118,161 @@ void PhysicsManager::runTimeStep(float ts)
     {
         objList[i]->getNextState(ts);
     } 
+
+    //check for collisions for objects
+    for(int i = 0; i < objLen-1; i++)
+    {
+        for(int j = i + 1; j < objLen; j++)
+        {
+            while(timeLeft > 0)
+            {
+                timeLeft = detectCollision(objList[i], objList[j], timeLeft);
+
+            }
+            timeLeft = ts;
+        }
+    }
+    //check for collisions for particles
+    for(int i = 0; i < partLen; i++)
+    {
+        for(int j = 0; j < objLen; j++)
+        {
+            while(timeLeft > 0)
+            {
+                timeLeft = detectCollision(&partList[i], objList[j], timeLeft);
+
+            }
+            timeLeft = ts;
+        }
+    }
+
+    //update state
+    for(int i = 0; i< objLen; i++)
+    {
+        objList[i]->updateState();
+        objList[i]->updateRenderObject();
+        objList[i]->ttl -= ts;
+    }
+    //update state for particles.
+    for(int i = 0; i< partLen; i++)
+    {
+        partList[i].updateState();
+        partList[i].updateRenderObject();
+        partList[i].ttl -= ts;
+    }
+    //reset generators.
+    for(int i = 0; i < genLen; i++)
+    {
+        generators[i]->setpartsMade(100);
+    }
+}
+
+void PhysicsManager::runRK4TimeStep(float ts)
+{
+    for(int f = 0; f < NUM_DERIV_STATES; f++)
+    {
+
+        //forces
+        for(int i = 0; i < objLen; i++)
+        {
+            if(f == 0) objList[i]->setNextFromCurrent();
+            //apply global forces to objects
+            if(objList[i]->id != EDGE)
+            {
+                glm::vec3 hold = glm::vec3(0.0f);
+                for(int j = 0; j < dirGFLen; j++)
+                {
+                    hold = hold + directonalGlobalForces[j];
+                }
+                for(int j = 0; j < scaGFLen; j++)
+                {
+                    glm::vec3 blah = objList[i]->newState.velocity * scalarGlobalForces[j];
+                    hold = hold + blah;
+                }
+                for(int j = 0; j < attGFLen; j++)
+                {
+                    glm::vec3 point = glm::normalize(attractorGlobalForces[j].normal - objList[i]->newState.position);
+                    hold = hold + (point * attractorGlobalForces[j].radius);
+                }
+                objList[i]->derivStates[f].acceleration = hold / objList[i]->getMass();
+            }
+            //spring forces.
+            else if(objList[i]->id == EDGE)
+            {
+                glm::vec3 pt1 = objList[i]->childPtrs[0]->newState.position;
+                glm::vec3 pt2 = objList[i]->childPtrs[1]->newState.position;
+                glm::vec3 v1 = objList[i]->childPtrs[0]->newState.velocity;
+                glm::vec3 v2 = objList[i]->childPtrs[1]->newState.velocity;
+                glm::vec3 pt12 = pt2 - pt1;
+                glm::vec3 npt12 = glm::normalize(pt12);
+                glm::vec3 sf = objList[i]->springK * (glm::length(pt12) - objList[i]->springL) * npt12;
+                glm::vec3 df = objList[i]->springD * (glm::dot((v2 - v1), npt12)) * npt12;
+                objList[i]->childPtrs[0]->derivStates[f].acceleration += (sf + df) / objList[i]->childPtrs[0]->getMass();
+                objList[i]->childPtrs[1]->derivStates[f].acceleration += (-sf + -df) / objList[i]->childPtrs[1]->getMass();
+            }
+        }
+
+        //apply global forces for particles
+        for(int i = 0; i < partLen; i++)
+        {
+            if(partList[i].ttl < 0)
+            {
+                int lucky = rand() % genLen;
+                generators[lucky]->createParticle(&partList[i]);
+            }
+            glm::vec3 hold = glm::vec3(0.0f);
+            for(int j = 0; j < dirGFLen; j++)
+            {
+                hold = hold + directonalGlobalForces[j];
+            }
+            for(int j = 0; j < scaGFLen; j++)
+            {
+                glm::vec3 blah = partList[i].getVelocity() * scalarGlobalForces[j];
+                hold = hold + blah;
+            }
+            for(int j = 0; j < attGFLen; j++)
+            {
+                glm::vec3 point = glm::normalize(attractorGlobalForces[j].normal - partList[i].getPosition());
+                hold = hold + (point * attractorGlobalForces[j].radius);
+            }
+            partList[i].setAcceleration(hold);
+            partList[i].getNextState(ts);
+        }
+
+        //calculate next state
+        for(int i = 0; i < objLen; i++)
+        {
+            if(f < 3) objList[i]->getNextRKState(ts/2, f);
+            else objList[i]->getNextRKState(ts, f);
+            objList[i]->setNextFromCurrent();
+            objList[i]->getNextState(f);
+        }
+
+    }
+
+    for(int i = 0; i < objLen; i++)
+    {
+        glm::vec3 position = objList[i]->derivStates[1].position;
+        glm::vec3 velocity = objList[i]->derivStates[1].velocity;
+        glm::vec3 acceleration = objList[i]->derivStates[1].acceleration;
+        objList[i]->derivStates[0].position += position * 2.0f;
+        objList[i]->derivStates[0].velocity += velocity * 2.0f;
+        objList[i]->derivStates[0].acceleration += acceleration * 2.0f;
+        objList[i]->derivStates[0].position += objList[i]->derivStates[2].position * 2.0f;
+        objList[i]->derivStates[0].velocity += objList[i]->derivStates[2].velocity * 2.0f;
+        objList[i]->derivStates[0].acceleration += objList[i]->derivStates[2].acceleration * 2.0f;
+        objList[i]->derivStates[0].position += objList[i]->derivStates[3].position;
+        objList[i]->derivStates[0].velocity += objList[i]->derivStates[3].velocity;
+        objList[i]->derivStates[0].acceleration += objList[i]->derivStates[3].acceleration;
+
+        objList[i]->derivStates[0].position = objList[i]->derivStates[0].position * (1/6.0f);
+        objList[i]->derivStates[0].velocity = objList[i]->derivStates[0].velocity * (1/6.0f);
+        objList[i]->derivStates[0].acceleration = objList[i]->derivStates[0].acceleration * (1/6.0f);
+        objList[i]->setNextFromCurrent();
+        objList[i]->getNextState(0);
+    }
+
+    float timeLeft = ts;
 
     //check for collisions for objects
     for(int i = 0; i < objLen-1; i++)
@@ -478,6 +633,7 @@ float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLef
     glm::vec3 e2 = eo2->childPtrs[1]->getPosition() - pt2;
     //The normal that describes a plane between the two edges.
     glm::vec3 plane = glm::normalize(glm::cross(e1, e2));
+    if(glm::normalize(e1) == glm::normalize(-e2)) return 0;
 
     //do the same thing with for the new positions of the edges.
     glm::vec3 npt1 = eo1->childPtrs[0]->getNewPosition();

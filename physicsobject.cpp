@@ -157,6 +157,13 @@ void PhysicsObject::setRenderObject(RenderObject* ptr)
     rendrPtr = ptr;
 }
 
+void PhysicsObject::setNextFromCurrent()
+{
+    newState.velocity = curState.velocity;
+    newState.position = curState.position;
+    newState.rotation = curState.rotation;
+}
+
 void PhysicsObject::setRotation(glm::vec3 rot)
 {
     curState.rotation = rot;
@@ -263,6 +270,19 @@ void PhysicsObject::getNextState(float ts)
 {
     newState.velocity = curState.velocity + (curState.acceleration * ts);
     newState.position = curState.position + (newState.velocity * ts);
+}
+
+void PhysicsObject::getNextState(int idx)
+{
+    newState.velocity = newState.velocity + derivStates[idx].velocity;
+    newState.position = newState.position + derivStates[idx].position;
+}
+
+
+void PhysicsObject::getNextRKState(float ts, int idx)
+{
+    derivStates[idx].velocity = (derivStates[idx].acceleration * ts);
+    derivStates[idx].position =  (newState.velocity + derivStates[idx].velocity) * ts;
 }
 
 void PhysicsObject::updateState()

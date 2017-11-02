@@ -25,6 +25,7 @@ protected:
    glm::vec3 scale;
    state    curState;
    state    newState;
+   state    derivStates[4];
    geometry geoDescription;
 
    double ttl;
@@ -45,6 +46,7 @@ public:
     void initRenderObj();
     virtual void updateRenderObject();
     virtual void setRenderObject(RenderObject*);
+    void setNextFromCurrent();
     void setRotation(glm::vec3);
     void setNewRotation(glm::vec3);
     void setPosition(glm::vec3);
@@ -67,6 +69,8 @@ public:
     void addScale(glm::vec3);
     virtual void getNextState(float);
     virtual void updateState();
+    void getNextState(int);
+    void getNextRKState(float, int);
     float getVelMag();
     float getAccelMag();
     float getMass();
