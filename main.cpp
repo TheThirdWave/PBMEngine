@@ -60,7 +60,7 @@ ShaderManager shaderManager;
 ReaderWriter imageManager;
 ModelManager modelManager;
 PhysicsManager physicsManager;
-Imagemanip Screen, vecMask;
+Imagemanip Screen, vecMask, layer1;
 
 SphereObject sphere, sphere1;
 ParticleObject* part;
@@ -133,13 +133,13 @@ int main(int argc, char *argv[])
     initShade();
 
     float vertices[] = {
-        -1.0f, 1.0f, 2.0f,
+        -1.0f, 1.0f, 1.0f,
         1.0f, 1.0f, 1.0f,
         -1.0f, -1.0f, 1.0f,
         1.0f, -1.0f, 1.0f
     };
     float colors[] = {
-        0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.5f,
         1.0f, 0.0f, 0.5f,
         0.0f, 1.0f, 0.5f,
         1.0f, 1.0f, 0.5f
@@ -183,6 +183,12 @@ image* flatImageRWStuff(int argc, char** argv)
 
     //int count = stoi(argv[2], NULL, 10);
     vecMask.initScreen(img);
+
+    holdImage = imageManager.openPNG("../AlphaTest2.png");
+    if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
+    img = imageManager.getImgPtr(holdImage);
+
+    layer1.initScreen(img);
 
     holdImage = imageManager.openPNG("../1.png");
     img = imageManager.getImgPtr(holdImage);
@@ -538,7 +544,86 @@ void KeyHandler(unsigned char key, int x, int y)
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }
     }
+    case 'p':
+    {
+        if(progState != ALPHA)
+        {
+            progState = ALPHA;
+            Screen.setKernelValues(1.0f);
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.alphaLayer(&layer1);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
         break;
+    }
+    case 'o':
+    {
+        if(progState != MULT)
+        {
+            progState = MULT;
+            Screen.setKernelValues(1.0f);
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.multiplyLayer(&layer1);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+        break;
+    }
+    case 'i':
+    {
+        if(progState != SUBTRACT)
+        {
+            progState = SUBTRACT;
+            Screen.setKernelValues(1.0f);
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.subtractionLayer(&layer1);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+        break;
+    }
+    case 'u':
+    {
+        if(progState != MIN)
+        {
+            progState = MIN;
+            Screen.setKernelValues(1.0f);
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.minLayer(&layer1);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+        break;
+    }
+    case 'y':
+    {
+        if(progState != MAX)
+        {
+            progState = MAX;
+            Screen.setKernelValues(1.0f);
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.maxLayer(&layer1);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+        break;
+    }
     case 'q':
     {
         int idx = imageManager.addImage(*Screen.getPtr());
@@ -631,7 +716,7 @@ void MouseHandler(int button, int state, int x, int y)
                     break;
                 }
 
-                if(progState != BLUR && progState != EMBOSS && progState != DILATION && progState!= EROSION && progState != MBLUR && progState!= BDLPF)
+                if(progState == CONVEX || progState == STAR || progState == BLOBBY || progState == SHADED || progState == MODULUS)
                 {
                     Screen.addFunction(functions[numFuncs]);
                     numFuncs++;

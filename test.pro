@@ -50,6 +50,7 @@ HEADERS += \
     polygonobject.h \
     particleobject.h \
     particlegenerator.h \
+    kernel.h \
     kernel.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt

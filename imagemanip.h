@@ -59,6 +59,11 @@ public:
     void erosion();
     void maskedDilation(Imagemanip*);
     void maskedErosion(Imagemanip*);
+    void alphaLayer(Imagemanip*);
+    void multiplyLayer(Imagemanip*);
+    void subtractionLayer(Imagemanip*);
+    void maxLayer(Imagemanip*);
+    void minLayer(Imagemanip*);
     void bdlpf();
     glm::vec3 rgbtohsv(glm::vec3);
     glm::vec3 hsvtorgb(glm::vec3);

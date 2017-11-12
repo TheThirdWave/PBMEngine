@@ -1018,6 +1018,294 @@ void Imagemanip::maskedErosion(Imagemanip* vMask)
     filterScreen.data = hold;
 }
 
+void Imagemanip::alphaLayer(Imagemanip* vMask)
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            glm::vec4 rgb(1.0f);
+            glm::vec4 rgb2(1.0f);
+            image* mask = &vMask->screen;
+
+            //get rgba values
+            rgb.r = screen.data[x + (y * screen.width)];
+            rgb.g = screen.data[(x + 1) + (y * screen.width)];
+            rgb.b = screen.data[(x + 2) + (y * screen.width)];
+            rgb.a = screen.data[(x + 3) + (y * screen.width)];
+            rgb = rgb / 255.0f;
+
+            rgb2.r = mask->data[x + (y * screen.width)];
+            rgb2.g = mask->data[(x + 1) + (y * screen.width)];
+            rgb2.b = mask->data[(x + 2) + (y * screen.width)];
+            rgb2.a = mask->data[(x + 3) + (y * screen.width)];
+            rgb2 = rgb2 / 255.0f;
+
+
+            //premultiply rgba values
+            rgb.r = rgb.r * rgb.a;
+            rgb.g = rgb.g * rgb.a;
+            rgb.b = rgb.b * rgb.a;
+
+            rgb2.r = rgb2.r * rgb2.a;
+            rgb2.g = rgb2.g * rgb2.a;
+            rgb2.b = rgb2.b * rgb2.a;
+
+            //calculate this screen over vMask screen
+            rgb = rgb2 + rgb * (1 - rgb2.a);
+            rgb.a = rgb2.a + rgb.a * (1 - rgb2.a);
+
+
+
+            filterScreen.data[x + (y * screen.width)] = (rgb.r / rgb.a) * 255;
+            filterScreen.data[(x + 1) + (y * screen.width)] = (rgb.g / rgb.a) * 255;
+            filterScreen.data[(x + 2) + (y * screen.width)] = (rgb.b / rgb.a) * 255;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = rgb.a;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
+void Imagemanip::multiplyLayer(Imagemanip* vMask)
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            glm::vec4 rgb(1.0f);
+            glm::vec4 rgb2(1.0f);
+            image* mask = &vMask->screen;
+
+            //get rgba values
+            rgb.r = screen.data[x + (y * screen.width)];
+            rgb.g = screen.data[(x + 1) + (y * screen.width)];
+            rgb.b = screen.data[(x + 2) + (y * screen.width)];
+            rgb.a = screen.data[(x + 3) + (y * screen.width)];
+            rgb = rgb / 255.0f;
+
+            rgb2.r = mask->data[x + (y * screen.width)];
+            rgb2.g = mask->data[(x + 1) + (y * screen.width)];
+            rgb2.b = mask->data[(x + 2) + (y * screen.width)];
+            rgb2.a = mask->data[(x + 3) + (y * screen.width)];
+            rgb2 = rgb2 / 255.0f;
+
+            //perform layer multiplication
+            rgb2.r = rgb.r * rgb2.r;
+            rgb2.g = rgb.g * rgb2.g;
+            rgb2.b = rgb.b * rgb2.b;
+
+            //premultiply rgba values
+            rgb.r = rgb.r * rgb.a;
+            rgb.g = rgb.g * rgb.a;
+            rgb.b = rgb.b * rgb.a;
+
+            rgb2.r = rgb2.r * rgb2.a;
+            rgb2.g = rgb2.g * rgb2.a;
+            rgb2.b = rgb2.b * rgb2.a;
+
+            //calculate this screen over vMask screen
+            rgb = rgb2 + rgb * (1 - rgb2.a);
+            rgb.a = rgb2.a + rgb.a * (1 - rgb2.a);
+
+
+
+            filterScreen.data[x + (y * screen.width)] = (rgb.r / rgb.a) * 255;
+            filterScreen.data[(x + 1) + (y * screen.width)] = (rgb.g / rgb.a) * 255;
+            filterScreen.data[(x + 2) + (y * screen.width)] = (rgb.b / rgb.a) * 255;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = rgb.a;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
+void Imagemanip::subtractionLayer(Imagemanip* vMask)
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            glm::vec4 rgb(1.0f);
+            glm::vec4 rgb2(1.0f);
+            image* mask = &vMask->screen;
+
+            //get rgba values
+            rgb.r = screen.data[x + (y * screen.width)];
+            rgb.g = screen.data[(x + 1) + (y * screen.width)];
+            rgb.b = screen.data[(x + 2) + (y * screen.width)];
+            rgb.a = screen.data[(x + 3) + (y * screen.width)];
+            rgb = rgb / 255.0f;
+
+            rgb2.r = mask->data[x + (y * screen.width)];
+            rgb2.g = mask->data[(x + 1) + (y * screen.width)];
+            rgb2.b = mask->data[(x + 2) + (y * screen.width)];
+            rgb2.a = mask->data[(x + 3) + (y * screen.width)];
+            rgb2 = rgb2 / 255.0f;
+
+            //perform layer subtraction
+            rgb2.r = abs(rgb2.r - rgb.r);
+            rgb2.g = abs(rgb2.g - rgb.g);
+            rgb2.b = abs(rgb2.b - rgb.b);
+
+            //premultiply rgba values
+            rgb.r = rgb.r * rgb.a;
+            rgb.g = rgb.g * rgb.a;
+            rgb.b = rgb.b * rgb.a;
+
+            rgb2.r = rgb2.r * rgb2.a;
+            rgb2.g = rgb2.g * rgb2.a;
+            rgb2.b = rgb2.b * rgb2.a;
+
+            //calculate this screen over vMask screen
+            rgb = rgb2 + rgb * (1 - rgb2.a);
+            rgb.a = rgb2.a + rgb.a * (1 - rgb2.a);
+
+
+
+            filterScreen.data[x + (y * screen.width)] = (rgb.r / rgb.a) * 255;
+            filterScreen.data[(x + 1) + (y * screen.width)] = (rgb.g / rgb.a) * 255;
+            filterScreen.data[(x + 2) + (y * screen.width)] = (rgb.b / rgb.a) * 255;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = rgb.a;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
+void Imagemanip::minLayer(Imagemanip* vMask)
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            glm::vec4 rgb(1.0f);
+            glm::vec4 rgb2(1.0f);
+            glm::vec3 hsv, hsv2;
+            image* mask = &vMask->screen;
+
+            //get rgba values
+            rgb.r = screen.data[x + (y * screen.width)];
+            rgb.g = screen.data[(x + 1) + (y * screen.width)];
+            rgb.b = screen.data[(x + 2) + (y * screen.width)];
+            rgb.a = screen.data[(x + 3) + (y * screen.width)];
+            rgb = rgb / 255.0f;
+
+            hsv = rgbtohsv(glm::vec3(rgb.r, rgb.g, rgb.b));
+
+            rgb2.r = mask->data[x + (y * screen.width)];
+            rgb2.g = mask->data[(x + 1) + (y * screen.width)];
+            rgb2.b = mask->data[(x + 2) + (y * screen.width)];
+            rgb2.a = mask->data[(x + 3) + (y * screen.width)];
+            rgb2 = rgb2 / 255.0f;
+
+            hsv2 = rgbtohsv(glm::vec3(rgb2.r, rgb2.g, rgb2.b));
+
+            //get the minimum color for each channel
+            if(hsv2.z > hsv.z)
+            {
+                rgb2.r = rgb.r;
+                rgb2.g = rgb.g;
+                rgb2.b = rgb.b;
+            }
+
+            //premultiply rgba values
+            rgb.r = rgb.r * rgb.a;
+            rgb.g = rgb.g * rgb.a;
+            rgb.b = rgb.b * rgb.a;
+
+            rgb2.r = rgb2.r * rgb2.a;
+            rgb2.g = rgb2.g * rgb2.a;
+            rgb2.b = rgb2.b * rgb2.a;
+
+            //calculate this screen over vMask screen
+            rgb = rgb2 + rgb * (1 - rgb2.a);
+            rgb.a = rgb2.a + rgb.a * (1 - rgb2.a);
+
+
+
+            filterScreen.data[x + (y * screen.width)] = (rgb.r / rgb.a) * 255;
+            filterScreen.data[(x + 1) + (y * screen.width)] = (rgb.g / rgb.a) * 255;
+            filterScreen.data[(x + 2) + (y * screen.width)] = (rgb.b / rgb.a) * 255;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = rgb.a;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
+void Imagemanip::maxLayer(Imagemanip* vMask)
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            glm::vec4 rgb(1.0f);
+            glm::vec4 rgb2(1.0f);
+            glm::vec3 hsv, hsv2;
+            image* mask = &vMask->screen;
+
+            //get rgba values
+            rgb.r = screen.data[x + (y * screen.width)];
+            rgb.g = screen.data[(x + 1) + (y * screen.width)];
+            rgb.b = screen.data[(x + 2) + (y * screen.width)];
+            rgb.a = screen.data[(x + 3) + (y * screen.width)];
+            rgb = rgb / 255.0f;
+
+            hsv = rgbtohsv(glm::vec3(rgb.r, rgb.g, rgb.b));
+
+            rgb2.r = mask->data[x + (y * screen.width)];
+            rgb2.g = mask->data[(x + 1) + (y * screen.width)];
+            rgb2.b = mask->data[(x + 2) + (y * screen.width)];
+            rgb2.a = mask->data[(x + 3) + (y * screen.width)];
+            rgb2 = rgb2 / 255.0f;
+
+            hsv2 = rgbtohsv(glm::vec3(rgb2.r, rgb2.g, rgb2.b));
+
+            //get the minimum color for each channel
+            if(hsv2.z < hsv.z)
+            {
+                rgb2.r = rgb.r;
+                rgb2.g = rgb.g;
+                rgb2.b = rgb.b;
+            }
+
+            //premultiply rgba values
+            rgb.r = rgb.r * rgb.a;
+            rgb.g = rgb.g * rgb.a;
+            rgb.b = rgb.b * rgb.a;
+
+            rgb2.r = rgb2.r * rgb2.a;
+            rgb2.g = rgb2.g * rgb2.a;
+            rgb2.b = rgb2.b * rgb2.a;
+
+            //calculate this screen over vMask screen
+            rgb = rgb2 + rgb * (1 - rgb2.a);
+            rgb.a = rgb2.a + rgb.a * (1 - rgb2.a);
+
+
+
+            filterScreen.data[x + (y * screen.width)] = (rgb.r / rgb.a) * 255;
+            filterScreen.data[(x + 1) + (y * screen.width)] = (rgb.g / rgb.a) * 255;
+            filterScreen.data[(x + 2) + (y * screen.width)] = (rgb.b / rgb.a) * 255;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = rgb.a;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
+
 void Imagemanip::bdlpf()
 {
     for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)

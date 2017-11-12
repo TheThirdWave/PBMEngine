@@ -86,7 +86,12 @@ enum progState{
     MBLUR = 10,
     MDILATION = 11,
     MEROSION = 12,
-    BDLPF = 13
+    BDLPF = 13,
+    ALPHA = 14,
+    MULT = 15,
+    SUBTRACT = 16,
+    MAX = 17,
+    MIN = 18
 };
 
 #endif // STRUCTPILE_H
