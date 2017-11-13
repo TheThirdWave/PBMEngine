@@ -15,6 +15,7 @@
 #define MAX_PHYS_OBJECTS 100000
 #define MAX_FORCES 10
 #define MAX_FUNCTIONS 100
+#define MAX_POINTS 1000
 #define MAX_GENERATORS 10
 
 #define NUM_PARTS 1000
@@ -91,7 +92,8 @@ enum progState{
     MULT = 15,
     SUBTRACT = 16,
     MAX = 17,
-    MIN = 18
+    MIN = 18,
+    COMPOSITE = 19
 };
 
 #endif // STRUCTPILE_H

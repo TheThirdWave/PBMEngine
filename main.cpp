@@ -17,6 +17,7 @@
 #include "modelmanager.h"
 #include "imagemanip.h"
 #include "function2d.h"
+#include "lsegfunction.h"
 #include "linefunction.h"
 #include "spherefunction.h"
 #include "trigfunction.h"
@@ -60,7 +61,7 @@ ShaderManager shaderManager;
 ReaderWriter imageManager;
 ModelManager modelManager;
 PhysicsManager physicsManager;
-Imagemanip Screen, vecMask, layer1;
+Imagemanip Screen, vecMask, layer1, outerMask, innerMask;
 
 SphereObject sphere, sphere1;
 ParticleObject* part;
@@ -81,6 +82,8 @@ int vShade, fShade, cShade, sModelIndex;
 model* hold1;
 
 Function2D* functions[MAX_FUNCTIONS];
+
+LSegFunction* outer, inner;
 
 int numFuncs = 0;
 int numSFuncs = 0;
@@ -184,13 +187,25 @@ image* flatImageRWStuff(int argc, char** argv)
     //int count = stoi(argv[2], NULL, 10);
     vecMask.initScreen(img);
 
-    holdImage = imageManager.openPNG("../AlphaTest2.png");
+    holdImage = imageManager.openPNG("../moustachemaniac.png");
     if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
     img = imageManager.getImgPtr(holdImage);
 
     layer1.initScreen(img);
 
-    holdImage = imageManager.openPNG("../1.png");
+    holdImage = imageManager.openPNG("../outer.png");
+    if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
+    img = imageManager.getImgPtr(holdImage);
+
+    outerMask.initScreen(img);
+
+    holdImage = imageManager.openPNG("../inner.png");
+    if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
+    img = imageManager.getImgPtr(holdImage);
+
+    innerMask.initScreen(img);
+
+    holdImage = imageManager.openPNG("../GWbackground.png");
     img = imageManager.getImgPtr(holdImage);
     Screen.initScreen(img);
     //Screen.initScreen(800, 800);
@@ -624,6 +639,22 @@ void KeyHandler(unsigned char key, int x, int y)
         }
         break;
     }
+    case 'w':
+    {
+        if(progState != COMPOSITE)
+        {
+            progState = COMPOSITE;
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            layer1.composite(&outerMask, &innerMask);
+            Screen.alphaLayer(&layer1);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+        break;
+    }
     case 'q':
     {
         int idx = imageManager.addImage(*Screen.getPtr());
@@ -712,6 +743,8 @@ void MouseHandler(int button, int state, int x, int y)
                     Screen.setKernelValuesEF(&l);
                 }
                     break;
+                case COMPOSITE:
+                    break;
                 default:
                     break;
                 }
@@ -741,6 +774,9 @@ void MouseHandler(int button, int state, int x, int y)
                     break;
                 case MODULUS:
                     Screen.drawModAA(3, 2);
+                    break;
+                case COMPOSITE:
+                    break;
                 default:
                     break;
                 }

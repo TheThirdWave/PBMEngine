@@ -32,6 +32,7 @@ public:
     void setKernelValuesEF(Function2D*);
     void initScreen(image*);
     void initScreen(int, int);
+    void switchScreenPtrs();
     void setBackground(char, char, char);
     void setForeground(char, char, char);
     void addFunction(Function2D*);
@@ -41,8 +42,10 @@ public:
     void psychedelic(int);
     void clearScreen();
     void fillScreen(int, int, int);
+    void fillScreen(int, int, int, int);
     void noise();
     void drawConvex();
+    void drawUnion();
     void drawStar();
     void drawMod(int);
     void drawBlobby();
@@ -64,6 +67,7 @@ public:
     void subtractionLayer(Imagemanip*);
     void maxLayer(Imagemanip*);
     void minLayer(Imagemanip*);
+    void composite(Imagemanip*, Imagemanip*);
     void bdlpf();
     glm::vec3 rgbtohsv(glm::vec3);
     glm::vec3 hsvtorgb(glm::vec3);

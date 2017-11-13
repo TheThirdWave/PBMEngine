@@ -22,7 +22,8 @@ SOURCES += main.cpp \
     polygonobject.cpp \
     particleobject.cpp \
     particlegenerator.cpp \
-    kernel.cpp
+    kernel.cpp \
+    lsegfunction.cpp
 
 OTHER_FILES += \
     vertshade \
@@ -51,7 +52,8 @@ HEADERS += \
     particleobject.h \
     particlegenerator.h \
     kernel.h \
-    kernel.h
+    kernel.h \
+    lsegfunction.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt
 

@@ -210,6 +210,13 @@ void Imagemanip::emptyFunctions()
     funcNum = 0;
 }
 
+void Imagemanip::switchScreenPtrs()
+{
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
 void Imagemanip::fillScreen(int r, int g, int b)
 {
     for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
@@ -218,14 +225,32 @@ void Imagemanip::fillScreen(int r, int g, int b)
         {
             //modulus 256 to keep things the size of a byte, I probably don't need to do it
             //'cause it truncates everything to put it into the char but whatever.
-            screen.data[x + (y * screen.width)] = r % 255;
-            screen.data[(x + 1) + (y * screen.width)] = g % 255;
-            screen.data[(x + 2) + (y * screen.width)] = b % 255;
+            screen.data[x + (y * screen.width)] = r % 256;
+            screen.data[(x + 1) + (y * screen.width)] = g % 256;
+            screen.data[(x + 2) + (y * screen.width)] = b % 256;
             //the alpha is always at max for now.
             screen.data[(x + 3) + (y * screen.width)] = 255;
         }
     }
 }
+
+void Imagemanip::fillScreen(int r, int g, int b, int a)
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            //modulus 256 to keep things the size of a byte, I probably don't need to do it
+            //'cause it truncates everything to put it into the char but whatever.
+            screen.data[x + (y * screen.width)] = r % 256;
+            screen.data[(x + 1) + (y * screen.width)] = g % 256;
+            screen.data[(x + 2) + (y * screen.width)] = b % 256;
+            //the alpha is always at max for now.
+            screen.data[(x + 3) + (y * screen.width)] = a % 256;
+        }
+    }
+}
+
 
 void Imagemanip::drawConvex()
 {
@@ -241,6 +266,36 @@ void Imagemanip::drawConvex()
                     if(functions[i]->getRelative(glm::vec2(x,y)) > 0)
                     {
                         flag = false;
+                        break;
+                    }
+                }
+                if(flag == true)
+                {
+                    screen.data[x + (y * screen.width)] = foreground.r * 255;
+                    screen.data[(x + 1) + (y * screen.width)] = foreground.g * 255;
+                    screen.data[(x + 2) + (y * screen.width)] = foreground.b * 255;
+                    //the alpha is always at max for now.
+                    screen.data[(x + 3) + (y * screen.width)] = 255;
+                }
+            }
+        }
+    }
+}
+
+void Imagemanip::drawUnion()
+{
+    if(funcNum > 0)
+    {
+        for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+        {
+            for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+            {
+                bool flag = false;
+                for(int i = 0; i < funcNum; i++)
+                {
+                    if(functions[i]->getRelative(glm::vec2(x,y)) < 0)
+                    {
+                        flag = true;
                         break;
                     }
                 }
@@ -1026,7 +1081,7 @@ void Imagemanip::alphaLayer(Imagemanip* vMask)
         {
             glm::vec4 rgb(1.0f);
             glm::vec4 rgb2(1.0f);
-            image* mask = &vMask->screen;
+            image* mask = &(vMask->screen);
 
             //get rgba values
             rgb.r = screen.data[x + (y * screen.width)];
@@ -1052,7 +1107,9 @@ void Imagemanip::alphaLayer(Imagemanip* vMask)
             rgb2.b = rgb2.b * rgb2.a;
 
             //calculate this screen over vMask screen
-            rgb = rgb2 + rgb * (1 - rgb2.a);
+            rgb.r = rgb2.r + rgb.r * (1 - rgb2.a);
+            rgb.g = rgb2.g + rgb.g * (1 - rgb2.a);
+            rgb.b = rgb2.b + rgb.b * (1 - rgb2.a);
             rgb.a = rgb2.a + rgb.a * (1 - rgb2.a);
 
 
@@ -1061,7 +1118,8 @@ void Imagemanip::alphaLayer(Imagemanip* vMask)
             filterScreen.data[(x + 1) + (y * screen.width)] = (rgb.g / rgb.a) * 255;
             filterScreen.data[(x + 2) + (y * screen.width)] = (rgb.b / rgb.a) * 255;
             //the alpha is always at max for now.
-            filterScreen.data[(x + 3) + (y * screen.width)] = rgb.a;
+            if(rgb.a * 255 > 255) filterScreen.data[(x + 3) + (y * screen.width)] = 255;
+            else filterScreen.data[(x + 3) + (y * screen.width)] = rgb.a * 255;
         }
     }
     unsigned char* hold = screen.data;
@@ -1116,7 +1174,7 @@ void Imagemanip::multiplyLayer(Imagemanip* vMask)
             filterScreen.data[(x + 1) + (y * screen.width)] = (rgb.g / rgb.a) * 255;
             filterScreen.data[(x + 2) + (y * screen.width)] = (rgb.b / rgb.a) * 255;
             //the alpha is always at max for now.
-            filterScreen.data[(x + 3) + (y * screen.width)] = rgb.a;
+            filterScreen.data[(x + 3) + (y * screen.width)] = rgb.a * 255;
         }
     }
     unsigned char* hold = screen.data;
@@ -1171,7 +1229,7 @@ void Imagemanip::subtractionLayer(Imagemanip* vMask)
             filterScreen.data[(x + 1) + (y * screen.width)] = (rgb.g / rgb.a) * 255;
             filterScreen.data[(x + 2) + (y * screen.width)] = (rgb.b / rgb.a) * 255;
             //the alpha is always at max for now.
-            filterScreen.data[(x + 3) + (y * screen.width)] = rgb.a;
+            filterScreen.data[(x + 3) + (y * screen.width)] = rgb.a * 255;
         }
     }
     unsigned char* hold = screen.data;
@@ -1234,7 +1292,7 @@ void Imagemanip::minLayer(Imagemanip* vMask)
             filterScreen.data[(x + 1) + (y * screen.width)] = (rgb.g / rgb.a) * 255;
             filterScreen.data[(x + 2) + (y * screen.width)] = (rgb.b / rgb.a) * 255;
             //the alpha is always at max for now.
-            filterScreen.data[(x + 3) + (y * screen.width)] = rgb.a;
+            filterScreen.data[(x + 3) + (y * screen.width)] = rgb.a * 255;
         }
     }
     unsigned char* hold = screen.data;
@@ -1297,7 +1355,55 @@ void Imagemanip::maxLayer(Imagemanip* vMask)
             filterScreen.data[(x + 1) + (y * screen.width)] = (rgb.g / rgb.a) * 255;
             filterScreen.data[(x + 2) + (y * screen.width)] = (rgb.b / rgb.a) * 255;
             //the alpha is always at max for now.
-            filterScreen.data[(x + 3) + (y * screen.width)] = rgb.a;
+            filterScreen.data[(x + 3) + (y * screen.width)] = rgb.a * 255;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
+void Imagemanip::composite(Imagemanip * outerMask, Imagemanip * innerMask)
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            glm::vec4 rgb(1.0f);
+            glm::vec4 rgb2(1.0f);
+            glm::vec4 rgb3(1.0f);
+            image* mask = &outerMask->screen;
+            image* mask2 = &innerMask->screen;
+
+            //get rgba values
+            rgb.r = screen.data[x + (y * screen.width)];
+            rgb.g = screen.data[(x + 1) + (y * screen.width)];
+            rgb.b = screen.data[(x + 2) + (y * screen.width)];
+            rgb.a = screen.data[(x + 3) + (y * screen.width)];
+            rgb = rgb / 255.0f;
+
+            rgb2.r = mask->data[x + (y * screen.width)];
+            rgb2.g = mask->data[(x + 1) + (y * screen.width)];
+            rgb2.b = mask->data[(x + 2) + (y * screen.width)];
+            rgb2.a = mask->data[(x + 3) + (y * screen.width)];
+            rgb2 = rgb2 / 255.0f;
+
+            rgb3.r = mask2->data[x + (y * screen.width)];
+            rgb3.g = mask2->data[(x + 1) + (y * screen.width)];
+            rgb3.b = mask2->data[(x + 2) + (y * screen.width)];
+            rgb3.a = mask2->data[(x + 3) + (y * screen.width)];
+            rgb3 = rgb3 / 255.0f;
+
+            if(rgb2.a == 1) rgb.a = 0;
+            if(rgb3.a == 1) rgb.a = 1;
+            if(rgb2.a != 1 && rgb3.a != 1) rgb.a = 0.5;
+
+
+            filterScreen.data[x + (y * screen.width)] = (rgb.r) * 255;
+            filterScreen.data[(x + 1) + (y * screen.width)] = (rgb.g) * 255;
+            filterScreen.data[(x + 2) + (y * screen.width)] = (rgb.b) * 255;
+
+            filterScreen.data[(x + 3) + (y * screen.width)] = rgb.a * 255;
         }
     }
     unsigned char* hold = screen.data;
