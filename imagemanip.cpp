@@ -1396,7 +1396,56 @@ void Imagemanip::composite(Imagemanip * outerMask, Imagemanip * innerMask)
 
             if(rgb2.a == 1) rgb.a = 0;
             if(rgb3.a == 1) rgb.a = 1;
-            if(rgb2.a != 1 && rgb3.a != 1) rgb.a = 0.5;
+            if(rgb2.a != 1 && rgb3.a != 1)
+            {
+                int rx;
+                int ry;
+                int radius = 200;
+                glm::vec4 holdVec(0.0f);
+                float holdAlpha;
+                int samples = 0;
+                int goodSamples = 0;
+                while(samples < 200)
+                {
+                    rx = x + ((rand() % radius) - radius / 2);
+                    if(rx < 0) rx = 0;
+                    else if(rx > screen.width) rx = screen.width;
+                    ry = y + ((rand() % radius) - radius / 2);
+                    if(ry < 0) ry = 0;
+                    else if(ry > screen.height) ry = 0;
+                    holdAlpha = innerMask->screen.data[(rx + 3) + (ry * screen.width)];
+                    holdAlpha = holdAlpha / 255.0f;
+                    if(holdAlpha == 1)
+                    {
+                        holdVec.r += screen.data[rx + (ry * screen.width)];
+                        holdVec.g += screen.data[(rx + 1) + (ry * screen.width)];
+                        holdVec.b += screen.data[(rx + 2) + (ry * screen.width)];
+                        holdVec.a += screen.data[(rx + 3) + (ry * screen.width)];
+                        holdVec = holdVec / 255.0f;
+                        goodSamples++;
+                    }
+                    samples++;
+                }
+                holdVec = holdVec / (float)goodSamples;
+
+                float max = holdVec.r;
+                float difference;
+                if(max < holdVec.g) max = holdVec.g;
+                if(max < holdVec.b) max = holdVec.b;
+                if(max == holdVec.r)
+                {
+                    difference = std::abs(rgb.r - holdVec.r);
+                }
+                else if (max == holdVec.g)
+                {
+                    difference = std::abs(rgb.g - holdVec.g);
+                }
+                else if (max == holdVec.b)
+                {
+                    difference = std::abs(rgb.b - holdVec.b);
+                }
+                rgb.a = 1 - difference;
+            }
 
 
             filterScreen.data[x + (y * screen.width)] = (rgb.r) * 255;

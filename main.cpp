@@ -187,7 +187,7 @@ image* flatImageRWStuff(int argc, char** argv)
     //int count = stoi(argv[2], NULL, 10);
     vecMask.initScreen(img);
 
-    holdImage = imageManager.openPNG("../moustachemaniac.png");
+    holdImage = imageManager.openPNG("../AlphaTest2.png");
     if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
     img = imageManager.getImgPtr(holdImage);
 
