@@ -304,7 +304,7 @@ int main(int argc, char *argv[])
     part[0].setVelocity(glm::vec3(0.000f, 0.0f, 0.0f));
     part[1].setPosition(glm::vec3(-1.0f, 1.0f, -1.0f));
     part[2].setPosition(glm::vec3(1.0f, 1.0f, -1.0f));
-    part[3].setPosition(glm::vec3(1.0f, 1.0f, 1.5f));
+    part[3].setPosition(glm::vec3(1.0f, 1.0f, 1.0f));
     part[4].setPosition(glm::vec3(-1.0f, -1.0f, 1.0f));
     part[5].setPosition(glm::vec3(-1.0f, -1.0f, -1.0f));
     part[6].setPosition(glm::vec3(1.0f, -1.0f, -1.0f));

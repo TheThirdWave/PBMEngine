@@ -263,12 +263,12 @@ void PhysicsObject::addScale(glm::vec3 sc)
 
 void PhysicsObject::addAcceleration(glm::vec3 na)
 {
-    curState.acceleration = curState.acceleration + (na / mass);
+    derivStates[0].acceleration = derivStates[0].acceleration + (na / mass);
 }
 
 void PhysicsObject::getNextState(float ts)
 {
-    newState.velocity = curState.velocity + (curState.acceleration * ts);
+    newState.velocity = curState.velocity + (derivStates[0].acceleration * ts);
     newState.position = curState.position + (newState.velocity * ts);
 }
 

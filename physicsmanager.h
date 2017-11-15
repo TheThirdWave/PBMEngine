@@ -42,6 +42,10 @@ public:
     void addParticleList(ParticleObject*, int);
     void runTimeStep(float);
     void runRK4TimeStep(float);
+    void getAccels();
+    void getAccelsRK4(float);
+    void getNState(float);
+    void getNStateRK4(float);
     float detectCollision(PhysicsObject*, PhysicsObject*, float);
     float determineCollision(PhysicsObject*, PhysicsObject*, float);
     float spherePlane(SphereObject*, PlaneObject*, float);
