@@ -1460,6 +1460,94 @@ void Imagemanip::composite(Imagemanip * outerMask, Imagemanip * innerMask)
     filterScreen.data = hold;
 }
 
+void Imagemanip::dither(int pow)
+{
+    int size = 4 * (pow * pow);
+    int side = std::sqrt(size);
+    int** pseudoKern = beyesMat(pow);
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            glm::vec3 rgb(1.0f);
+            glm::vec3 hsv(0.0f);
+
+            rgb.r = screen.data[x + (y * screen.width)];
+            rgb.g = screen.data[(x + 1) + (y * screen.width)];
+            rgb.b = screen.data[(x + 2) + (y * screen.width)];
+            rgb = rgb / 255.0f;
+            hsv = rgbtohsv(rgb);
+
+            if(hsv.z * size < pseudoKern[(y / screen.unitbytes) % side][(x / screen.unitbytes) % side])
+            {
+                rgb.r = 0;
+                rgb.g = 0;
+                rgb.b = 0;
+            }
+            else
+            {
+                rgb.r = 1.0f;
+                rgb.g = 1.0f;
+                rgb.b = 1.0f;
+            }
+
+            filterScreen.data[x + (y * screen.width)] = rgb.r * 255;
+            filterScreen.data[(x + 1) + (y * screen.width)] = rgb.g * 255;
+            filterScreen.data[(x + 2) + (y * screen.width)] = rgb.b * 255;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = 255;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
+int** Imagemanip::beyesMat(int pow)
+{
+    int size = 4 * (pow * pow);
+    int side = std::sqrt(size);
+    int** cur;
+    int** smaller;
+
+    cur = new int*[side];
+    for(int i = 0; i < side; i++)
+    {
+        cur[i] = new int[side];
+    }
+    if(pow > 1)
+    {
+        smaller = beyesMat(pow - 1);
+        for(int j = 0; j < 2 ; j++)
+        {
+            for(int i = 0; i < 2 ; i++)
+            {
+                int add;
+                if(j == 0 && i == 0) add = 0;
+                else if(j == 0 && i == 1) add = 2;
+                else if(j == 1 && i == 0) add = 3;
+                else add = 1;
+                for(int u = 0; u < side / 2; u++)
+                {
+                    for(int v = 0; v < side / 2; v++)
+                    {
+                        cur[u * j][v * i] = smaller[u][v] * 4;
+                    }
+                }
+            }
+        }
+        return cur;
+    }
+    else
+    {
+        cur[0][0] = 0.0;
+        cur[0][1] = 2.0;
+        cur[1][0] = 3.0;
+        cur[1][1] = 1.0;
+        return cur;
+    }
+}
+
 
 void Imagemanip::bdlpf()
 {
