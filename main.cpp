@@ -205,7 +205,7 @@ image* flatImageRWStuff(int argc, char** argv)
 
     innerMask.initScreen(img);
 
-    holdImage = imageManager.openPNG("../gradient.png");
+    holdImage = imageManager.openPNG("../GWbackground.png");
     img = imageManager.getImgPtr(holdImage);
     Screen.initScreen(img);
     //Screen.initScreen(800, 800);
@@ -680,6 +680,21 @@ void KeyHandler(unsigned char key, int x, int y)
         {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             Screen.fsDither();
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+        break;
+    }
+    case 't':
+    {
+        if(progState != CDITHER)
+        {
+            progState = CDITHER;
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.cDither(2);
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }

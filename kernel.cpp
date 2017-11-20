@@ -64,6 +64,19 @@ void Kernel::setFExactWeights(Function2D * f)
     }
 }
 
+void Kernel::setFExact(Function2D * f)
+{
+    f->setPoint(glm::vec2(wr + 0.5, hr + 0.5));
+    for(int i = 0; i < height; i++)
+    {
+        for(int j = 0; j < width; j ++)
+        {
+            if(f->getRelative(glm::vec2(j + 0.5, i + 0.5)) < 0) weights[i][j] =  1;
+            else weights[i][j] = 0;
+        }
+    }
+}
+
 
 void Kernel::setFExactWeightsAvg(Function2D * f)
 {

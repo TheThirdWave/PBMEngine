@@ -9,6 +9,7 @@
 
 #include "function2d.h"
 #include "linefunction.h"
+#include "spherefunction.h"
 #include "structpile.h"
 #include "kernel.h"
 
@@ -69,6 +70,7 @@ public:
     void minLayer(Imagemanip*);
     void composite(Imagemanip*, Imagemanip*);
     void oDither(int);
+    void cDither(int);
     void fsDither();
     int** beyesMat(int);
     void bdlpf();

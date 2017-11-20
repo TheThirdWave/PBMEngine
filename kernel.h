@@ -18,6 +18,7 @@ public:
     void setFuncWeights(Function2D*);
     void setFExactWeightsAvg(Function2D*);
     void setFExactWeights(Function2D*);
+    void setFExact(Function2D*);
     void makeIdentity();
     void makeNegIdentity();
     void invertKernel();

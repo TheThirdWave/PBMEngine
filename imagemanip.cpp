@@ -1504,6 +1504,62 @@ void Imagemanip::oDither(int pow)
     filterScreen.data = hold;
 }
 
+void Imagemanip::cDither(int r)
+{
+    Kernel sphere(r, r);
+    SphereFunction f;
+    f.setPoint(glm::vec2(r / 2.0f));
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes * sphere.height)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes * sphere.width)
+        {
+            float average = 0;
+            for(int u = 0; u < sphere.height; u++)
+            {
+                for(int v = 0; v < sphere.width; v++)
+                {
+                    int yu = y + (u * screen.unitbytes);
+                    int xv = x + (v * screen.unitbytes);
+                    if(yu < screen.height * screen.unitbytes && xv < screen.width * screen.unitbytes)
+                    {
+                        glm::vec3 rgb(1.0f);
+                        glm::vec3 hsv(0.0f);
+
+                        rgb.r = screen.data[xv + (yu * screen.width)];
+                        rgb.g = screen.data[(xv + 1) + (yu * screen.width)];
+                        rgb.b = screen.data[(xv + 2) + (yu * screen.width)];
+                        rgb = rgb / 255.0f;
+                        hsv = rgbtohsv(rgb);
+                        average += hsv.z;
+                    }
+                }
+            }
+            average = average / (sphere.width * sphere.height);
+            f.setNormal(glm::vec2(average * r, 0.0f));
+            sphere.setFExact(&f);
+
+            for(int u = 0; u < sphere.height; u++)
+            {
+                for(int v = 0; v < sphere.width; v++)
+                {
+                    int yu = y + (u * screen.unitbytes);
+                    int xv = x + (v * screen.unitbytes);
+
+                    if(yu < screen.height * screen.unitbytes && xv < screen.width * screen.unitbytes)
+                    {
+                         filterScreen.data[xv + (yu * screen.width)] = sphere.weights[u][v] * 255;
+                         filterScreen.data[(xv + 1) + (yu * screen.width)] = sphere.weights[u][v] * 255;
+                         filterScreen.data[(xv + 2) + (yu * screen.width)] = sphere.weights[u][v] * 255;
+                    }
+                }
+            }
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
 void Imagemanip::fsDither()
 {
     for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
@@ -1516,7 +1572,7 @@ void Imagemanip::fsDither()
             glm::vec3 rd(1.0f);
             glm::vec3 d(1.0f);
             glm::vec3 ld(1.0f);
-            glm::vec3 err(1.0f);
+            float err;
             glm::vec3 hsv(0.0f);
 
             rgb.r = screen.data[x + (y * screen.width)];
@@ -1538,7 +1594,7 @@ void Imagemanip::fsDither()
                 rgbn.b = 1;
             }
 
-            err = (rgb) - (rgbn);
+            err = (hsv.z) - (rgbn.r);
 
             if( x / screen.unitbytes < screen.width - 1)
             {
@@ -1568,34 +1624,47 @@ void Imagemanip::fsDither()
                     ld = ld / 255.0f;
                 }
             }
-            l = l + err * (7.0f / 16.0f);
+
+            if(glm::length(l) > 0) l = glm::normalize(l) * (glm::length(l) + err * (7.0f / 16.0f));
+            else l = glm::vec3(0.0f) + err * (7.0f / 16.0f);
             //if(glm::length(l) < 0) l = glm::vec3(0.0f);
             //if(glm::length(l) > 1) l = glm::normalize(l);
-            rd = rd + err * (3.0f / 16.0f);
+            if(glm::length(rd) > 0) rd = glm::normalize(rd) * (glm::length(rd) + err * (3.0f / 16.0f));
+            else rd = glm::vec3(0.0f) + err * (3.0f / 16.0f);
             //if(glm::length(rd) < 0) rd = glm::vec3(0.0f);
             //if(glm::length(rd) > 1) rd = glm::normalize(rd);
-            d = d + err * (5.0f / 16.0f);
+            if(glm::length(d) > 0) d = glm::normalize(d) * (glm::length(d) + err * (5.0f / 16.0f));
+            else d = glm::vec3(0.0f) + err * (5.0f / 16.0f);
             //if(glm::length(d) < 0) d = glm::vec3(0.0f);
             //if(glm::length(d) > 1) d = glm::normalize(d);
-            ld = ld + err * (1.0f / 16.0f);
+            if(glm::length(ld) > 0) ld = glm::normalize(ld) * (glm::length(ld) + err * (1.0f / 16.0f));
+            else ld = glm::vec3(0.0f) + err * (1.0f / 16.0f);
             //if(glm::length(ld) < 0) ld = glm::vec3(0.0f);
             //if(glm::length(ld) > 1) ld = glm::normalize(ld);
 
-
-            if( x / screen.unitbytes < screen.width - 1) screen.data[(x + screen.unitbytes) + (y * screen.width)] = l.r * 255;
-            if( x / screen.unitbytes < screen.width - 1) screen.data[((x + 1) + screen.unitbytes) + (y * screen.width)] = l.g * 255;
-            if( x / screen.unitbytes < screen.width - 1) screen.data[((x + 2) + screen.unitbytes) + (y * screen.width)] = l.b * 255;
+            if( x / screen.unitbytes < screen.width - 1)
+            {
+                screen.data[(x + screen.unitbytes) + (y * screen.width)] = l.r * 255;
+                screen.data[((x + 1) + screen.unitbytes) + (y * screen.width)] = l.g * 255;
+                screen.data[((x + 2) + screen.unitbytes) + (y * screen.width)] = l.b * 255;
+            }
             if( y / screen.unitbytes < screen.height - 1)
             {
-                if( x / screen.unitbytes > 0) screen.data[(x - screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = rd.r * 255;
-                if( x / screen.unitbytes > 0) screen.data[((x + 1) - screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = rd.g * 255;
-                if( x / screen.unitbytes > 0) screen.data[((x + 2) - screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = rd.b * 255;
+                if( x / screen.unitbytes > 0)
+                {
+                    screen.data[(x - screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = rd.r * 255;
+                    screen.data[((x + 1) - screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = rd.g * 255;
+                    screen.data[((x + 2) - screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = rd.b * 255;
+                }
                 screen.data[(x) + ((y + screen.unitbytes) * screen.width)] = d.r * 255;
                 screen.data[(x + 1) + ((y + screen.unitbytes) * screen.width)] = d.g * 255;
                 screen.data[(x + 2) + ((y + screen.unitbytes) * screen.width)] = d.b * 255;
-                if( x / screen.unitbytes < screen.width - 1) screen.data[(x + screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = ld.r * 255;
-                if( x / screen.unitbytes < screen.width - 1) screen.data[((x + 1) + screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = ld.g * 255;
-                if( x / screen.unitbytes < screen.width - 1) screen.data[((x + 2) + screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = ld.b * 255;
+                if( x / screen.unitbytes < screen.width - 1)
+                {
+                    screen.data[(x + screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = ld.r * 255;
+                    screen.data[((x + 1) + screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = ld.g * 255;
+                    screen.data[((x + 2) + screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = ld.b * 255;
+                }
             }
 
             filterScreen.data[x + (y * screen.width)] = rgbn.r * 255;
