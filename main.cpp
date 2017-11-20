@@ -205,7 +205,7 @@ image* flatImageRWStuff(int argc, char** argv)
 
     innerMask.initScreen(img);
 
-    holdImage = imageManager.openPNG("../GWbackground.png");
+    holdImage = imageManager.openPNG("../gradient.png");
     img = imageManager.getImgPtr(holdImage);
     Screen.initScreen(img);
     //Screen.initScreen(800, 800);
@@ -650,6 +650,36 @@ void KeyHandler(unsigned char key, int x, int y)
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             layer1.composite(&outerMask, &innerMask);
             Screen.alphaLayer(&layer1);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+        break;
+    }
+    case 'e':
+    {
+        if(progState != DITHER)
+        {
+            progState = DITHER;
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.oDither(5);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+        break;
+    }
+    case 'r':
+    {
+        if(progState != FSDITHER)
+        {
+            progState = FSDITHER;
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.fsDither();
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }

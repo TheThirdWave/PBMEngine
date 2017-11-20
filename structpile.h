@@ -93,7 +93,9 @@ enum progState{
     SUBTRACT = 16,
     MAX = 17,
     MIN = 18,
-    COMPOSITE = 19
+    COMPOSITE = 19,
+    DITHER = 20,
+    FSDITHER = 21
 };
 
 #endif // STRUCTPILE_H

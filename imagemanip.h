@@ -68,8 +68,9 @@ public:
     void maxLayer(Imagemanip*);
     void minLayer(Imagemanip*);
     void composite(Imagemanip*, Imagemanip*);
-    void dither(int);
-    float** beyesMat(int);
+    void oDither(int);
+    void fsDither();
+    int** beyesMat(int);
     void bdlpf();
     glm::vec3 rgbtohsv(glm::vec3);
     glm::vec3 hsvtorgb(glm::vec3);

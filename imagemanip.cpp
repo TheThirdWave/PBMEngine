@@ -1460,10 +1460,11 @@ void Imagemanip::composite(Imagemanip * outerMask, Imagemanip * innerMask)
     filterScreen.data = hold;
 }
 
-void Imagemanip::dither(int pow)
+void Imagemanip::oDither(int pow)
 {
-    int size = 4 * (pow * pow);
-    int side = std::sqrt(size);
+    int mult = std::pow(2, pow);
+    int size = 4 * (mult * mult);
+    int side = (float)std::sqrt(size);
     int** pseudoKern = beyesMat(pow);
     for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
     {
@@ -1503,9 +1504,118 @@ void Imagemanip::dither(int pow)
     filterScreen.data = hold;
 }
 
+void Imagemanip::fsDither()
+{
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+            glm::vec3 rgb(1.0f);
+            glm::vec3 rgbn(1.0f);
+            glm::vec3 l(1.0f);
+            glm::vec3 rd(1.0f);
+            glm::vec3 d(1.0f);
+            glm::vec3 ld(1.0f);
+            glm::vec3 err(1.0f);
+            glm::vec3 hsv(0.0f);
+
+            rgb.r = screen.data[x + (y * screen.width)];
+            rgb.g = screen.data[(x + 1) + (y * screen.width)];
+            rgb.b = screen.data[(x + 2) + (y * screen.width)];
+            rgb = rgb / 255.0f;
+            hsv = rgbtohsv(rgb);
+
+            if(hsv.z < 0.5)
+            {
+                rgbn.r = 0;
+                rgbn.g = 0;
+                rgbn.b = 0;
+            }
+            else
+            {
+                rgbn.r = 1;
+                rgbn.g = 1;
+                rgbn.b = 1;
+            }
+
+            err = (rgb) - (rgbn);
+
+            if( x / screen.unitbytes < screen.width - 1)
+            {
+                l.r = screen.data[(x + screen.unitbytes) + (y * screen.width)];
+                l.g = screen.data[((x + 1) + screen.unitbytes) + (y * screen.width)];
+                l.b = screen.data[((x + 2) + screen.unitbytes) + (y * screen.width)];
+                l = l / 255.0f;
+            }
+            if( y / screen.unitbytes < screen.height - 1)
+            {
+                if( x / screen.unitbytes > 0)
+                {
+                    rd.r = screen.data[(x - screen.unitbytes) + ((y + screen.unitbytes) * screen.width)];
+                    rd.g = screen.data[((x + 1) - screen.unitbytes) + ((y + screen.unitbytes) * screen.width)];
+                    rd.b = screen.data[((x + 2) - screen.unitbytes) + ((y + screen.unitbytes) * screen.width)];
+                    rd = rd / 255.0f;
+                }
+                d.r = screen.data[(x) + ((y + screen.unitbytes) * screen.width)];
+                d.g = screen.data[(x + 1) + ((y + screen.unitbytes) * screen.width)];
+                d.b = screen.data[(x + 2) + ((y + screen.unitbytes) * screen.width)];
+                d = d / 255.0f;
+                if( x / screen.unitbytes < screen.width - 1)
+                {
+                    ld.r = screen.data[(x + screen.unitbytes) + ((y + screen.unitbytes) * screen.width)];
+                    ld.g = screen.data[((x + 1) + screen.unitbytes) + ((y + screen.unitbytes) * screen.width)];
+                    ld.b = screen.data[((x + 2) + screen.unitbytes) + ((y + screen.unitbytes) * screen.width)];
+                    ld = ld / 255.0f;
+                }
+            }
+            l = l + err * (7.0f / 16.0f);
+            //if(glm::length(l) < 0) l = glm::vec3(0.0f);
+            //if(glm::length(l) > 1) l = glm::normalize(l);
+            rd = rd + err * (3.0f / 16.0f);
+            //if(glm::length(rd) < 0) rd = glm::vec3(0.0f);
+            //if(glm::length(rd) > 1) rd = glm::normalize(rd);
+            d = d + err * (5.0f / 16.0f);
+            //if(glm::length(d) < 0) d = glm::vec3(0.0f);
+            //if(glm::length(d) > 1) d = glm::normalize(d);
+            ld = ld + err * (1.0f / 16.0f);
+            //if(glm::length(ld) < 0) ld = glm::vec3(0.0f);
+            //if(glm::length(ld) > 1) ld = glm::normalize(ld);
+
+
+            if( x / screen.unitbytes < screen.width - 1) screen.data[(x + screen.unitbytes) + (y * screen.width)] = l.r * 255;
+            if( x / screen.unitbytes < screen.width - 1) screen.data[((x + 1) + screen.unitbytes) + (y * screen.width)] = l.g * 255;
+            if( x / screen.unitbytes < screen.width - 1) screen.data[((x + 2) + screen.unitbytes) + (y * screen.width)] = l.b * 255;
+            if( y / screen.unitbytes < screen.height - 1)
+            {
+                if( x / screen.unitbytes > 0) screen.data[(x - screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = rd.r * 255;
+                if( x / screen.unitbytes > 0) screen.data[((x + 1) - screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = rd.g * 255;
+                if( x / screen.unitbytes > 0) screen.data[((x + 2) - screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = rd.b * 255;
+                screen.data[(x) + ((y + screen.unitbytes) * screen.width)] = d.r * 255;
+                screen.data[(x + 1) + ((y + screen.unitbytes) * screen.width)] = d.g * 255;
+                screen.data[(x + 2) + ((y + screen.unitbytes) * screen.width)] = d.b * 255;
+                if( x / screen.unitbytes < screen.width - 1) screen.data[(x + screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = ld.r * 255;
+                if( x / screen.unitbytes < screen.width - 1) screen.data[((x + 1) + screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = ld.g * 255;
+                if( x / screen.unitbytes < screen.width - 1) screen.data[((x + 2) + screen.unitbytes) + ((y + screen.unitbytes) * screen.width)] = ld.b * 255;
+            }
+
+            filterScreen.data[x + (y * screen.width)] = rgbn.r * 255;
+            filterScreen.data[(x + 1) + (y * screen.width)] = rgbn.g * 255;
+            filterScreen.data[(x + 2) + (y * screen.width)] = rgbn.b * 255;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = 255;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
 int** Imagemanip::beyesMat(int pow)
 {
-    int size = 4 * (pow * pow);
+    int mult = std::pow(2, pow);
+    int prevMult = std::pow(2, pow - 1);
+    int size = 4 * (mult * mult);
+    int prevSize = 4 *(prevMult * prevMult);
     int side = std::sqrt(size);
     int** cur;
     int** smaller;
@@ -1515,7 +1625,7 @@ int** Imagemanip::beyesMat(int pow)
     {
         cur[i] = new int[side];
     }
-    if(pow > 1)
+    if(pow > 0)
     {
         smaller = beyesMat(pow - 1);
         for(int j = 0; j < 2 ; j++)
@@ -1531,7 +1641,7 @@ int** Imagemanip::beyesMat(int pow)
                 {
                     for(int v = 0; v < side / 2; v++)
                     {
-                        cur[u * j][v * i] = smaller[u][v] * 4;
+                        cur[u + (side / 2 * j)][v + (side / 2 * i)] = (smaller[u][v] * (size / prevSize)) + add;
                     }
                 }
             }
