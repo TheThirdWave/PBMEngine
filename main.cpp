@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 
 image* flatImageRWStuff(int argc, char** argv)
 {
-    int holdImage = imageManager.openPNG("../crumpled2DMask.png");
+    int holdImage = imageManager.openPNG("../HMap.png");
     if(holdImage < 0) fprintf(stderr,"Error, couldn't read PPM file.\n");
     image* img = imageManager.getImgPtr(holdImage);
     //int count = stoi(argv[2], NULL, 10);
@@ -205,7 +205,7 @@ image* flatImageRWStuff(int argc, char** argv)
 
     innerMask.initScreen(img);
 
-    holdImage = imageManager.openPNG("../GWbackground.png");
+    holdImage = imageManager.openPNG("../HMap.png");
     img = imageManager.getImgPtr(holdImage);
     Screen.initScreen(img);
     //Screen.initScreen(800, 800);
@@ -695,6 +695,26 @@ void KeyHandler(unsigned char key, int x, int y)
         {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             Screen.cDither(2);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+        break;
+    }
+    case 'a':
+    {
+        if(progState != DIFFUSE)
+        {
+            progState = DIFFUSE;
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glm::vec3 l = glm::vec3(1.0f);
+            l.x = rand() % Screen.getWidth();
+            l.y = rand() % Screen.getHeight();
+            l.z = 100.0f;
+            layer1.makeNormal(&vecMask);
+            Screen.light(&layer1, l);
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }

@@ -26,6 +26,8 @@ public:
     ~Imagemanip();
     Imagemanip(int, int);
     Imagemanip(image*);
+    int getWidth();
+    int getHeight();
     void setScreen(image*);
     void setKernel(int, int);
     void setKernelValues(float);
@@ -72,6 +74,8 @@ public:
     void oDither(int);
     void cDither(int);
     void fsDither();
+    void makeNormal(Imagemanip*);
+    void light(Imagemanip*, glm::vec3);
     int** beyesMat(int);
     void bdlpf();
     glm::vec3 rgbtohsv(glm::vec3);
