@@ -75,9 +75,11 @@ public:
     void cDither(int);
     void fsDither();
     void makeNormal(Imagemanip*);
-    void light(Imagemanip*, Imagemanip*, glm::vec3);
+    void diffLight(Imagemanip*, Imagemanip*, glm::vec3);
+    void specLight(Imagemanip*, Imagemanip*, glm::vec3, float);
     int** beyesMat(int);
     void bdlpf();
+    void flipScreens();
     glm::vec3 rgbtohsv(glm::vec3);
     glm::vec3 hsvtorgb(glm::vec3);
 };

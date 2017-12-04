@@ -1733,7 +1733,7 @@ void Imagemanip::makeNormal(Imagemanip * hMap)
 }
 
 //assumes that the image in screen is a height map (i.e. for individual pixels, the rgb values are the same)(i.e. everything is shades of gray)
-void Imagemanip::light(Imagemanip* nMap, Imagemanip* hMap, glm::vec3 l)
+void Imagemanip::diffLight(Imagemanip* nMap, Imagemanip* hMap, glm::vec3 l)
 {
     glm::vec3 N = glm::vec3(0.0f);
     glm::vec3 pL = glm::vec3(0.0f);
@@ -1765,6 +1765,69 @@ void Imagemanip::light(Imagemanip* nMap, Imagemanip* hMap, glm::vec3 l)
             float cos = glm::dot(pL,N);
             if(cos < 0) C = glm::vec3(0.0f);
             else C = glm::vec3(cos);
+
+            filterScreen.data[x + (y * screen.width)] = C.r * 255;
+            filterScreen.data[(x + 1) + (y * screen.width)] = C.g * 255;
+            filterScreen.data[(x + 2) + (y * screen.width)] = C.b * 255;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = 255;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
+//assumes that the image in screen is a height map (i.e. for individual pixels, the rgb values are the same)(i.e. everything is shades of gray)
+void Imagemanip::specLight(Imagemanip* nMap, Imagemanip* hMap, glm::vec3 l, float angle)
+{
+    image* nScreen = nMap->getPtr();
+    image* hScreen = hMap->getPtr();
+    float kA, kD, kS;
+    kD = 0.5f;
+    kS = 0.5f;
+    glm::vec3 N = glm::vec3(0.0f);
+    glm::vec3 pL = glm::vec3(0.0f);
+    glm::vec3 pS = glm::vec3(0.0f);
+    glm::vec3 pE = glm::vec3(nScreen->width / 2, nScreen->height / 2, 256.0f);
+    glm::vec3 I = glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 R;
+    glm::vec3 C;
+
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+
+            //get point being shaded.
+            pS.x = ((float)x / nScreen->unitbytes) + 0.5f;
+            pS.y = ((float)y / nScreen->unitbytes) + 0.5f;
+            pS.z = hScreen->data[x + (y * nScreen->width)];
+
+            //get the vector pointing from the shaded point to the light source.
+            pL = l - pS;
+            pL = glm::normalize(pL);
+
+            N.x = (nScreen->data[x + (y * nScreen->width)] - 127);
+            N.y = -(nScreen->data[(x + 1) + (y * nScreen->width)] - 127);
+            N.z = nScreen->data[(x + 2) + (y * nScreen->width)];
+            N = glm::normalize(N);
+
+            float cos1 = glm::dot(pL,N);
+            if(cos1 < 0) C = glm::vec3(0.0f);
+            else C = glm::vec3(cos1 * kD);
+
+            //I = pE - pS;
+            //I = glm::normalize(I);
+            R = -I + ((glm::dot(I, N) * N) * 2.0f);
+            R = glm::normalize(R);
+            float cos2 = glm::dot(pL, R);
+            float angCos = std::cos(angle);
+            if(cos2 >= angCos)
+            {
+                cos2 = ((cos2 - angCos) / (1 - angCos));
+                C += glm::vec3(cos2 * kS);
+            }
 
             filterScreen.data[x + (y * screen.width)] = C.r * 255;
             filterScreen.data[(x + 1) + (y * screen.width)] = C.g * 255;
@@ -1937,6 +2000,13 @@ void Imagemanip::bdlpf()
     }
     Imagemanip test = Imagemanip(&filterScreen);
     maskedDilation(&test);
+}
+
+void Imagemanip::flipScreens()
+{
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
 }
 
 glm::vec3 Imagemanip::rgbtohsv(glm::vec3 rgb)

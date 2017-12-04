@@ -2,6 +2,7 @@
 #include <fstream>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <sys/time.h>
@@ -715,13 +716,66 @@ void KeyHandler(unsigned char key, int x, int y)
         else
         {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glm::vec3 l = glm::vec3(1.0f);
-            l.x = rand() % Screen.getWidth();
-            l.y = rand() % Screen.getHeight();
-            l.x = rand() % Screen.getWidth();
-            l.y = rand() % Screen.getHeight();
-            l.z = 255.0f;
+            glm::vec3 l = glm::vec3(100.0f, 50.0f, 255.0f);
+            int idx = imageManager.addImage(*Screen.getPtr());
+            Screen.flipScreens();
             Screen.makeNormal(&vecMask);
+
+            int count = 0;
+            string nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
+            imageManager.writePNG((char*)nameBuf.c_str(), idx);
+            for(int j = 0; j < 20; j++)
+            {
+                l.x += j * 3;
+                Screen.flipScreens();
+                Screen.specLight(&layer1, &vecMask, l, PI/20);
+                nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
+                imageManager.writePNG((char*)nameBuf.c_str(), idx);
+            }
+            for(int j = 0; j < 20; j++)
+            {
+                l.y += j * 3;
+                Screen.flipScreens();
+                Screen.specLight(&layer1, &vecMask, l, PI/20);
+                nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
+                imageManager.writePNG((char*)nameBuf.c_str(), idx);
+            }
+            for(int j = 0; j < 20; j++)
+            {
+                l.x -= j * 3;
+                Screen.flipScreens();
+                Screen.specLight(&layer1, &vecMask, l, PI/20);
+                nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
+                imageManager.writePNG((char*)nameBuf.c_str(), idx);
+            }
+            for(int j = 0; j < 20; j++)
+            {
+                l.y -= j * 3;
+                Screen.flipScreens();
+                Screen.specLight(&layer1, &vecMask, l, PI/20);
+                nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
+                imageManager.writePNG((char*)nameBuf.c_str(), idx);
+            }
+            for(int j = 0; j < 20; j++)
+            {
+                l.x += j * 2;
+                l.y += j * 2;
+                l.z -= j * 1;
+                Screen.flipScreens();
+                Screen.specLight(&layer1, &vecMask, l, PI/20);
+                nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
+                imageManager.writePNG((char*)nameBuf.c_str(), idx);
+            }
+            for(int j = 0; j < 20; j++)
+            {
+                l.x += j * 2;
+                l.y += j * 2;
+                l.z += j * 1;
+                Screen.flipScreens();
+                Screen.specLight(&layer1, &vecMask, l, PI/20);
+                nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
+                imageManager.writePNG((char*)nameBuf.c_str(), idx);
+            }
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }
@@ -806,7 +860,7 @@ void MouseMoveHandler(int x, int y)
             l.y = (float)y + 0.5;
             l.z = lHeight;
 
-            Screen.light(&layer1, &vecMask, l);
+            Screen.specLight(&layer1, &vecMask, l, PI/50);
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
             tCount = 20;
