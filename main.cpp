@@ -53,6 +53,7 @@ void display();
 void reshape(GLsizei width, GLsizei height);
 void Timer(int value);
 void KeyHandler(unsigned char key, int x, int y);
+void MouseMoveHandler(int x, int y);
 void MouseHandler(int button, int state, int x, int y);
 void KeyUpHandler(unsigned char key, int x, int y);
 unsigned long getTickCount();
@@ -78,7 +79,8 @@ glm::mat4 modelViewProj, Proj, View, Model;
 GLuint buf, idx, tex, posAttrib, vao, vao1, vao2;
 GLfloat angle = 0.0f;
 int refreshMills = 30;
-int vShade, fShade, cShade, sModelIndex;
+int vShade, fShade, cShade, sModelIndex, tCount;
+float lHeight;
 model* hold1;
 
 Function2D* functions[MAX_FUNCTIONS];
@@ -166,6 +168,7 @@ int main(int argc, char *argv[])
     glutDisplayFunc(testTexture);
     glutKeyboardFunc(KeyHandler);
     glutKeyboardUpFunc(KeyUpHandler);
+    glutPassiveMotionFunc(MouseMoveHandler);
     glutMouseFunc(MouseHandler);
 
     glutTimerFunc(0, Timer, 0);
@@ -179,7 +182,7 @@ int main(int argc, char *argv[])
 
 image* flatImageRWStuff(int argc, char** argv)
 {
-    int holdImage = imageManager.openPNG("../HMap.png");
+    int holdImage = imageManager.openPNG("../Skull.png");
     if(holdImage < 0) fprintf(stderr,"Error, couldn't read PPM file.\n");
     image* img = imageManager.getImgPtr(holdImage);
     //int count = stoi(argv[2], NULL, 10);
@@ -205,7 +208,7 @@ image* flatImageRWStuff(int argc, char** argv)
 
     innerMask.initScreen(img);
 
-    holdImage = imageManager.openPNG("../HMap.png");
+    holdImage = imageManager.openPNG("../Skull.png");
     img = imageManager.getImgPtr(holdImage);
     Screen.initScreen(img);
     //Screen.initScreen(800, 800);
@@ -705,6 +708,9 @@ void KeyHandler(unsigned char key, int x, int y)
         if(progState != DIFFUSE)
         {
             progState = DIFFUSE;
+            layer1.makeNormal(&vecMask);
+            tCount = 0;
+            lHeight = 256.0f;
         }
         else
         {
@@ -712,11 +718,28 @@ void KeyHandler(unsigned char key, int x, int y)
             glm::vec3 l = glm::vec3(1.0f);
             l.x = rand() % Screen.getWidth();
             l.y = rand() % Screen.getHeight();
-            l.z = 100.0f;
-            layer1.makeNormal(&vecMask);
-            Screen.light(&layer1, l);
+            l.x = rand() % Screen.getWidth();
+            l.y = rand() % Screen.getHeight();
+            l.z = 255.0f;
+            Screen.makeNormal(&vecMask);
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+        break;
+    }
+    case '-':
+    {
+        if(progState == DIFFUSE)
+        {
+            lHeight -= 10.0f;
+        }
+        break;
+    }
+    case '=':
+    {
+        if(progState == DIFFUSE)
+        {
+            lHeight += 10.0f;
         }
         break;
     }
@@ -766,6 +789,29 @@ void KeyUpHandler(unsigned char key, int x, int y)
     case 'r':
     default:
         break;
+    }
+}
+
+void MouseMoveHandler(int x, int y)
+{
+    if(progState == DIFFUSE)
+    {
+        if(tCount == 0)
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glm::vec3 l = glm::vec3(1.0f);
+            //l.x = rand() % Screen.getWidth();
+            //l.y = rand() % Screen.getHeight();
+            l.x = Screen.getWidth() - (float)x + 0.5;
+            l.y = (float)y + 0.5;
+            l.z = lHeight;
+
+            Screen.light(&layer1, &vecMask, l);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+            tCount = 20;
+        }
+        else tCount--;
     }
 }
 

@@ -75,7 +75,7 @@ public:
     void cDither(int);
     void fsDither();
     void makeNormal(Imagemanip*);
-    void light(Imagemanip*, glm::vec3);
+    void light(Imagemanip*, Imagemanip*, glm::vec3);
     int** beyesMat(int);
     void bdlpf();
     glm::vec3 rgbtohsv(glm::vec3);

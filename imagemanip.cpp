@@ -1701,16 +1701,24 @@ void Imagemanip::makeNormal(Imagemanip * hMap)
             glm::vec3 N;
 
             //get the normal by calculating the derivative of the height at the current point (get the difference of the surrounding points on the height map)
-            if(x - hScreen->unitbytes < 0) dX = 0 - hScreen->data[(x + hScreen->unitbytes) + (y * hScreen->width)];
-            else if(x + hScreen->unitbytes > hScreen->width * hScreen->unitbytes) dX = hScreen->data[(x - hScreen->unitbytes) + (y * hScreen->width)] - 0;
-            else dX = hScreen->data[x + ((y - hScreen->unitbytes) * hScreen->width)] - hScreen->data[x + ((y + hScreen->unitbytes) * hScreen->width)];
-            if((y - hScreen->unitbytes) * hScreen->width < 0) dY = 0 - hScreen->data[x + ((y + hScreen->unitbytes) * hScreen->width)];
-            else if((y + hScreen->unitbytes) * hScreen->width > hScreen->height * hScreen->unitbytes) dY = hScreen->data[x + ((y - hScreen->unitbytes) * hScreen->width)] - 0;
-            else dY = hScreen->data[x + ((y - hScreen->unitbytes) * hScreen->width)] - hScreen->data[x + ((y + hScreen->unitbytes) * hScreen->width)];
+            if((x - 1) < 0) dX = 0 - hScreen->data[(x + hScreen->unitbytes) + (y * hScreen->width)];
+            else if((x + hScreen->unitbytes) > hScreen->width * hScreen->unitbytes) dX = hScreen->data[(x - hScreen->unitbytes) + (y * hScreen->width)] - 0;
+            else
+            {
+                dX = hScreen->data[(x - hScreen->unitbytes) + ((y) * hScreen->width)] - hScreen->data[(x + hScreen->unitbytes) + ((y) * hScreen->width)];
+            }
+            if((y - 1)  * hScreen->width < 0) dY = 0 - hScreen->data[x + ((y + hScreen->unitbytes) * hScreen->width)];
+            else if((y + hScreen->unitbytes) * hScreen->width > hScreen->height * hScreen->width * hScreen->unitbytes) dY = hScreen->data[x + ((y - hScreen->unitbytes) * hScreen->width)] - 0;
+            else
+            {
+                dY = hScreen->data[x + ((y - hScreen->unitbytes) * hScreen->width)] - hScreen->data[x + ((y + hScreen->unitbytes) * hScreen->width)];
+            }
 
-            N.x = (dX + 255) / 2.0f;
-            N.y = (dY + 255) / 2.0f;
-            N.z = 255 - (std::abs(N.x) + std::abs(N.y)) / 2;
+            //N.r = dX;
+            //N.g = dY;
+            N.r = (dX + 255) / 2.0f;
+            N.g = (-dY + 255) / 2.0f;
+            N.b = 255 - (std::abs(N.x) + std::abs(N.y)) / 2;
 
             filterScreen.data[x + (y * screen.width)] = N.r;
             filterScreen.data[(x + 1) + (y * screen.width)] = N.g;
@@ -1725,7 +1733,7 @@ void Imagemanip::makeNormal(Imagemanip * hMap)
 }
 
 //assumes that the image in screen is a height map (i.e. for individual pixels, the rgb values are the same)(i.e. everything is shades of gray)
-void Imagemanip::light(Imagemanip* nMap, glm::vec3 l)
+void Imagemanip::light(Imagemanip* nMap, Imagemanip* hMap, glm::vec3 l)
 {
     glm::vec3 N = glm::vec3(0.0f);
     glm::vec3 pL = glm::vec3(0.0f);
@@ -1733,6 +1741,7 @@ void Imagemanip::light(Imagemanip* nMap, glm::vec3 l)
     glm::vec3 I = glm::vec3(0.0f, 0.0f, 1.0f);
     glm::vec3 C;
     image* nScreen = nMap->getPtr();
+    image* hScreen = hMap->getPtr();
 
     for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
     {
@@ -1742,14 +1751,14 @@ void Imagemanip::light(Imagemanip* nMap, glm::vec3 l)
             //get point being shaded.
             pS.x = ((float)x / nScreen->unitbytes) + 0.5f;
             pS.y = ((float)y / nScreen->unitbytes) + 0.5f;
-            pS.z = screen.data[x + (y * nScreen->width)] / 255.0f;
+            pS.z = hScreen->data[x + (y * nScreen->width)];
 
             //get the vector pointing from the shaded point to the light source.
             pL = l - pS;
             pL = glm::normalize(pL);
 
-            N.x = nScreen->data[x + (y * nScreen->width)] - 128;
-            N.y = nScreen->data[(x + 1) + (y * nScreen->width)] - 128;
+            N.x = (nScreen->data[x + (y * nScreen->width)] - 127);
+            N.y = -(nScreen->data[(x + 1) + (y * nScreen->width)] - 127);
             N.z = nScreen->data[(x + 2) + (y * nScreen->width)];
             N = glm::normalize(N);
 
