@@ -1893,6 +1893,120 @@ void Imagemanip::specLight(Imagemanip* nMap, Imagemanip* hMap, glm::vec3 l, floa
     filterScreen.data = hold;
 }*/
 
+//assumes that the image in screen is a height map (i.e. for individual pixels, the rgb values are the same)(i.e. everything is shades of gray)
+void Imagemanip::reflection(Imagemanip* hMap, Imagemanip* nMap, Imagemanip* reflection, Imagemanip* refraction, Imagemanip* alpha, glm::vec3 l, float a, float b, float reflHeight, float refrHeight)
+{
+    image* nScreen = nMap->getPtr();
+    image* hScreen = hMap->getPtr();
+    image* reflScreen = reflection->getPtr();
+    image* refrScreen = refraction->getPtr();
+    float kA, kD, kS, t;
+    kD = 0.5f;
+    kS = 0.5f;
+    glm::vec3 N = glm::vec3(0.0f);
+    glm::vec3 pL = glm::vec3(0.0f);
+    glm::vec3 pS = glm::vec3(0.0f);
+    //glm::vec3 pE = glm::vec3(nScreen->width / 2, nScreen->height / 2, 256.0f);
+    glm::vec3 pR = glm::vec3(0.0f);
+    glm::vec3 pRR = glm::vec3(0.0f);
+    glm::vec3 I = glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 R;
+    glm::vec3 T;
+    glm::vec3 C = glm::vec3(0.0f);
+    glm::vec3 cR = glm::vec3(0.0f);
+
+    for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+    {
+        for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+        {
+
+            //get point being shaded.
+            pS.x = ((float)x / nScreen->unitbytes) + 0.5f;
+            pS.y = ((float)y / nScreen->unitbytes) + 0.5f;
+            pS.z = hScreen->data[x + (y * nScreen->width)];
+
+            //get the vector pointing from the shaded point to the light source.
+            pL = l - pS;
+            pL = glm::normalize(pL);
+
+            N.x = (nScreen->data[x + (y * nScreen->width)] - 127);
+            N.y = -(nScreen->data[(x + 1) + (y * nScreen->width)] - 127);
+            N.z = nScreen->data[(x + 2) + (y * nScreen->width)];
+            N.x *= 3;
+            N.y *= 3;
+            N = glm::normalize(N);
+
+            //I = pE - pS;
+            //I = glm::normalize(I);
+            R = -I + ((glm::dot(I, N) * N) * 2.0f);
+            R = glm::normalize(R);
+            t = (reflHeight - pS.z) / R.z;
+            pR = pS + R * t;
+
+            if(pR.x < reflScreen->width && pR.x > 0 && pR.y < refrScreen->height && pR.y > 0)
+            {
+                //lazy AA, should figure out a better method.
+                /*int count = 0;
+                for(int dx = -1; dx < 2; dx++)
+                {
+                    for(int dy = -1; dy < 2; dy++)
+                    {
+                        C.r += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
+                        C.g += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes + 1) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
+                        C.b += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes + 2) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
+                        count++;
+                    }
+                }
+                C = C / (float)count;*/
+                cR.r = reflScreen->data[((int)pR.x * screen.unitbytes) + ((int)pR.y * screen.unitbytes * screen.width)];
+                cR.g = reflScreen->data[((int)pR.x * screen.unitbytes + 1) + ((int)pR.y * screen.unitbytes * screen.width)];
+                cR.b = reflScreen->data[((int)pR.x * screen.unitbytes + 2) + ((int)pR.y * screen.unitbytes * screen.width)];
+                cR = cR / 255.0f;
+            }
+            else cR = glm::vec3(0.0f);
+
+            T = -I * (1 - a) + a * -N;
+            t = (pS.z - refrHeight) / T.z;
+            pRR = pS + T * t;
+
+            if(pRR.x < refrScreen->width && pRR.x > 0 && pRR.y < refrScreen->height && pRR.y > 0)
+            {
+                //lazy AA, should figure out a better method.
+                /*int count = 0;
+                for(int dx = -1; dx < 2; dx++)
+                {
+                    for(int dy = -1; dy < 2; dy++)
+                    {
+                        C.r += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
+                        C.g += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes + 1) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
+                        C.b += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes + 2) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
+                        count++;
+                    }
+                }
+                C = C / (float)count;*/
+                C.r = refrScreen->data[((int)pRR.x * screen.unitbytes) + ((int)pRR.y * screen.unitbytes * screen.width)];
+                C.g = refrScreen->data[((int)pRR.x * screen.unitbytes + 1) + ((int)pRR.y * screen.unitbytes * screen.width)];
+                C.b = refrScreen->data[((int)pRR.x * screen.unitbytes + 2) + ((int)pRR.y * screen.unitbytes * screen.width)];
+                C = C / 255.0f;
+            }
+            else C = glm::vec3(0.0f);
+
+            t = pow(b, -N.z);
+
+            C = t * C + (1 - t) * cR;
+
+            filterScreen.data[x + (y * screen.width)] = C.r * 255;
+            filterScreen.data[(x + 1) + (y * screen.width)] = C.g * 255;
+            filterScreen.data[(x + 2) + (y * screen.width)] = C.b * 255;
+            //the alpha is always at max for now.
+            filterScreen.data[(x + 3) + (y * screen.width)] = 255;
+        }
+    }
+    unsigned char* hold = screen.data;
+    screen.data = filterScreen.data;
+    filterScreen.data = hold;
+}
+
 int** Imagemanip::beyesMat(int pow)
 {
     int mult = std::pow(2, pow);

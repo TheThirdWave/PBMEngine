@@ -81,7 +81,7 @@ GLuint buf, idx, tex, posAttrib, vao, vao1, vao2;
 GLfloat angle = 0.0f;
 int refreshMills = 30;
 int vShade, fShade, cShade, sModelIndex, tCount;
-float lHeight;
+float lHeight, rCoeff, reflHeight, refrHeight, fresnel;
 model* hold1;
 
 Function2D* functions[MAX_FUNCTIONS];
@@ -197,13 +197,13 @@ image* flatImageRWStuff(int argc, char** argv)
 
     layer1.initScreen(img);
 
-    holdImage = imageManager.openPNG("../outer.png");
+    holdImage = imageManager.openPNG("../HMap.png");
     if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
     img = imageManager.getImgPtr(holdImage);
 
     outerMask.initScreen(img);
 
-    holdImage = imageManager.openPNG("../inner.png");
+    holdImage = imageManager.openPNG("../BaseImage.png");
     if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
     img = imageManager.getImgPtr(holdImage);
 
@@ -715,6 +715,7 @@ void KeyHandler(unsigned char key, int x, int y)
         }
         else
         {
+            /*
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glm::vec3 l = glm::vec3(100.0f, 50.0f, 255.0f);
             int idx = imageManager.addImage(*Screen.getPtr());
@@ -777,8 +778,30 @@ void KeyHandler(unsigned char key, int x, int y)
                 imageManager.writePNG((char*)nameBuf.c_str(), idx);
             }
             image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);*/
+        }
+        break;
+    }
+    case 's':
+    {
+        if(progState != REFLECTION)
+        {
+            progState = REFLECTION;
+            layer1.makeNormal(&vecMask);
+            tCount = 0;
+            rCoeff = 1;
+            refrHeight = 256.0f;
+            reflHeight = -1.0f;
+            fresnel = 1.0f;
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, NULL, glm::vec3(0.0f), rCoeff, fresnel, refrHeight, reflHeight);
+            image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }
+        break;
         break;
     }
     case '-':
@@ -787,6 +810,14 @@ void KeyHandler(unsigned char key, int x, int y)
         {
             lHeight -= 10.0f;
         }
+        if(progState == REFLECTION)
+        {
+            rCoeff -= 1.0f;
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, NULL, glm::vec3(0.0f), rCoeff, fresnel, refrHeight, reflHeight);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
         break;
     }
     case '=':
@@ -794,6 +825,62 @@ void KeyHandler(unsigned char key, int x, int y)
         if(progState == DIFFUSE)
         {
             lHeight += 10.0f;
+        }
+        if(progState == REFLECTION)
+        {
+            rCoeff += 1.0f;
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, NULL, glm::vec3(0.0f), rCoeff, fresnel, refrHeight, reflHeight);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+        break;
+    }
+    case '[':
+    {
+        if(progState == REFLECTION)
+        {
+            reflHeight -= 10.0f;
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, NULL, glm::vec3(0.0f), rCoeff, fresnel, refrHeight, reflHeight);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+        break;
+    }
+    case ']':
+    {
+        if(progState == REFLECTION)
+        {
+            reflHeight += 10.0f;
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, NULL, glm::vec3(0.0f), rCoeff, fresnel, refrHeight, reflHeight);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+        break;
+    }
+    case ',':
+    {
+        if(progState == REFLECTION)
+        {
+            fresnel -= 0.1f;
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, NULL, glm::vec3(0.0f), rCoeff, fresnel, refrHeight, reflHeight);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+        break;
+    }
+    case '.':
+    {
+        if(progState == REFLECTION)
+        {
+            fresnel += 0.1f;
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, NULL, glm::vec3(0.0f), rCoeff, fresnel, refrHeight, reflHeight);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }
         break;
     }

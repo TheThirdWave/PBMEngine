@@ -77,6 +77,7 @@ public:
     void makeNormal(Imagemanip*);
     void diffLight(Imagemanip*, Imagemanip*, glm::vec3);
     void specLight(Imagemanip*, Imagemanip*, glm::vec3, float);
+    void reflection(Imagemanip*, Imagemanip*, Imagemanip*, Imagemanip*, Imagemanip*, glm::vec3, float, float, float, float);
     int** beyesMat(int);
     void bdlpf();
     void flipScreens();

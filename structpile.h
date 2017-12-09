@@ -97,7 +97,8 @@ enum progState{
     DITHER = 20,
     FSDITHER = 21,
     CDITHER = 22,
-    DIFFUSE = 23
+    DIFFUSE = 23,
+    REFLECTION = 24
 };
 
 #endif // STRUCTPILE_H
