@@ -1918,8 +1918,8 @@ void Imagemanip::reflection(Imagemanip* hMap, Imagemanip* nMap, Imagemanip* refl
     glm::vec3 pR = glm::vec3(0.0f);
     glm::vec3 pRR = glm::vec3(0.0f);
     glm::vec3 I = glm::vec3(0.0f, 0.0f, 1.0f);
-    glm::vec3 R;
-    glm::vec3 T;
+    glm::vec3 R, Rrand;
+    glm::vec3 T, Trand;
     glm::vec3 A;
     glm::vec3 C = glm::vec3(0.0f);
     glm::vec3 cR = glm::vec3(0.0f);
@@ -1956,88 +1956,102 @@ void Imagemanip::reflection(Imagemanip* hMap, Imagemanip* nMap, Imagemanip* refl
             R = -I + ((glm::dot(N, I) * N) * 2.0f);
             R = glm::normalize(R);
 
-            t = (reflHeight - pS.z) / R.z;
-            pR = pS + R * t;
-            pR.x = abs((int)pR.x % reflScreen->width);
-            pR.y = abs((int)pR.y % refrScreen->height);
+            //for(int i = 0; i < 10; i++)
+            //{
+                Rrand = R;
+                //Rrand.x += -0.03 + 0.06 * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX));
+                //Rrand.y += -0.03 + 0.06 * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX));
+                //Rrand.z += -0.03 + 0.06 * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX));
+                //Rrand = glm::normalize(Rrand);
 
-            if(t >= 0)
-            {
-                //lazy AA, should figure out a better method.
-                /*int count = 0;
-                for(int dx = -1; dx < 2; dx++)
+                t = (reflHeight - pS.z) / Rrand.z;
+                pR = pS + Rrand * t;
+
+                pR.x = abs((int)pR.x % reflScreen->width);
+                pR.y = abs((int)pR.y % refrScreen->height);
+                if(t >= 0)
                 {
-                    for(int dy = -1; dy < 2; dy++)
+                    //lazy AA, should figure out a better method.
+                    /*int count = 0;
+                    for(int dx = -1; dx < 2; dx++)
                     {
-                        C.r += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
-                        C.g += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes + 1) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
-                        C.b += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes + 2) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
-                        count++;
+                        for(int dy = -1; dy < 2; dy++)
+                        {
+                            C.r += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
+                            C.g += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes + 1) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
+                            C.b += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes + 2) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
+                            count++;
+                        }
                     }
+                    C = C / (float)count;*/
+                    cR.r += reflScreen->data[((int)pR.x * screen.unitbytes) + ((int)pR.y * screen.unitbytes * screen.width)];
+                    cR.g += reflScreen->data[((int)pR.x * screen.unitbytes + 1) + ((int)pR.y * screen.unitbytes * screen.width)];
+                    cR.b += reflScreen->data[((int)pR.x * screen.unitbytes + 2) + ((int)pR.y * screen.unitbytes * screen.width)];
+                    //cR = cR / 255.0f;
                 }
-                C = C / (float)count;*/
-                cR.r = reflScreen->data[((int)pR.x * screen.unitbytes) + ((int)pR.y * screen.unitbytes * screen.width)];
-                cR.g = reflScreen->data[((int)pR.x * screen.unitbytes + 1) + ((int)pR.y * screen.unitbytes * screen.width)];
-                cR.b = reflScreen->data[((int)pR.x * screen.unitbytes + 2) + ((int)pR.y * screen.unitbytes * screen.width)];
-                cR = cR / 255.0f;
-            }
-            else
-            {
-                t = (refrHeight - pS.z) / R.z;
-                pR = pS + R * t;
-                 if(pR.x < refrScreen->width && pR.x > 0 && pR.y < refrScreen->height && pR.y > 0 && t >= 0)
-                 {
-                    cR.r = refrScreen->data[((int)pR.x * screen.unitbytes) + ((int)pR.y * screen.unitbytes * screen.width)];
-                    cR.g = refrScreen->data[((int)pR.x * screen.unitbytes + 1) + ((int)pR.y * screen.unitbytes * screen.width)];
-                    cR.b = refrScreen->data[((int)pR.x * screen.unitbytes + 2) + ((int)pR.y * screen.unitbytes * screen.width)];
-                    cR = cR / 255.0f;
-                 }
-                 else
-                 {
-                     cR = glm::vec3(0.0f);
-                 }
-            }
+                else
+                {
+                    t = (refrHeight - pS.z) / Rrand.z;
+                    pR = pS + Rrand * t;
+                     if(pR.x < refrScreen->width && pR.x > 0 && pR.y < refrScreen->height && pR.y > 0 && t >= 0)
+                     {
+                        cR.r += refrScreen->data[((int)pR.x * screen.unitbytes) + ((int)pR.y * screen.unitbytes * screen.width)];
+                        cR.g += refrScreen->data[((int)pR.x * screen.unitbytes + 1) + ((int)pR.y * screen.unitbytes * screen.width)];
+                        cR.b += refrScreen->data[((int)pR.x * screen.unitbytes + 2) + ((int)pR.y * screen.unitbytes * screen.width)];
+                        //cR = cR / 255.0f;
+                     }
+                     else
+                     {
+                         cR += glm::vec3(0.0f);
+                     }
+                }
+            //}
+            //cR = cR / 10.0f;
+            cR = cR / 256.0f;
 
             T = -I * (1 - a) + a * -N;
-            t = (refrHeight - pS.z) / T.z;
-            pRR = pS + T * t;
 
-            if(pRR.x < refrScreen->width && pRR.x > 0 && pRR.y < refrScreen->height && pRR.y > 0 && t > 0)
-            {
-                //lazy AA, should figure out a better method.
-                /*int count = 0;
-                for(int dx = -1; dx < 2; dx++)
+            //for(int i = 0; i < 10; i++)
+            //{
+                Trand = T;
+                //Trand.x += -0.03 + 0.06 * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX));
+                //Trand.y += -0.03 + 0.06 * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX));
+                //Trand.z += -0.03 + 0.06 * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX));
+
+                t = (refrHeight - pS.z) / Trand.z;
+                pRR = pS + Trand * t;
+
+                if(pRR.x < refrScreen->width && pRR.x > 0 && pRR.y < refrScreen->height && pRR.y > 0 && t > 0)
                 {
-                    for(int dy = -1; dy < 2; dy++)
+                    //lazy AA, should figure out a better method.
+                    /*int count = 0;
+                    for(int dx = -1; dx < 2; dx++)
                     {
-                        C.r += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
-                        C.g += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes + 1) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
-                        C.b += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes + 2) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
-                        count++;
+                        for(int dy = -1; dy < 2; dy++)
+                        {
+                            C.r += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
+                            C.g += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes + 1) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
+                            C.b += reflScreen->data[(((int)pR.x + dx) * screen.unitbytes + 2) + (((int)pR.y + dy) * screen.unitbytes * screen.width)];
+                            count++;
+                        }
                     }
+                    C = C / (float)count;*/
+                    C.r += refrScreen->data[((int)pRR.x * screen.unitbytes) + ((int)pRR.y * screen.unitbytes * screen.width)];
+                    C.g += refrScreen->data[((int)pRR.x * screen.unitbytes + 1) + ((int)pRR.y * screen.unitbytes * screen.width)];
+                    C.b += refrScreen->data[((int)pRR.x * screen.unitbytes + 2) + ((int)pRR.y * screen.unitbytes * screen.width)];
+                    //C = C / 255.0f;
                 }
-                C = C / (float)count;*/
-                C.r = refrScreen->data[((int)pRR.x * screen.unitbytes) + ((int)pRR.y * screen.unitbytes * screen.width)];
-                C.g = refrScreen->data[((int)pRR.x * screen.unitbytes + 1) + ((int)pRR.y * screen.unitbytes * screen.width)];
-                C.b = refrScreen->data[((int)pRR.x * screen.unitbytes + 2) + ((int)pRR.y * screen.unitbytes * screen.width)];
-                C = C / 255.0f;
-            }
-            else C = glm::vec3(0.0f);
+                else C += glm::vec3(0.0f);
+            //}
+            //C = C / 10.0f;
+            C = C / 256.0f;
 
-            //N.z /= 10;
+            N.z /= 10;
             N = glm::normalize(N);
             t = pow(b, -N.z);
 
-            if(N.z < cosi) cosi = N.z;
-            if(N.z < 0.1)
-            {
-                int x= 1;
-            }
-            if(t > 0.9)
-            {
-                int x = 1;
-            }
-            C = t * cR + (1 - t) * C;
+            //C = t * cR + (1 - t) * C;
+            //C = cR;
             A.x = alphaScreen->data[(x + 4) + (y * screen.width)];
             if(A.x == 0)
             {
@@ -2049,7 +2063,7 @@ void Imagemanip::reflection(Imagemanip* hMap, Imagemanip* nMap, Imagemanip* refl
             pRR.b = refrScreen->data[(x + 2) + (y * screen.width)];
             pRR /= 255.0f;
 
-            C = A.x * pRR + (1 - A.x) * C;
+            //C = A.x * C + (1 - A.x) * pRR;
 
             filterScreen.data[x + (y * screen.width)] = C.r * 255;
             filterScreen.data[(x + 1) + (y * screen.width)] = C.g * 255;
@@ -2061,8 +2075,6 @@ void Imagemanip::reflection(Imagemanip* hMap, Imagemanip* nMap, Imagemanip* refl
     unsigned char* hold = screen.data;
     screen.data = filterScreen.data;
     filterScreen.data = hold;
-    string nameBuf = std::string("smallest N.z:" + std::to_string(cosi) + "\n");
-    fprintf(stderr, (char*)nameBuf.c_str());
 }
 
 int** Imagemanip::beyesMat(int pow)

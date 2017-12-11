@@ -197,13 +197,13 @@ image* flatImageRWStuff(int argc, char** argv)
 
     layer1.initScreen(img);
 
-    holdImage = imageManager.openPNG("../Green.png");
+    holdImage = imageManager.openPNG("../GWbackground.png");
     if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
     img = imageManager.getImgPtr(holdImage);
 
     outerMask.initScreen(img);
 
-    holdImage = imageManager.openPNG("../BaseImage.png");
+    holdImage = imageManager.openPNG("../GWbackground.png");
     if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
     img = imageManager.getImgPtr(holdImage);
 
@@ -896,7 +896,7 @@ void KeyHandler(unsigned char key, int x, int y)
     {
         if(progState == REFLECTION)
         {
-            fresnel -= 10.0f;
+            fresnel -= 1.0f;
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
             image* img = Screen.getPtr();
@@ -908,7 +908,7 @@ void KeyHandler(unsigned char key, int x, int y)
     {
         if(progState == REFLECTION)
         {
-            fresnel += 10.0f;
+            fresnel += 1.0f;
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
             image* img = Screen.getPtr();
