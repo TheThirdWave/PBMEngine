@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <string>
 #include <math.h>
 #include <algorithm>
 
@@ -12,6 +13,8 @@
 #include "spherefunction.h"
 #include "structpile.h"
 #include "kernel.h"
+
+using namespace std;
 
 class Imagemanip
 {

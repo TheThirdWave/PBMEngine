@@ -1706,19 +1706,26 @@ void Imagemanip::makeNormal(Imagemanip * hMap)
             else
             {
                 dX = hScreen->data[(x - hScreen->unitbytes) + ((y) * hScreen->width)] - hScreen->data[(x + hScreen->unitbytes) + ((y) * hScreen->width)];
+                dX /= 255.0f;
             }
             if((y - 1)  * hScreen->width < 0) dY = 0 - hScreen->data[x + ((y + hScreen->unitbytes) * hScreen->width)];
             else if((y + hScreen->unitbytes) * hScreen->width > hScreen->height * hScreen->width * hScreen->unitbytes) dY = hScreen->data[x + ((y - hScreen->unitbytes) * hScreen->width)] - 0;
             else
             {
                 dY = hScreen->data[x + ((y - hScreen->unitbytes) * hScreen->width)] - hScreen->data[x + ((y + hScreen->unitbytes) * hScreen->width)];
+                dY /= 255.0f;
             }
 
             //N.r = dX;
             //N.g = dY;
-            N.r = (dX + 255) / 2.0f;
-            N.g = (-dY + 255) / 2.0f;
-            N.b = 255 - (std::abs(N.x) + std::abs(N.y)) / 2;
+            N.r = (dX + 1.0f) / 2.0f;
+            N.g = (-dY + 1.0f) / 2.0f;
+            N.b = 2 - (std::abs(N.x) + std::abs(N.y)) / 2;
+            if(N.b > 124)
+            {
+                int x = 1;
+            }
+            N *= 255;
 
             filterScreen.data[x + (y * screen.width)] = N.r;
             filterScreen.data[(x + 1) + (y * screen.width)] = N.g;
@@ -1900,6 +1907,7 @@ void Imagemanip::reflection(Imagemanip* hMap, Imagemanip* nMap, Imagemanip* refl
     image* hScreen = hMap->getPtr();
     image* reflScreen = reflection->getPtr();
     image* refrScreen = refraction->getPtr();
+    image* alphaScreen = alpha->getPtr();
     float kA, kD, kS, t;
     kD = 0.5f;
     kS = 0.5f;
@@ -1912,8 +1920,10 @@ void Imagemanip::reflection(Imagemanip* hMap, Imagemanip* nMap, Imagemanip* refl
     glm::vec3 I = glm::vec3(0.0f, 0.0f, 1.0f);
     glm::vec3 R;
     glm::vec3 T;
+    glm::vec3 A;
     glm::vec3 C = glm::vec3(0.0f);
     glm::vec3 cR = glm::vec3(0.0f);
+    float cosi = 1.0f;
 
     for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
     {
@@ -1923,6 +1933,7 @@ void Imagemanip::reflection(Imagemanip* hMap, Imagemanip* nMap, Imagemanip* refl
             //get point being shaded.
             pS.x = ((float)x / nScreen->unitbytes) + 0.5f;
             pS.y = ((float)y / nScreen->unitbytes) + 0.5f;
+            //pS.z = 0.0f;
             pS.z = hScreen->data[x + (y * nScreen->width)];
 
             //get the vector pointing from the shaded point to the light source.
@@ -1935,15 +1946,22 @@ void Imagemanip::reflection(Imagemanip* hMap, Imagemanip* nMap, Imagemanip* refl
             N.x *= 3;
             N.y *= 3;
             N = glm::normalize(N);
+            if(N.z < 0)
+            {
+                int h = 1;
+            }
 
             //I = pE - pS;
             //I = glm::normalize(I);
-            R = -I + ((glm::dot(I, N) * N) * 2.0f);
+            R = -I + ((glm::dot(N, I) * N) * 2.0f);
             R = glm::normalize(R);
+
             t = (reflHeight - pS.z) / R.z;
             pR = pS + R * t;
+            pR.x = abs((int)pR.x % reflScreen->width);
+            pR.y = abs((int)pR.y % refrScreen->height);
 
-            if(pR.x < reflScreen->width && pR.x > 0 && pR.y < refrScreen->height && pR.y > 0)
+            if(t >= 0)
             {
                 //lazy AA, should figure out a better method.
                 /*int count = 0;
@@ -1963,13 +1981,28 @@ void Imagemanip::reflection(Imagemanip* hMap, Imagemanip* nMap, Imagemanip* refl
                 cR.b = reflScreen->data[((int)pR.x * screen.unitbytes + 2) + ((int)pR.y * screen.unitbytes * screen.width)];
                 cR = cR / 255.0f;
             }
-            else cR = glm::vec3(0.0f);
+            else
+            {
+                t = (refrHeight - pS.z) / R.z;
+                pR = pS + R * t;
+                 if(pR.x < refrScreen->width && pR.x > 0 && pR.y < refrScreen->height && pR.y > 0 && t >= 0)
+                 {
+                    cR.r = refrScreen->data[((int)pR.x * screen.unitbytes) + ((int)pR.y * screen.unitbytes * screen.width)];
+                    cR.g = refrScreen->data[((int)pR.x * screen.unitbytes + 1) + ((int)pR.y * screen.unitbytes * screen.width)];
+                    cR.b = refrScreen->data[((int)pR.x * screen.unitbytes + 2) + ((int)pR.y * screen.unitbytes * screen.width)];
+                    cR = cR / 255.0f;
+                 }
+                 else
+                 {
+                     cR = glm::vec3(0.0f);
+                 }
+            }
 
             T = -I * (1 - a) + a * -N;
-            t = (pS.z - refrHeight) / T.z;
+            t = (refrHeight - pS.z) / T.z;
             pRR = pS + T * t;
 
-            if(pRR.x < refrScreen->width && pRR.x > 0 && pRR.y < refrScreen->height && pRR.y > 0)
+            if(pRR.x < refrScreen->width && pRR.x > 0 && pRR.y < refrScreen->height && pRR.y > 0 && t > 0)
             {
                 //lazy AA, should figure out a better method.
                 /*int count = 0;
@@ -1991,9 +2024,32 @@ void Imagemanip::reflection(Imagemanip* hMap, Imagemanip* nMap, Imagemanip* refl
             }
             else C = glm::vec3(0.0f);
 
+            //N.z /= 10;
+            N = glm::normalize(N);
             t = pow(b, -N.z);
 
-            C = t * C + (1 - t) * cR;
+            if(N.z < cosi) cosi = N.z;
+            if(N.z < 0.1)
+            {
+                int x= 1;
+            }
+            if(t > 0.9)
+            {
+                int x = 1;
+            }
+            C = t * cR + (1 - t) * C;
+            A.x = alphaScreen->data[(x + 4) + (y * screen.width)];
+            if(A.x == 0)
+            {
+                int x = 0;
+            }
+            A.x /= 255.0f;
+            pRR.r = refrScreen->data[x + (y * screen.width)];
+            pRR.g = refrScreen->data[(x + 1) + (y * screen.width)];
+            pRR.b = refrScreen->data[(x + 2) + (y * screen.width)];
+            pRR /= 255.0f;
+
+            C = A.x * pRR + (1 - A.x) * C;
 
             filterScreen.data[x + (y * screen.width)] = C.r * 255;
             filterScreen.data[(x + 1) + (y * screen.width)] = C.g * 255;
@@ -2005,6 +2061,8 @@ void Imagemanip::reflection(Imagemanip* hMap, Imagemanip* nMap, Imagemanip* refl
     unsigned char* hold = screen.data;
     screen.data = filterScreen.data;
     filterScreen.data = hold;
+    string nameBuf = std::string("smallest N.z:" + std::to_string(cosi) + "\n");
+    fprintf(stderr, (char*)nameBuf.c_str());
 }
 
 int** Imagemanip::beyesMat(int pow)

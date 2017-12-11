@@ -63,7 +63,7 @@ ShaderManager shaderManager;
 ReaderWriter imageManager;
 ModelManager modelManager;
 PhysicsManager physicsManager;
-Imagemanip Screen, vecMask, layer1, outerMask, innerMask;
+Imagemanip Screen, vecMask, layer1, outerMask, innerMask, alphaMask;
 
 SphereObject sphere, sphere1;
 ParticleObject* part;
@@ -197,7 +197,7 @@ image* flatImageRWStuff(int argc, char** argv)
 
     layer1.initScreen(img);
 
-    holdImage = imageManager.openPNG("../HMap.png");
+    holdImage = imageManager.openPNG("../Green.png");
     if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
     img = imageManager.getImgPtr(holdImage);
 
@@ -208,6 +208,12 @@ image* flatImageRWStuff(int argc, char** argv)
     img = imageManager.getImgPtr(holdImage);
 
     innerMask.initScreen(img);
+
+    holdImage = imageManager.openPNG("../SkullAlpha.png");
+    if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
+    img = imageManager.getImgPtr(holdImage);
+
+    alphaMask.initScreen(img);
 
     holdImage = imageManager.openPNG("../Skull.png");
     img = imageManager.getImgPtr(holdImage);
@@ -788,16 +794,18 @@ void KeyHandler(unsigned char key, int x, int y)
         {
             progState = REFLECTION;
             layer1.makeNormal(&vecMask);
+            image* img = layer1.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
             tCount = 0;
             rCoeff = 1;
-            refrHeight = 256.0f;
-            reflHeight = -1.0f;
-            fresnel = 1.0f;
+            refrHeight = -1.0f;
+            reflHeight = 256.0f;
+            fresnel = 10.0f;
         }
         else
         {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, NULL, glm::vec3(0.0f), rCoeff, fresnel, refrHeight, reflHeight);
+            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }
@@ -814,7 +822,7 @@ void KeyHandler(unsigned char key, int x, int y)
         {
             rCoeff -= 1.0f;
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, NULL, glm::vec3(0.0f), rCoeff, fresnel, refrHeight, reflHeight);
+            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }
@@ -830,7 +838,7 @@ void KeyHandler(unsigned char key, int x, int y)
         {
             rCoeff += 1.0f;
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, NULL, glm::vec3(0.0f), rCoeff, fresnel, refrHeight, reflHeight);
+            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }
@@ -840,9 +848,9 @@ void KeyHandler(unsigned char key, int x, int y)
     {
         if(progState == REFLECTION)
         {
-            reflHeight -= 10.0f;
+            refrHeight -= 10.0f;
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, NULL, glm::vec3(0.0f), rCoeff, fresnel, refrHeight, reflHeight);
+            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }
@@ -852,9 +860,33 @@ void KeyHandler(unsigned char key, int x, int y)
     {
         if(progState == REFLECTION)
         {
+            refrHeight += 10.0f;
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+        break;
+    }
+    case ';':
+    {
+        if(progState == REFLECTION)
+        {
+            reflHeight -= 10.0f;
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
+            image* img = Screen.getPtr();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+        }
+        break;
+    }
+    case '\'':
+    {
+        if(progState == REFLECTION)
+        {
             reflHeight += 10.0f;
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, NULL, glm::vec3(0.0f), rCoeff, fresnel, refrHeight, reflHeight);
+            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }
@@ -864,9 +896,9 @@ void KeyHandler(unsigned char key, int x, int y)
     {
         if(progState == REFLECTION)
         {
-            fresnel -= 0.1f;
+            fresnel -= 10.0f;
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, NULL, glm::vec3(0.0f), rCoeff, fresnel, refrHeight, reflHeight);
+            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }
@@ -876,9 +908,9 @@ void KeyHandler(unsigned char key, int x, int y)
     {
         if(progState == REFLECTION)
         {
-            fresnel += 0.1f;
+            fresnel += 10.0f;
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, NULL, glm::vec3(0.0f), rCoeff, fresnel, refrHeight, reflHeight);
+            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }
