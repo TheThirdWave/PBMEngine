@@ -56,6 +56,11 @@ void PolygonObject::updateChildren()
     }
 }
 
+void PolygonObject::setNextFromCurrent()
+{
+    getNextState(0.0f);
+}
+
 void PolygonObject::getNextState(float ts)
 {
     newState.position = glm::vec3(0.0f);
@@ -66,7 +71,7 @@ void PolygonObject::getNextState(float ts)
 
 void PolygonObject::getNextRKState(float ts, int idx)
 {
-    getNextState(ts);
+    this->getNextState(ts);
 }
 
 void PolygonObject::updateState()

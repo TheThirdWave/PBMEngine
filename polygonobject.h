@@ -15,6 +15,7 @@ public:
     void updateRenderObject();
     void getNextState(float);
     void getNextRKState(float, int);
+    void setNextFromCurrent();
     void updateState();
 };
 

@@ -46,7 +46,7 @@ public:
     void initRenderObj();
     virtual void updateRenderObject();
     virtual void setRenderObject(RenderObject*);
-    void setNextFromCurrent();
+    virtual void setNextFromCurrent();
     void setRotation(glm::vec3);
     void setNewRotation(glm::vec3);
     void setPosition(glm::vec3);
@@ -70,7 +70,7 @@ public:
     virtual void getNextState(float);
     virtual void updateState();
     void getNextState(int);
-    void getNextRKState(float, int);
+    virtual void getNextRKState(float, int);
     float getVelMag();
     float getAccelMag();
     float getMass();

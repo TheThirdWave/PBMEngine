@@ -121,11 +121,9 @@ void PhysicsManager::runRK4TimeStep(float ts)
             for(int j = i + 1; j < objLen; j++)
             {
                     timeLeft = detectCollision(objList[i], objList[j], timeLeft);
-                    if(timeLeft < ts) break;
             }
-            if(timeLeft < ts) break;
         }
-        ts = timeLeft;
+
         //check for collisions for particles
         for(int i = 0; i < partLen; i++)
         {
@@ -139,6 +137,9 @@ void PhysicsManager::runRK4TimeStep(float ts)
                 timeLeft = ts;
             }
         }
+
+        if(ts == timeLeft) ts = 0;
+        else ts = timeLeft;
 
         //update state
         for(int i = 0; i< objLen; i++)
@@ -305,7 +306,7 @@ float PhysicsManager::detectCollision(PhysicsObject* one, PhysicsObject* two, fl
     if(one->id == PARTICLE && two->id == POLYGON) return partPoly((ParticleObject*)one, (PolygonObject*)two, timeLeft);
     if(one->id == POLYGON && two->id == PARTICLE) return partPoly((ParticleObject*)two, (PolygonObject*)one, timeLeft);
     if(one->id == EDGE && two->id == EDGE) return edgeEdge((EdgeObject*)one, (EdgeObject*)two, timeLeft);
-    return 0;
+    return timeLeft;
 }
 
 float PhysicsManager::determineCollision(PhysicsObject* one, PhysicsObject* two, float timeLeft)
@@ -375,7 +376,7 @@ float PhysicsManager::spherePoly(SphereObject * sph, PolygonObject * pla, float 
 
     float origDist = (planeNorm.x * spherePos.x) + (planeNorm.y * spherePos.y) + (planeNorm.z * spherePos.z) + -(glm::dot(planePos, planeNorm));
     float newDist = (planeNorm.x * nextSpherePos.x) + (planeNorm.y * nextSpherePos.y) + (planeNorm.z * nextSpherePos.z) + -(glm::dot(planePos, planeNorm));
-    if(!(newDist < 0 && origDist > 0 || newDist > 0 && origDist < 0 || newDist == 0 && origDist == 0)) return 0;
+    if(!(newDist < 0 && origDist > 0 || newDist > 0 && origDist < 0 || newDist == 0 && origDist == 0)) return timeLeft;
 
 
     //move sphere up to where it connects with the plane
@@ -479,14 +480,14 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
 
     //if the sign of the distance changes between the old position of the sphere and the new position of the sphere we know that it has crossed the plane and we need to do
     //more collision handling, otherwise there hasn't been a collision and we're done.
-    if((origDist >= 0 && newDist >= 0) || (origDist <= 0 && newDist <= 0)) return 0;
+    if((origDist >= 0 && newDist >= 0) || (origDist <= 0 && newDist <= 0)) return timeLeft;
 
 
     //move sphere up to where it connects with the plane
     float f = std::abs(origDist / (origDist - newDist));
 
     timeLeft = (timeLeft * f);
-    getAccelsRK4(timeLeft);
+    //getAccelsRK4(timeLeft);
     getNStateRK4(timeLeft);
 
     //We assume edges between successive child objects, so there's a line between child 0 and child 1,
@@ -609,7 +610,7 @@ float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLef
     glm::vec3 e2 = eo2->childPtrs[1]->getPosition() - pt2;
     //The normal that describes a plane between the two edges.
     glm::vec3 plane = glm::normalize(glm::cross(e1, e2));
-    if(glm::normalize(e1) == glm::normalize(-e2)) return 0;
+    if(glm::normalize(e1) == glm::normalize(-e2)) return timeLeft;
 
     //do the same thing with for the new positions of the edges.
     glm::vec3 npt1 = eo1->childPtrs[0]->getNewPosition();
@@ -628,16 +629,18 @@ float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLef
     float nnorm = glm::dot(ndist, plane);
 
     //return if they don't pass through the plane
-    if((norm >= 0 && nnorm >= 0) || (norm <= 0 && nnorm <= 0)) return 0;
+    if((norm >= 0 && nnorm >= 0) || (norm <= 0 && nnorm <= 0)) return timeLeft;
 
     //update edges to the point where they were at the plane (I think)
     float f;
     if(norm-nnorm != 0) f = std::abs(norm/(norm-nnorm));
     else f = 0;
 
+    float timePassed = timeLeft * f;
     timeLeft = timeLeft * (1-f);
-    getAccelsRK4(timeLeft);
-    getNStateRK4(timeLeft);
+    //I don't think I need to update the accelerations, test without after I get it nominally working.
+    //getAccelsRK4(timePassed);
+    getNStateRK4(timePassed);
 
     //get lines at the updated positions
     pt1 = eo1->childPtrs[0]->getNewPosition();
