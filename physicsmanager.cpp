@@ -468,7 +468,7 @@ float PhysicsManager::spherePoly(SphereObject * sph, PolygonObject * pla, float 
 float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float timeLeft)
 {
     //check collision w/plane
-    if(pla->getChildIdx((PhysicsObject*)par) > 0) return timeLeft;
+    if(pla->getChildIdx((PhysicsObject*)par) >= 0) return timeLeft;
     glm::vec3 spherePos = par->getPosition();
     glm::vec3 nextSpherePos = par->getNewPosition();
     glm::vec3 planePos = pla->getPosition();
@@ -643,7 +643,7 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
 float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLeft)
 {
     int buf [MAX_POLYGON_CHILDREN];
-    int hargh = 0;
+    int len = 0;
     PolygonObject* e;
     //check to see if edges are a part of the same face.
     for(int i = 0; i < eo1->numParents; i++)
@@ -652,8 +652,8 @@ float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLef
         if(f->id == 2)
         {
             e = (PolygonObject*)f;
-            hargh = e->getEdges(buf);
-            for(int j = 0; j < hargh; j++)
+            len = e->getEdges(buf);
+            for(int j = 0; j < len; j++)
             {
                 //if edges are a part of the same face just return.
                 if(e->childPtrs[buf[j]] == eo2)
@@ -673,7 +673,7 @@ float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLef
     if(glm::normalize(e1) == glm::normalize(-e2)) return timeLeft;
     if(e1 == e2 || glm::cross(e1, e2) == glm::vec3(0.0f))
     {
-        e1 += glm::normalize(glm::cross(pt1 - pt2, e1)) * 0.000000001f;
+        e1 += glm::normalize(glm::cross(pt1 - pt2, e1)) * 0.0000001f;
     }
     //glm::vec3 blah = glm::cross(e1, e2);
     //glm::vec3 glah = glm::normalize(blah);
