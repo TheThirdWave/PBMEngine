@@ -64,8 +64,16 @@ void PolygonObject::setNextFromCurrent()
 void PolygonObject::getNextState(float ts)
 {
     newState.position = glm::vec3(0.0f);
-    for(int i = 0; i < numChildren; i++) newState.position += childPtrs[i]->getPosition();
-    newState.position = (glm::length(newState.position) / numChildren) * glm::normalize(newState.position);
+    int count = 0;
+    for(int i = 0; i < numChildren; i++)
+    {
+        if(childPtrs[i]->getId() == 3)
+        {
+            newState.position += childPtrs[i]->getPosition();
+            count++;
+        }
+    }
+    newState.position = (glm::length(newState.position) / count) * glm::normalize(newState.position);
     newState.velocity = newState.position - curState.position;
 }
 
@@ -77,5 +85,27 @@ void PolygonObject::getNextRKState(float ts, int idx)
 void PolygonObject::updateState()
 {
     curState = newState;
-    geoDescription.normal = glm::normalize(glm::cross(childPtrs[0]->getPosition() - childPtrs[1]->getPosition(), childPtrs[0]->getPosition() - childPtrs[2]->getPosition()));
+    int buf[MAX_POLYGON_CHILDREN];
+    int numVert = getVertices(buf);
+    geoDescription.normal = glm::normalize(glm::cross(childPtrs[buf[0]]->getPosition() - childPtrs[buf[1]]->getPosition(), childPtrs[buf[0]]->getPosition() - childPtrs[buf[2]]->getPosition()));
+}
+
+int PolygonObject::getVertices(int buf[])
+{
+    int count = 0;
+    for(int i = 0; i < numChildren; i++)
+    {
+        if(childPtrs[i]->getId() == 3) buf[count++] = i;
+    }
+    return count;
+}
+
+int PolygonObject::getEdges(int buf[])
+{
+    int count = 0;
+    for(int i = 0; i < numChildren; i++)
+    {
+        if(childPtrs[i]->getId() == 4) buf[count++] = i;
+    }
+    return count;
 }

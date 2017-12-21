@@ -11,6 +11,7 @@ PhysicsManager::PhysicsManager()
     partLen = 0;
     elasticity = 1.0f;
     fcoefficient = 0.1f;
+    sPrecision = 10;
 }
 
 void PhysicsManager::addPhysObj(PhysicsObject* obj)
@@ -249,15 +250,15 @@ void PhysicsManager::getAccelsRK4(float ts)
             }
         }
 
-        for(int f = 0; f < NUM_DERIV_STATES; f++)
+        for(int fi = 0; fi < NUM_DERIV_STATES; fi++)
         {
             //calculate next state
             for(int i = 0; i < objLen; i++)
             {
-                if(f < 3) objList[i]->getNextRKState(ts/2, f);
-                else objList[i]->getNextRKState(ts, f);
+                if(fi < 3) objList[i]->getNextRKState(ts/2, fi);
+                else objList[i]->getNextRKState(ts, fi);
                 objList[i]->setNextFromCurrent();
-                objList[i]->getNextState(f);
+                objList[i]->getNextState(fi);
             }
 
         }
@@ -305,7 +306,10 @@ float PhysicsManager::detectCollision(PhysicsObject* one, PhysicsObject* two, fl
     if(one->id == POLYGON && two->id == SPHERE) return spherePoly((SphereObject*)two, (PolygonObject*)one, timeLeft);
     if(one->id == PARTICLE && two->id == POLYGON) return partPoly((ParticleObject*)one, (PolygonObject*)two, timeLeft);
     if(one->id == POLYGON && two->id == PARTICLE) return partPoly((ParticleObject*)two, (PolygonObject*)one, timeLeft);
-    if(one->id == EDGE && two->id == EDGE) return edgeEdge((EdgeObject*)one, (EdgeObject*)two, timeLeft);
+    if(one->id == EDGE && two->id == EDGE)
+    {
+        return edgeEdge((EdgeObject*)one, (EdgeObject*)two, timeLeft);
+    }
     return timeLeft;
 }
 
@@ -464,6 +468,7 @@ float PhysicsManager::spherePoly(SphereObject * sph, PolygonObject * pla, float 
 float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float timeLeft)
 {
     //check collision w/plane
+    if(pla->getChildIdx((PhysicsObject*)par) > 0) return timeLeft;
     glm::vec3 spherePos = par->getPosition();
     glm::vec3 nextSpherePos = par->getNewPosition();
     glm::vec3 planePos = pla->getPosition();
@@ -482,16 +487,51 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
     //more collision handling, otherwise there hasn't been a collision and we're done.
     if((origDist >= 0 && newDist >= 0) || (origDist <= 0 && newDist <= 0)) return timeLeft;
 
+    float f;
+    float start = 0;
+    float end = timeLeft;
+    float middle = start + timeLeft / 2;
+    bool collision = false;
+    for(int i = 0; i < sPrecision; i++)
+    {
+        f = middle;
+        getNStateRK4(middle);
+        spherePos = par->getPosition();
+        nextSpherePos = par->getNewPosition();
+        planePos = pla->getPosition();
+        planeNorm = pla->geoDescription.normal;
+        planeUp = pla->geoDescription.upVec;
 
-    //move sphere up to where it connects with the plane
-    float f = std::abs(origDist / (origDist - newDist));
+        //get the position of the sphere in relation to some arbitrary point on the plane.
+        srefPlane = spherePos - planePos;
+        nSRefPlane = nextSpherePos - planePos;
 
-    timeLeft = (timeLeft * f);
-    //getAccelsRK4(timeLeft);
-    getNStateRK4(timeLeft);
+        //use that to get the distance of the sphere from the plane by taking the dot product of the normal and the position of the sphere in terms of the point on the plane.
+        origDist = glm::dot(srefPlane, planeNorm);
+        newDist = glm::dot(nSRefPlane, planeNorm);
 
-    //We assume edges between successive child objects, so there's a line between child 0 and child 1,
-    //a line between child 1 and child 2, a line between hild 3 and child 4, and so on.  We also assume a line between the last child and the first, so if there
+        if((origDist >= 0 && newDist >= 0) || (origDist <= 0 && newDist <= 0))
+        {
+            start = middle;
+            middle = start + (end - start)/2;
+        }
+        else
+        {
+            end = middle;
+            middle = start + (end - start)/2;
+            collision = true;
+        }
+
+    }
+
+    if(collision == false) return timeLeft;
+
+
+    //get the points from the children of the polygon to use as collision edges.
+    int childs[MAX_POLYGON_CHILDREN];
+    int count = pla->getVertices(childs);
+    //We assume edges between successive child points, so there's a line between child 0 and child 1,
+    //a line between child 1 and child 2, a line between child 3 and child 4, and so on.  We also assume a line between the last child and the first, so if there
     //are n children there's a line between child n and child 0.
     //We use the children to check to see if the position of the colliding object on the collision plane is within the bounds of the polygon.
     //To do that, we discard one of the coordinate components and check the position of the colliding object against the line segements defined by the children of the polygon.
@@ -499,18 +539,18 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
     float m = std::max(std::abs(planeNorm.x), std::abs(planeNorm.y));
     m = std::max(m, std::abs(planeNorm.z));
     int numIntercepts = 0;
-    for(int i = 0; i < pla->numChildren; i++)
+    for(int i = 0; i < count; i++)
     {
         glm::vec3 pt1, pt2;
-        if(i < pla->numChildren - 1)
+        if(i < count - 1)
         {
-            pt1 = pla->childPtrs[i]->getPosition();
-            pt2 = pla->childPtrs[i + 1]->getPosition();
+            pt1 = pla->childPtrs[childs[i]]->getPosition();
+            pt2 = pla->childPtrs[childs[i+1]]->getPosition();
         }
         else
         {
-            pt1 = pla->childPtrs[i]->getPosition();
-            pt2 = pla->childPtrs[0]->getPosition();
+            pt1 = pla->childPtrs[childs[i]]->getPosition();
+            pt2 = pla->childPtrs[childs[0]]->getPosition();
         }
         if(m == std::abs(planeNorm.x))
         {
@@ -566,9 +606,9 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
     deltaV1 = normV1 + tanV1;
     deltaV2 = normV2 + tanV2;
 
-    par->setVelocity(deltaV2 + com);par->getNextState(timeLeft);
-    par->updateState();
+    par->setVelocity(deltaV2 + com);
     par->getNextState(timeLeft);
+    par->updateState();    
     for(int i = 0; i < pla->numChildren; i++)
     {
         pla->childPtrs[i]->setVelocity((deltaV1 + com) * weights[i]);
@@ -602,6 +642,27 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
 
 float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLeft)
 {
+    int buf [MAX_POLYGON_CHILDREN];
+    int hargh = 0;
+    PolygonObject* e;
+    //check to see if edges are a part of the same face.
+    for(int i = 0; i < eo1->numParents; i++)
+    {
+        PhysicsObject* f = eo1->parentPtrs[i];
+        if(f->id == 2)
+        {
+            e = (PolygonObject*)f;
+            hargh = e->getEdges(buf);
+            for(int j = 0; j < hargh; j++)
+            {
+                //if edges are a part of the same face just return.
+                if(e->childPtrs[buf[j]] == eo2)
+                {
+                    return timeLeft;
+                }
+            }
+        }
+    }
     //points for each edge
     glm::vec3 pt1 = eo1->childPtrs[0]->getPosition();
     glm::vec3 pt2 = eo2->childPtrs[0]->getPosition();
@@ -609,8 +670,14 @@ float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLef
     glm::vec3 e1 = eo1->childPtrs[1]->getPosition() - pt1;
     glm::vec3 e2 = eo2->childPtrs[1]->getPosition() - pt2;
     //The normal that describes a plane between the two edges.
-    glm::vec3 plane = glm::normalize(glm::cross(e1, e2));
     if(glm::normalize(e1) == glm::normalize(-e2)) return timeLeft;
+    if(e1 == e2 || glm::cross(e1, e2) == glm::vec3(0.0f))
+    {
+        e1 += glm::normalize(glm::cross(pt1 - pt2, e1)) * 0.000000001f;
+    }
+    //glm::vec3 blah = glm::cross(e1, e2);
+    //glm::vec3 glah = glm::normalize(blah);
+    glm::vec3 plane = glm::normalize(glm::cross(e1, e2));
 
     //do the same thing with for the new positions of the edges.
     glm::vec3 npt1 = eo1->childPtrs[0]->getNewPosition();
@@ -655,10 +722,7 @@ float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLef
     float t = -(glm::dot(dist, glm::cross(glm::normalize(e1), plane)))/(glm::dot(e2, glm::cross(glm::normalize(e1), plane)));
 
     //if they meet outside the segments just return.
-    //HACK ALERT: I don't handle the time left correctly in the collision detection loop, and so this is all wrong and I need
-    //to go back through all of my collision handlers to fix it all and I'll never actually get around to it but I just need
-    //to remember that this is a a whole thing.
-    if(s < 0 || s > 1 || t < 0 || t > 1) return timeLeft;
+    if(s <= 0 || s >= 1 || t <= 0 || t >= 1) return timeLeft;
 
 
     //HACK ALERT: I don't think I take elasticity into account when calculating the velocities.
@@ -706,16 +770,27 @@ int PhysicsManager::pointLSeg2D(glm::vec2 pt, glm::vec2 l0, glm::vec2 l1)
     if(l0.x < pt.x && l1.x < pt.x) return 0;
     if(l0.y < pt.y && l1.y < pt.y) return 0;
     if(l0.y > pt.y && l1.y > pt.y) return 0;
+    if(l0 == pt) return 0;
+    if(l1 == pt) return 0;
     if(l0.x > pt.x && l1.x > pt.x && l0.y > pt.y && l1.y > pt.y) return 0;
     if(l0.x > pt.x && l1.x > pt.x && l0.y < pt.y && l1.y < pt.y) return 0;
-    if(l0.x > pt.x && l1.x > pt.x && l0.y >= pt.y && l1.y <= pt.y) return 1;
-    if(l0.x > pt.x && l1.x > pt.x && l0.y <= pt.y && l1.y >= pt.y) return 1;
+    if(l0.x > pt.x && l1.x > pt.x && l0.y >= pt.y && l1.y <= pt.y)
+    {
+        return 1;
+    }
+    if(l0.x > pt.x && l1.x > pt.x && l0.y <= pt.y && l1.y >= pt.y)
+    {
+        return 1;
+    }
     glm::vec2 lineVec = glm::normalize(l1 - l0);
     float f;
     if(lineVec.y == 0) f = 0;
     else f = (pt.y - l0.y)/lineVec.y;
     float xf = l0.x + lineVec.x * f;
-    if(pt.x <= xf) return 1;
+    if(pt.x < xf)
+    {
+        return 1;
+    }
     else return 0;
 
 }

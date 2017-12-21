@@ -74,6 +74,8 @@ public:
     float getVelMag();
     float getAccelMag();
     float getMass();
+    int getChildIdx(PhysicsObject*);
+    int getId();
     glm::vec3 getPosition();
     glm::vec3 getVelocity();
     glm::vec3 getNewPosition();

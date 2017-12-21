@@ -29,7 +29,7 @@ private:
     glm::vec3   directonalGlobalForces[MAX_FORCES];
     geometry    attractorGlobalForces[MAX_FORCES];
 
-    int objLen, scaGFLen, dirGFLen, attGFLen, genLen, partLen;
+    int objLen, scaGFLen, dirGFLen, attGFLen, genLen, partLen, sPrecision;
     float elasticity;
     float fcoefficient;
 public:

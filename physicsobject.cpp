@@ -232,7 +232,7 @@ void PhysicsObject::addChild(PhysicsObject* c)
 
 void PhysicsObject::addParent(PhysicsObject* p)
 {
-    if(numParents = 0) parentPtrs = new PhysicsObject*[MAX_PARENTS];
+    if(numParents == 0) parentPtrs = new PhysicsObject*[MAX_PARENTS];
     parentPtrs[numParents++] = p;
 }
 
@@ -283,6 +283,21 @@ void PhysicsObject::getNextRKState(float ts, int idx)
 {
     derivStates[idx].velocity = (derivStates[idx].acceleration * ts);
     derivStates[idx].position =  (newState.velocity + derivStates[idx].velocity) * ts;
+}
+
+int PhysicsObject::getChildIdx(PhysicsObject* ptr)
+{
+    if(numChildren <= 0) return -1;
+    for(int i = 0; i < numChildren; i++)
+    {
+        if(childPtrs[i] == ptr) return i;
+    }
+    return -1;
+}
+
+int PhysicsObject::getId()
+{
+    return id;
 }
 
 void PhysicsObject::updateState()
