@@ -226,7 +226,7 @@ void PhysicsObject::setGeometry(geometry geo)
 
 void PhysicsObject::addChild(PhysicsObject* c)
 {
-    if(numChildren = 0) childPtrs = new PhysicsObject*[MAX_CHILDREN];
+    if(numChildren == 0) childPtrs = new PhysicsObject*[MAX_CHILDREN];
     childPtrs[numChildren++] = c;
 }
 
@@ -300,6 +300,38 @@ int PhysicsObject::getId()
     return id;
 }
 
+int PhysicsObject::getCollections(int size, int* buf)
+{
+   int count = 0;
+   for(int i = 0; i < numParents; i++)
+   {
+       if(parentPtrs[i]->getId() == COLLECTION) buf[count++] = i;
+       if(count >= size) return count;
+   }
+   return count;
+}
+
+int PhysicsObject::getVertices(int buf[])
+{
+    int count = 0;
+    for(int i = 0; i < numChildren; i++)
+    {
+        if(childPtrs[i]->getId() == 3) buf[count++] = i;
+    }
+    return count;
+}
+
+int PhysicsObject::getEdges(int buf[])
+{
+    int count = 0;
+    for(int i = 0; i < numChildren; i++)
+    {
+        if(childPtrs[i]->getId() == 4) buf[count++] = i;
+    }
+    return count;
+}
+
+
 void PhysicsObject::updateState()
 {
     curState = newState;
@@ -341,6 +373,21 @@ glm::vec3 PhysicsObject::getNewVelocity()
 RenderObject* PhysicsObject::getRenderObj()
 {
     return rendrPtr;
+}
+
+bool PhysicsObject::checkCollections(PhysicsObject* ptr)
+{
+    int col[MAX_PARENTS];
+    int count = getCollections(MAX_PARENTS, col);
+    if(count == 0) return false;
+    else
+    {
+        for(int i = 0; i < count; i++)
+        {
+            if(parentPtrs[i]->getChildIdx(ptr) > -1) return true;
+        }
+    }
+    return false;
 }
 
 void PhysicsObject::initRenderObj()

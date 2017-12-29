@@ -22,7 +22,7 @@
 #define MAX_POLYGON_CHILDREN MAX_CHILDREN
 #define MAX_PARTICLE_PARENTS MAX_PARENTS
 
-#define NUM_PARTS 8
+#define NUM_PARTS 16
 #define NUM_DERIV_STATES 4
 
 #include "../glm-0.9.8.5/glm/glm.hpp"
@@ -72,7 +72,7 @@ enum collideType{
     POLYGON = 2,
     PARTICLE = 3,
     EDGE = 4,
-    ROOT = 5
+    COLLECTION = 5
 };
 
 enum keyState{

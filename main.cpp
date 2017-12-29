@@ -26,6 +26,7 @@
 #include "physicsobject.h"
 #include "physicsmanager.h"
 #include "edgeobject.h"
+#include "objcollection.h"
 #include "sphereobject.h"
 #include "particleobject.h"
 #include "planeobject.h"
@@ -45,7 +46,7 @@ void initMatricies(int, int);
 void initTexture();
 void initTexture(image*);
 void setFace(ParticleObject*, ParticleObject*, ParticleObject*, ParticleObject*, int idx, int idx1);
-void setCube(ParticleObject*, ParticleObject*, ParticleObject*, ParticleObject*, ParticleObject*, ParticleObject*, ParticleObject*, ParticleObject*, int idx, int idx1);
+void setCube(ParticleObject*, ParticleObject*, ParticleObject*, ParticleObject*, ParticleObject*, ParticleObject*, ParticleObject*, ParticleObject*, ObjCollection*, int idx, int idx1);
 void configureAttributes(void);
 void testRender(void);
 void testTexture(void);
@@ -66,11 +67,12 @@ PhysicsManager physicsManager;
 Imagemanip Screen;
 
 SphereObject sphere, sphere1;
-EdgeObject edge[24];
+EdgeObject edge[48];
 ParticleObject* part;
 ParticleGenerator pGen;
 PolygonObject plane1, plane2, plane3, plane4, plane5;
-PolygonObject plane[6];
+PolygonObject plane[24];
+ObjCollection cube1, cube2;
 RenderObject sModel, pModel, poModel;
 
 Camera camera;
@@ -291,13 +293,15 @@ int main(int argc, char *argv[])
     plane2.setScale(glm::vec3(5.0f, 5.0f, 5.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane2);
 */
-    for(int i = 0; i < NUM_PARTS; i++)
+    for(int i = 0; i < 8; i++)
     {
         part[i].setGeometry(glm::normalize((camera.getPosition() - part[0].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
         part[i].setRenderObject(&sModel);
         part[i].setVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
         part[i].setScale(glm::vec3(0.5f, 0.5f, 0.5f));
         part[i].setTTL(-0);
+        part[i].addParent((PhysicsObject*)&cube1);
+        cube1.addChild((PhysicsObject*)&part[i]);
         physicsManager.addPhysObj(&part[i]);
     }
     part[0].setPosition(glm::vec3(-1.0f, 1.0f, -1.0f));
@@ -305,10 +309,32 @@ int main(int argc, char *argv[])
     part[2].setPosition(glm::vec3(1.0f, 1.0f, 1.0f));
     part[3].setPosition(glm::vec3(1.0f, 1.0f, -.0f));
     part[4].setPosition(glm::vec3(-1.0f, -1.0f, -1.0f));
-    part[4].setVelocity(glm::vec3(0.0f, 0.001f, 0.0f));
+    //part[4].setVelocity(glm::vec3(0.0f, 0.001f, 0.0f));
     part[5].setPosition(glm::vec3(-1.0f, -1.0f, 1.0f));
     part[6].setPosition(glm::vec3(1.0f, -1.0f, 1.0f));
     part[7].setPosition(glm::vec3(1.0f, -1.0f, -1.0f));
+
+    for(int i = 8; i < 16; i++)
+    {
+        part[i].setGeometry(glm::normalize((camera.getPosition() - part[0].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
+        part[i].setRenderObject(&sModel);
+        part[i].setVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
+        part[i].setScale(glm::vec3(0.5f, 0.5f, 0.5f));
+        part[i].setTTL(-0);
+        part[i].addParent((PhysicsObject*)&cube2);
+        cube2.addChild((PhysicsObject*)&part[i]);
+        physicsManager.addPhysObj(&part[i]);
+    }
+
+    part[8].setPosition(glm::vec3(3.0f, 1.0f, -1.0f));
+    part[9].setPosition(glm::vec3(3.0f, 1.0f, 1.0f));
+    part[10].setPosition(glm::vec3(5.0f, 1.0f, 1.0f));
+    part[11].setPosition(glm::vec3(5.0f, 1.0f, -.0f));
+    part[12].setPosition(glm::vec3(3.0f, -1.0f, -1.0f));
+    //part[12].setVelocity(glm::vec3(0.0f, 0.001f, 0.0f));
+    part[13].setPosition(glm::vec3(3.0f, -1.0f, 1.0f));
+    part[14].setPosition(glm::vec3(5.0f, -1.0f, 1.0f));
+    part[15].setPosition(glm::vec3(5.0f, -1.0f, -1.0f));
 /*
     edge[0].addChild(&part[0]);
     edge[0].addChild(&part[1]);
@@ -334,7 +360,8 @@ int main(int argc, char *argv[])
 
     //setFace(&part[0], &part[1], &part[2], &part[3], 0, 0);
     //setFace(&part[4], &part[5], &part[6], &part[7], 6, 1);
-    setCube(&part[0], &part[1], &part[2], &part[3], &part[4], &part[5], &part[6], &part[7], 0, 0);
+    setCube(&part[0], &part[1], &part[2], &part[3], &part[4], &part[5], &part[6], &part[7], &cube1, 0, 0);
+    setCube(&part[8], &part[9], &part[10], &part[11], &part[12], &part[13], &part[14], &part[15], &cube2, 24, 6);
 
 
     /*edge[0].addChild(&part[1]);
@@ -449,26 +476,19 @@ void setFace(ParticleObject* o, ParticleObject* t, ParticleObject* th, ParticleO
     t->addParent((PhysicsObject*)&plane[idx1]);
     plane[idx1].addChild(th);
     th->addParent((PhysicsObject*)&plane[idx1]);
-    plane[idx1].addChild(f);
-    f->addParent((PhysicsObject*)&plane[idx1]);
+    plane[idx1 + 1].addChild(f);
+    f->addParent((PhysicsObject*)&plane[idx1 + 1]);
+    plane[idx1 + 1].addChild(o);
+    o->addParent((PhysicsObject*)&plane[idx1 + 1]);
+    plane[idx1 + 1].addChild(th);
+    th->addParent((PhysicsObject*)&plane[idx1 + 1]);
     plane[idx1].setGeometry(glm::normalize(glm::normalize(glm::cross(o->getPosition() - t->getPosition(),o->getPosition() - th->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
+    plane[idx1 + 1].setGeometry(glm::normalize(glm::normalize(glm::cross(f->getPosition() - o->getPosition(),f->getPosition() - th->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
     plane[idx1].setRenderObject(&pModel);
     plane[idx1].setScale(glm::vec3(1.0f, 1.0f, 1.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane[idx1]);
-    edge[idx].addParent((PhysicsObject*)&plane[idx1]);
-    edge[idx + 1].addParent((PhysicsObject*)&plane[idx1]);
-    edge[idx + 2].addParent((PhysicsObject*)&plane[idx1]);
-    edge[idx + 3].addParent((PhysicsObject*)&plane[idx1]);
-    edge[idx + 4].addParent((PhysicsObject*)&plane[idx1]);
-    edge[idx + 5].addParent((PhysicsObject*)&plane[idx1]);
-    plane[idx1].addChild((PhysicsObject*)&edge[idx]);
-    plane[idx1].addChild((PhysicsObject*)&edge[idx + 1]);
-    plane[idx1].addChild((PhysicsObject*)&edge[idx + 2]);
-    plane[idx1].addChild((PhysicsObject*)&edge[idx + 3]);
-    plane[idx1].addChild((PhysicsObject*)&edge[idx + 4]);
-    plane[idx1].addChild((PhysicsObject*)&edge[idx + 5]);
 }
-void setCube(ParticleObject* rtc, ParticleObject* rtf, ParticleObject* ltf, ParticleObject* ltc, ParticleObject* rbc, ParticleObject* rbf, ParticleObject* lbf, ParticleObject* lbc, int idx, int idx1)
+void setCube(ParticleObject* rtc, ParticleObject* rtf, ParticleObject* ltf, ParticleObject* ltc, ParticleObject* rbc, ParticleObject* rbf, ParticleObject* lbf, ParticleObject* lbc, ObjCollection* col, int idx, int idx1)
 {
     edge[idx].addChild(rtc);
     edge[idx].addChild(rtf);
@@ -494,9 +514,14 @@ void setCube(ParticleObject* rtc, ParticleObject* rtf, ParticleObject* ltf, Part
     rtf->addParent((PhysicsObject*)&plane[idx1]);
     plane[idx1].addChild(ltf);
     ltf->addParent((PhysicsObject*)&plane[idx1]);
-    plane[idx1].addChild(ltc);
-    ltc->addParent((PhysicsObject*)&plane[idx1]);
+    plane[idx1 + 1].addChild(ltc);
+    ltc->addParent((PhysicsObject*)&plane[idx1 + 1]);
+    plane[idx1 + 1].addChild(rtc);
+    rtc->addParent((PhysicsObject*)&plane[idx1 + 1]);
+    plane[idx1 + 1].addChild(ltf);
+    ltf->addParent((PhysicsObject*)&plane[idx1 + 1]);
     plane[idx1].setGeometry(glm::normalize(glm::normalize(glm::cross(rtc->getPosition() - rtf->getPosition(),rtc->getPosition() - ltf->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
+    plane[idx1 + 1].setGeometry(glm::normalize(glm::normalize(glm::cross(ltc->getPosition() - rtc->getPosition(),ltc->getPosition() - ltf->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
     edge[idx + 6].addChild(rbc);
     edge[idx + 6].addChild(rbf);
     edge[idx + 6].setSpring(2.0, 0.001, 0.00005);
@@ -515,15 +540,20 @@ void setCube(ParticleObject* rtc, ParticleObject* rtf, ParticleObject* ltf, Part
     edge[idx + 11].addChild(rbf);
     edge[idx + 11].addChild(lbc);
     edge[idx + 11].setSpring(3.0, 0.001, 0.00005);
-    plane[idx1 + 1].addChild(rbc);
-    rbc->addParent((PhysicsObject*)&plane[idx1 + 1]);
-    plane[idx1 + 1].addChild(rbf);
-    rbf->addParent((PhysicsObject*)&plane[idx1 + 1]);
-    plane[idx1 + 1].addChild(lbf);
-    lbf->addParent((PhysicsObject*)&plane[idx1 + 1]);
-    plane[idx1 + 1].addChild(lbc);
-    lbc->addParent((PhysicsObject*)&plane[idx1 + 1]);
-    plane[idx1 + 1].setGeometry(glm::normalize(glm::normalize(glm::cross(rbc->getPosition() - rbf->getPosition(),rbc->getPosition() - lbf->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
+    plane[idx1 + 2].addChild(rbc);
+    rbc->addParent((PhysicsObject*)&plane[idx1 + 2]);
+    plane[idx1 + 2].addChild(rbf);
+    rbf->addParent((PhysicsObject*)&plane[idx1 + 2]);
+    plane[idx1 + 2].addChild(lbf);
+    lbf->addParent((PhysicsObject*)&plane[idx1 + 2]);
+    plane[idx1 + 3].addChild(lbc);
+    lbc->addParent((PhysicsObject*)&plane[idx1 + 3]);
+    plane[idx1 + 3].addChild(rbc);
+    rbc->addParent((PhysicsObject*)&plane[idx1 + 3]);
+    plane[idx1 + 3].addChild(lbf);
+    lbf->addParent((PhysicsObject*)&plane[idx1 + 3]);
+    plane[idx1 + 2].setGeometry(glm::normalize(glm::normalize(glm::cross(rbc->getPosition() - rbf->getPosition(),rbc->getPosition() - lbf->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
+    plane[idx1 + 3].setGeometry(glm::normalize(glm::normalize(glm::cross(lbc->getPosition() - rbc->getPosition(),lbc->getPosition() - lbf->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
     edge[idx + 12].addChild(rtc);
     edge[idx + 12].addChild(rbc);
     edge[idx + 12].setSpring(2.0, 0.001, 0.00005);
@@ -533,15 +563,20 @@ void setCube(ParticleObject* rtc, ParticleObject* rtf, ParticleObject* ltf, Part
     edge[idx + 14].addChild(rbc);
     edge[idx + 14].addChild(ltc);
     edge[idx + 14].setSpring(3.0, 0.001, 0.00005);
-    plane[idx1 + 2].addChild(rtc);
-    rtc->addParent((PhysicsObject*)&plane[idx1 + 2]);
-    plane[idx1 + 2].addChild(rbc);
-    rbc->addParent((PhysicsObject*)&plane[idx1 + 2]);
-    plane[idx1 + 2].addChild(lbc);
-    lbc->addParent((PhysicsObject*)&plane[idx1 + 2]);
-    plane[idx1 + 2].addChild(ltc);
-    ltc->addParent((PhysicsObject*)&plane[idx1 + 2]);
-    plane[idx1 + 2].setGeometry(glm::normalize(glm::normalize(glm::cross(rtc->getPosition() - rbc->getPosition(),rtc->getPosition() - ltc->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
+    plane[idx1 + 4].addChild(rtc);
+    rtc->addParent((PhysicsObject*)&plane[idx1 + 4]);
+    plane[idx1 + 4].addChild(rbc);
+    rbc->addParent((PhysicsObject*)&plane[idx1 + 4]);
+    plane[idx1 + 4].addChild(lbc);
+    lbc->addParent((PhysicsObject*)&plane[idx1 + 4]);
+    plane[idx1 + 5].addChild(ltc);
+    ltc->addParent((PhysicsObject*)&plane[idx1 + 5]);
+    plane[idx1 + 5].addChild(rtc);
+    rtc->addParent((PhysicsObject*)&plane[idx1 + 5]);
+    plane[idx1 + 5].addChild(lbc);
+    lbc->addParent((PhysicsObject*)&plane[idx1 + 5]);
+    plane[idx1 + 4].setGeometry(glm::normalize(glm::normalize(glm::cross(rtc->getPosition() - rbc->getPosition(),rtc->getPosition() - lbc->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
+    plane[idx1 + 5].setGeometry(glm::normalize(glm::normalize(glm::cross(ltc->getPosition() - rtc->getPosition(),ltc->getPosition() - lbc->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
     edge[idx + 15].addChild(ltc);
     edge[idx + 15].addChild(lbc);
     edge[idx + 15].setSpring(2.0, 0.001, 0.00005);
@@ -551,15 +586,20 @@ void setCube(ParticleObject* rtc, ParticleObject* rtf, ParticleObject* ltf, Part
     edge[idx + 17].addChild(lbc);
     edge[idx + 17].addChild(ltf);
     edge[idx + 17].setSpring(3.0, 0.001, 0.00005);
-    plane[idx1 + 3].addChild(ltc);
-    ltc->addParent((PhysicsObject*)&plane[idx1 + 3]);
-    plane[idx1 + 3].addChild(lbc);
-    lbc->addParent((PhysicsObject*)&plane[idx1 + 3]);
-    plane[idx1 + 3].addChild(lbf);
-    lbf->addParent((PhysicsObject*)&plane[idx1 + 3]);
-    plane[idx1 + 3].addChild(ltf);
-    ltf->addParent((PhysicsObject*)&plane[idx1 + 3]);
-    plane[idx1 + 3].setGeometry(glm::normalize(glm::normalize(glm::cross(ltc->getPosition() - lbc->getPosition(),ltc->getPosition() - ltf->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
+    plane[idx1 + 6].addChild(ltc);
+    ltc->addParent((PhysicsObject*)&plane[idx1 + 6]);
+    plane[idx1 + 6].addChild(lbc);
+    lbc->addParent((PhysicsObject*)&plane[idx1 + 6]);
+    plane[idx1 + 6].addChild(lbf);
+    lbf->addParent((PhysicsObject*)&plane[idx1 + 6]);
+    plane[idx1 + 7].addChild(ltf);
+    ltf->addParent((PhysicsObject*)&plane[idx1 + 7]);
+    plane[idx1 + 7].addChild(ltc);
+    ltc->addParent((PhysicsObject*)&plane[idx1 + 7]);
+    plane[idx1 + 7].addChild(lbf);
+    lbf->addParent((PhysicsObject*)&plane[idx1 + 7]);
+    plane[idx1 + 6].setGeometry(glm::normalize(glm::normalize(glm::cross(ltc->getPosition() - lbc->getPosition(),ltc->getPosition() - lbf->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
+    plane[idx1 + 7].setGeometry(glm::normalize(glm::normalize(glm::cross(ltf->getPosition() - ltc->getPosition(),ltc->getPosition() - lbf->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
     edge[idx + 18].addChild(ltf);
     edge[idx + 18].addChild(lbf);
     edge[idx + 18].setSpring(2.0, 0.001, 0.00005);
@@ -569,15 +609,20 @@ void setCube(ParticleObject* rtc, ParticleObject* rtf, ParticleObject* ltf, Part
     edge[idx + 20].addChild(lbf);
     edge[idx + 20].addChild(rtf);
     edge[idx + 20].setSpring(3.0, 0.001, 0.00005);
-    plane[idx1 + 4].addChild(ltf);
-    ltf->addParent((PhysicsObject*)&plane[idx1 + 4]);
-    plane[idx1 + 4].addChild(lbf);
-    lbf->addParent((PhysicsObject*)&plane[idx1 + 4]);
-    plane[idx1 + 4].addChild(rbf);
-    rbf->addParent((PhysicsObject*)&plane[idx1 + 4]);
-    plane[idx1 + 4].addChild(rtf);
-    rtf->addParent((PhysicsObject*)&plane[idx1 + 4]);
-    plane[idx1 + 4].setGeometry(glm::normalize(glm::normalize(glm::cross(ltf->getPosition() - lbf->getPosition(),ltf->getPosition() - rtf->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
+    plane[idx1 + 8].addChild(ltf);
+    ltf->addParent((PhysicsObject*)&plane[idx1 + 8]);
+    plane[idx1 + 8].addChild(lbf);
+    lbf->addParent((PhysicsObject*)&plane[idx1 + 8]);
+    plane[idx1 + 8].addChild(rbf);
+    rbf->addParent((PhysicsObject*)&plane[idx1 + 8]);
+    plane[idx1 + 9].addChild(rtf);
+    rtf->addParent((PhysicsObject*)&plane[idx1 + 9]);
+    plane[idx1 + 9].addChild(ltf);
+    ltf->addParent((PhysicsObject*)&plane[idx1 + 9]);
+    plane[idx1 + 9].addChild(rbf);
+    rbf->addParent((PhysicsObject*)&plane[idx1 + 9]);
+    plane[idx1 + 8].setGeometry(glm::normalize(glm::normalize(glm::cross(ltf->getPosition() - lbf->getPosition(),ltf->getPosition() - rbf->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
+    plane[idx1 + 9].setGeometry(glm::normalize(glm::normalize(glm::cross(rtf->getPosition() - ltf->getPosition(),rtf->getPosition() - rbf->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
     edge[idx + 21].addChild(rtf);
     edge[idx + 21].addChild(rbf);
     edge[idx + 21].setSpring(2.0, 0.001, 0.00005);
@@ -587,23 +632,32 @@ void setCube(ParticleObject* rtc, ParticleObject* rtf, ParticleObject* ltf, Part
     edge[idx + 23].addChild(rbf);
     edge[idx + 23].addChild(rtc);
     edge[idx + 23].setSpring(3.0, 0.001, 0.00005);
-    plane[idx1 + 5].addChild(rtf);
-    rtf->addParent((PhysicsObject*)&plane[idx1 + 5]);
-    plane[idx1 + 5].addChild(rbf);
-    rbf->addParent((PhysicsObject*)&plane[idx1 + 5]);
-    plane[idx1 + 5].addChild(rbc);
-    rbc->addParent((PhysicsObject*)&plane[idx1 + 5]);
-    plane[idx1 + 5].addChild(rtc);
-    rtc->addParent((PhysicsObject*)&plane[idx1 + 5]);
-    plane[idx1 + 5].setGeometry(glm::normalize(glm::normalize(glm::cross(rtf->getPosition() - rbf->getPosition(),rtf->getPosition() - rtc->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
+    plane[idx1 + 10].addChild(rtf);
+    rtf->addParent((PhysicsObject*)&plane[idx1 + 10]);
+    plane[idx1 + 10].addChild(rbf);
+    rbf->addParent((PhysicsObject*)&plane[idx1 + 10]);
+    plane[idx1 + 10].addChild(rbc);
+    rbc->addParent((PhysicsObject*)&plane[idx1 + 10]);
+    plane[idx1 + 11].addChild(rtc);
+    rtc->addParent((PhysicsObject*)&plane[idx1 + 11]);
+    plane[idx1 + 11].addChild(rtf);
+    rtf->addParent((PhysicsObject*)&plane[idx1 + 11]);
+    plane[idx1 + 11].addChild(rbc);
+    rbc->addParent((PhysicsObject*)&plane[idx1 + 11]);
+    plane[idx1 + 10].setGeometry(glm::normalize(glm::normalize(glm::cross(rtf->getPosition() - rbf->getPosition(),rtf->getPosition() - rbc->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
+    plane[idx1 + 11].setGeometry(glm::normalize(glm::normalize(glm::cross(rtc->getPosition() - rtf->getPosition(),rtc->getPosition() - rbc->getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
     for(int i = 0; i < 24; i++)
     {
         physicsManager.addPhysObj((PhysicsObject*)&edge[idx + i]);
+        edge[idx + i].addParent((PhysicsObject*)col);
+        col->addChild((PhysicsObject*)&edge[idx + i]);
     }
-    for(int i =0; i < 6; i++)
+    for(int i = 0; i < 12; i++)
     {
         plane[idx1 + i].setRenderObject(&pModel);
         plane[idx1 + i].setScale(glm::vec3(1.0f, 1.0f, 1.0f));
+        plane[idx1 + i].addParent((PhysicsObject*)col);
+        col->addChild((PhysicsObject*)&plane[idx1 + i]);
         physicsManager.addPhysObj((PhysicsObject*)&plane[idx1 + i]);
     }
 }

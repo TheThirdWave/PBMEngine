@@ -16,6 +16,7 @@
 #include "particleobject.h"
 #include "particlegenerator.h"
 #include "edgeobject.h"
+#include "objcollection.h"
 #include "structpile.h"
 
 

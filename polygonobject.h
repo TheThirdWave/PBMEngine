@@ -17,8 +17,6 @@ public:
     void getNextRKState(float, int);
     void setNextFromCurrent();
     void updateState();
-    int getVertices(int[]);
-    int getEdges(int[]);
 };
 
 #endif // POLYGONOBJECT_H

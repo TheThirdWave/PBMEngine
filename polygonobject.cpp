@@ -42,18 +42,18 @@ void PolygonObject::updateRenderObject()
 
 void PolygonObject::getNextChildStates(float ts)
 {
-    for(int i = 0; i < numChildren; i++)
-    {
-        childPtrs[i]->getNextState(ts);
-    }
+    //for(int i = 0; i < numChildren; i++)
+    //{
+//        childPtrs[i]->getNextState(ts);
+//    }
 }
 
 void PolygonObject::updateChildren()
 {
-    for(int i = 0; i < numChildren; i++)
-    {
-        childPtrs[i]->updateState();
-    }
+//    for(int i = 0; i < numChildren; i++)
+//    {
+//        childPtrs[i]->updateState();
+  //  }
 }
 
 void PolygonObject::setNextFromCurrent()
@@ -88,24 +88,4 @@ void PolygonObject::updateState()
     int buf[MAX_POLYGON_CHILDREN];
     int numVert = getVertices(buf);
     geoDescription.normal = glm::normalize(glm::cross(childPtrs[buf[0]]->getPosition() - childPtrs[buf[1]]->getPosition(), childPtrs[buf[0]]->getPosition() - childPtrs[buf[2]]->getPosition()));
-}
-
-int PolygonObject::getVertices(int buf[])
-{
-    int count = 0;
-    for(int i = 0; i < numChildren; i++)
-    {
-        if(childPtrs[i]->getId() == 3) buf[count++] = i;
-    }
-    return count;
-}
-
-int PolygonObject::getEdges(int buf[])
-{
-    int count = 0;
-    for(int i = 0; i < numChildren; i++)
-    {
-        if(childPtrs[i]->getId() == 4) buf[count++] = i;
-    }
-    return count;
 }

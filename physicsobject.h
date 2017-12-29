@@ -75,12 +75,16 @@ public:
     float getAccelMag();
     float getMass();
     int getChildIdx(PhysicsObject*);
+    int getCollections(int, int[]);
     int getId();
+    int getVertices(int[]);
+    int getEdges(int[]);
     glm::vec3 getPosition();
     glm::vec3 getVelocity();
     glm::vec3 getNewPosition();
     glm::vec3 getNewVelocity();
     RenderObject* getRenderObj();
+    bool checkCollections(PhysicsObject*);
 
 };
 

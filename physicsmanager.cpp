@@ -469,6 +469,7 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
 {
     //check collision w/plane
     if(pla->getChildIdx((PhysicsObject*)par) >= 0) return timeLeft;
+    if(pla->checkCollections((PhysicsObject*)par)) return timeLeft;
     glm::vec3 spherePos = par->getPosition();
     glm::vec3 nextSpherePos = par->getNewPosition();
     glm::vec3 planePos = pla->getPosition();
@@ -642,42 +643,29 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
 
 float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLeft)
 {
-    int buf [MAX_POLYGON_CHILDREN];
-    int len = 0;
-    PolygonObject* e;
-    //check to see if edges are a part of the same face.
-    for(int i = 0; i < eo1->numParents; i++)
-    {
-        PhysicsObject* f = eo1->parentPtrs[i];
-        if(f->id == 2)
-        {
-            e = (PolygonObject*)f;
-            len = e->getEdges(buf);
-            for(int j = 0; j < len; j++)
-            {
-                //if edges are a part of the same face just return.
-                if(e->childPtrs[buf[j]] == eo2)
-                {
-                    return timeLeft;
-                }
-            }
-        }
-    }
+    if(eo1->checkCollections((PhysicsObject*)eo2)) return timeLeft;
+
     //points for each edge
     glm::vec3 pt1 = eo1->childPtrs[0]->getPosition();
     glm::vec3 pt2 = eo2->childPtrs[0]->getPosition();
     //vectors for the line that describes the edge.
     glm::vec3 e1 = eo1->childPtrs[1]->getPosition() - pt1;
     glm::vec3 e2 = eo2->childPtrs[1]->getPosition() - pt2;
+    glm::vec3 hold;
+    glm::vec3 hold1;
     //The normal that describes a plane between the two edges.
     if(glm::normalize(e1) == glm::normalize(-e2)) return timeLeft;
     if(e1 == e2 || glm::cross(e1, e2) == glm::vec3(0.0f))
     {
-        e1 += glm::normalize(glm::cross(pt1 - pt2, e1)) * 0.0000001f;
+        hold = glm::cross(pt1 - pt2, e1);
+        if(glm::length(hold) == 0) hold = glm::vec3(0.0f, 1.0f, 0.0f);
+        e1 += glm::normalize(hold) * 0.0000001f;
     }
     //glm::vec3 blah = glm::cross(e1, e2);
     //glm::vec3 glah = glm::normalize(blah);
-    glm::vec3 plane = glm::normalize(glm::cross(e1, e2));
+    hold1 = glm::cross(e1, e2);
+    if(glm::length(hold1) == 0) hold1 = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 plane = glm::normalize(hold1);
 
     //do the same thing with for the new positions of the edges.
     glm::vec3 npt1 = eo1->childPtrs[0]->getNewPosition();
