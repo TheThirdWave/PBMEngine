@@ -525,13 +525,36 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
 
     }
 
+    timeLeft = timeLeft * (1-f);
     if(collision == false) return timeLeft;
+
+    glm::vec3 point = spherePos - nextSpherePos;
+    float len = glm::dot((point), planeNorm);
+    len = glm::dot((spherePos - planePos), planeNorm) / len;
+    nextSpherePos = spherePos + (point * len);
 
 
     //get the points from the children of the polygon to use as collision edges.
     int childs[MAX_POLYGON_CHILDREN];
     int count = pla->getVertices(childs);
-    //We assume edges between successive child points, so there's a line between child 0 and child 1,
+
+    //Get the barycentric coordinates of the point of collision on the plane. (We're assuming that the "polygon" is a triangle here)
+    glm::vec3 e01 = pla->childPtrs[childs[1]]->getPosition() - pla->childPtrs[childs[0]]->getPosition();
+    glm::vec3 e12 = pla->childPtrs[childs[2]]->getPosition() - pla->childPtrs[childs[1]]->getPosition();
+    glm::vec3 e20 = pla->childPtrs[childs[0]]->getPosition() - pla->childPtrs[childs[2]]->getPosition();
+    glm::vec3 p1x = nextSpherePos - pla->childPtrs[childs[1]]->getPosition();
+    glm::vec3 p2x = nextSpherePos - pla->childPtrs[childs[2]]->getPosition();
+    glm::vec3 Vn = glm::cross(e01, e12);
+    float area2 = glm::length(Vn);
+    glm::vec3 normal = Vn/area2;
+    float u = glm::dot(glm::cross(e12, p1x), normal) / area2;
+    float v = glm::dot(glm::cross(e20, p2x), normal) / area2;
+    float w = 1 - u - v;
+
+    //If the barycentric coordinates are all between 0 and 1, the collision point is inside the triangle, otherwise it's a miss.
+    if(u < 0 || v < 0 || w < 0) return timeLeft;
+
+    /*//We assume edges between successive child points, so there's a line between child 0 and child 1,
     //a line between child 1 and child 2, a line between child 3 and child 4, and so on.  We also assume a line between the last child and the first, so if there
     //are n children there's a line between child n and child 0.
     //We use the children to check to see if the position of the colliding object on the collision plane is within the bounds of the polygon.
@@ -566,8 +589,8 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
             numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().b, par->getPosition().y), glm::vec2(pt1.b, pt1.y), glm::vec2(pt2.b, pt2.y));
         }
     }
-    timeLeft = timeLeft * (1-f);
-    if(numIntercepts % 2 == 0) return timeLeft;
+
+    if(numIntercepts % 2 == 0) return timeLeft;*/
 
     //get the total mass of the object hit, we give different weights to each of the vertices of the object depending on how far away they are from
     //the point of collision.
@@ -609,7 +632,6 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
 
     par->setVelocity(deltaV2 + com);
     par->getNextState(timeLeft);
-    par->updateState();    
     for(int i = 0; i < pla->numChildren; i++)
     {
         pla->childPtrs[i]->setVelocity((deltaV1 + com) * weights[i]);

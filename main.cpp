@@ -330,8 +330,8 @@ int main(int argc, char *argv[])
     part[9].setPosition(glm::vec3(3.0f, 1.0f, 1.0f));
     part[10].setPosition(glm::vec3(5.0f, 1.0f, 1.0f));
     part[11].setPosition(glm::vec3(5.0f, 1.0f, -.0f));
-    part[12].setPosition(glm::vec3(3.0f, -1.0f, -1.0f));
-    //part[12].setVelocity(glm::vec3(0.0f, 0.001f, 0.0f));
+    part[12].setPosition(glm::vec3(3.0f, 0.0f, 0.0f));
+    part[12].setVelocity(glm::vec3(-0.001f, 0.0f, 0.0f));
     part[13].setPosition(glm::vec3(3.0f, -1.0f, 1.0f));
     part[14].setPosition(glm::vec3(5.0f, -1.0f, 1.0f));
     part[15].setPosition(glm::vec3(5.0f, -1.0f, -1.0f));
@@ -361,7 +361,7 @@ int main(int argc, char *argv[])
     //setFace(&part[0], &part[1], &part[2], &part[3], 0, 0);
     //setFace(&part[4], &part[5], &part[6], &part[7], 6, 1);
     setCube(&part[0], &part[1], &part[2], &part[3], &part[4], &part[5], &part[6], &part[7], &cube1, 0, 0);
-    setCube(&part[8], &part[9], &part[10], &part[11], &part[12], &part[13], &part[14], &part[15], &cube2, 24, 6);
+    //setCube(&part[8], &part[9], &part[10], &part[11], &part[12], &part[13], &part[14], &part[15], &cube2, 24, 6);
 
 
     /*edge[0].addChild(&part[1]);
