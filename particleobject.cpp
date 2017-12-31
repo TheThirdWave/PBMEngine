@@ -3,6 +3,8 @@
 ParticleObject::ParticleObject()
 {
     id = PARTICLE;
+    alive = true;
+    active = true;
 }
 
 void ParticleObject::initRenderObj(model* mdl)

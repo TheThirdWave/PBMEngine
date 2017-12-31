@@ -3,6 +3,8 @@
 PolygonObject::PolygonObject()
 {
     id = POLYGON;
+    alive = true;
+    active = true;
     numChildren = 0;
     childPtrs = new PhysicsObject*[MAX_POLYGON_CHILDREN];
 }

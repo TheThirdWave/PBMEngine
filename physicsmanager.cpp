@@ -56,20 +56,28 @@ void PhysicsManager::runTimeStep(float ts)
     //calculate next state
     for(int i = 0; i < objLen; i++)
     {
-        objList[i]->getNextState(ts);
+        if(objList[i]->active && objList[i]->alive)
+        {
+            objList[i]->getNextState(ts);
+        }
     } 
 
     //check for collisions for objects
     for(int i = 0; i < objLen-1; i++)
     {
-        for(int j = i + 1; j < objLen; j++)
+        if(objList[i]->alive)
         {
-            while(timeLeft > 0)
+            for(int j = i + 1; j < objLen; j++)
             {
-                timeLeft = detectCollision(objList[i], objList[j], timeLeft);
-
+                if(objList[j]->alive)
+                {
+                    while(timeLeft > 0)
+                    {
+                        timeLeft = detectCollision(objList[i], objList[j], timeLeft);
+                    }
+                    timeLeft = ts;
+                }
             }
-            timeLeft = ts;
         }
     }
     //check for collisions for particles
@@ -119,9 +127,15 @@ void PhysicsManager::runRK4TimeStep(float ts)
         //check for collisions for objects
         for(int i = 0; i < objLen-1; i++)
         {
-            for(int j = i + 1; j < objLen; j++)
+            if(objList[i]->alive && objList[i]->solid)
             {
-                    timeLeft = detectCollision(objList[i], objList[j], timeLeft);
+                for(int j = i + 1; j < objLen; j++)
+                {
+                    if(objList[j]->alive && objList[j]->solid)
+                    {
+                        timeLeft = detectCollision(objList[i], objList[j], timeLeft);
+                    }
+                }
             }
         }
 
@@ -255,10 +269,13 @@ void PhysicsManager::getAccelsRK4(float ts)
             //calculate next state
             for(int i = 0; i < objLen; i++)
             {
-                if(fi < 3) objList[i]->getNextRKState(ts/2, fi);
-                else objList[i]->getNextRKState(ts, fi);
-                objList[i]->setNextFromCurrent();
-                objList[i]->getNextState(fi);
+                if(objList[i]->alive && objList[i]->active)
+                {
+                    if(fi < 3) objList[i]->getNextRKState(ts/2, fi);
+                    else objList[i]->getNextRKState(ts, fi);
+                    objList[i]->setNextFromCurrent();
+                    objList[i]->getNextState(fi);
+                }
             }
 
         }
@@ -493,10 +510,10 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
     float end = timeLeft;
     float middle = start + timeLeft / 2;
     bool collision = false;
+    f = middle;
+    getNStateRK4(middle);
     for(int i = 0; i < sPrecision; i++)
     {
-        f = middle;
-        getNStateRK4(middle);
         spherePos = par->getPosition();
         nextSpherePos = par->getNewPosition();
         planePos = pla->getPosition();
@@ -522,16 +539,19 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
             middle = start + (end - start)/2;
             collision = true;
         }
-
+        f = middle;
+        getNStateRK4(middle);
     }
 
     timeLeft = timeLeft * (1-f);
     if(collision == false) return timeLeft;
 
-    glm::vec3 point = spherePos - nextSpherePos;
-    float len = glm::dot((point), planeNorm);
+    glm::vec3 point = nextSpherePos - spherePos;
+    float len = std::abs(glm::dot((point), planeNorm));
     len = glm::dot((spherePos - planePos), planeNorm) / len;
+    getNStateRK4(timeLeft * len);
     nextSpherePos = spherePos + (point * len);
+    nextSpherePos = pla->getNewPosition();
 
 
     //get the points from the children of the polygon to use as collision edges.
@@ -594,50 +614,65 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
 
     //get the total mass of the object hit, we give different weights to each of the vertices of the object depending on how far away they are from
     //the point of collision.
-    float addedWeights = 0;
-    float* weights = new float[pla->numChildren];
-    float mass = 0;
-    float cWeights = 0;
-    glm::vec3 velCollPoly = glm::vec3(0.0f);
-    for(int i = 0; i< pla->numChildren; i++) addedWeights += glm::length(par->getPosition() - pla->childPtrs[i]->getPosition());
-    for(int i = 0; i < pla->numChildren; i++)
+    if(pla->active)
     {
-        weights[i] = 1 - (glm::length(par->getPosition() - pla->childPtrs[i]->getPosition()) / addedWeights);
-        cWeights += weights[i] * weights[i];
-        mass += weights[i] * pla->childPtrs[i]->getMass();
-        velCollPoly += weights[i] * pla->childPtrs[i]->getVelocity();
+        float addedWeights = 0;
+        float* weights = new float[pla->numChildren];
+        float mass = 0;
+        float cWeights = 0;
+        glm::vec3 velCollPoly = glm::vec3(0.0f);
+        for(int i = 0; i< pla->numChildren; i++) addedWeights += glm::length(par->getPosition() - pla->childPtrs[i]->getPosition());
+        for(int i = 0; i < pla->numChildren; i++)
+        {
+            weights[i] = 1 - (glm::length(par->getPosition() - pla->childPtrs[i]->getPosition()) / addedWeights);
+            cWeights += weights[i] * weights[i];
+            mass += weights[i] * pla->childPtrs[i]->getMass();
+            velCollPoly += weights[i] * pla->childPtrs[i]->getVelocity();
+        }
+
+        float totalMass = mass / cWeights;
+
+        //to get the center of momentum we add the moments of inertia of both objects (the face and the vector) and divide by the masses.
+
+        glm::vec3 com = (par->getMass() * par->getVelocity() + totalMass * velCollPoly) / (par->getMass() + totalMass);
+
+        //then we put the velocities of the colliding objects in terms of the center of mass.
+        glm::vec3 deltaV1 = velCollPoly - com;
+        glm::vec3 deltaV2 = (par->getVelocity()) - com;
+        //we get the normal vectors and tangent vectors.
+        glm::vec3 normV1 = glm::dot(deltaV1, planeNorm) * planeNorm;
+        glm::vec3 tanV1 = deltaV1 - normV1;
+        glm::vec3 normV2 = glm::dot(deltaV2, planeNorm) * planeNorm;
+        glm::vec3 tanV2 = deltaV2 - normV2;
+        //get the new velocities in terms of center of mass, accounting for elasticity and friction.
+        normV1 = -elasticity * normV1;
+        tanV1 = fcoefficient * tanV1;
+        normV2 = -elasticity * normV2;
+        tanV2 = fcoefficient * tanV2;
+        deltaV1 = normV1 + tanV1;
+        deltaV2 = normV2 + tanV2;
+        deltaV2 = deltaV2 + com;
+
+        par->setVelocity(deltaV2);
+        par->getNextState(timeLeft);
+        for(int i = 0; i < pla->numChildren; i++)
+        {
+            pla->childPtrs[i]->setVelocity((deltaV1 + com) * weights[i]);
+            pla->childPtrs[i]->getNextState(timeLeft);
+        }
+        pla->getNextState(timeLeft);
     }
-
-    float totalMass = mass / cWeights;
-
-    //to get the center of momentum we add the moments of inertia of both objects (the face and the vector) and divide by the masses.
-
-    glm::vec3 com = (par->getMass() * par->getVelocity() + totalMass * velCollPoly) / (par->getMass() + totalMass);
-
-    //then we put the velocities of the colliding objects in terms of the center of mass.
-    glm::vec3 deltaV1 = velCollPoly - com;
-    glm::vec3 deltaV2 = (par->getVelocity()) - com;
-    //we get the normal vectors and tangent vectors.
-    glm::vec3 normV1 = glm::dot(deltaV1, planeNorm) * planeNorm;
-    glm::vec3 tanV1 = deltaV1 - normV1;
-    glm::vec3 normV2 = glm::dot(deltaV2, planeNorm) * planeNorm;
-    glm::vec3 tanV2 = deltaV2 - normV2;
-    //get the new velocities in terms of center of mass, accounting for elasticity and friction.
-    normV1 = -elasticity * normV1;
-    tanV1 = fcoefficient * tanV1;
-    normV2 = -elasticity * normV2;
-    tanV2 = fcoefficient * tanV2;
-    deltaV1 = normV1 + tanV1;
-    deltaV2 = normV2 + tanV2;
-
-    par->setVelocity(deltaV2 + com);
-    par->getNextState(timeLeft);
-    for(int i = 0; i < pla->numChildren; i++)
+    else
     {
-        pla->childPtrs[i]->setVelocity((deltaV1 + com) * weights[i]);
-        pla->childPtrs[i]->getNextState(timeLeft);
+        glm::vec3 deltaV2 = (par->getVelocity());
+        glm::vec3 normV2 = glm::dot(deltaV2, planeNorm) * planeNorm;
+        glm::vec3 tanV2 = deltaV2 - normV2;
+        normV2 = -elasticity * normV2;
+        tanV2 = fcoefficient * tanV2;
+        deltaV2 = normV2 + tanV2;
+        par->setVelocity(deltaV2);
+        par->getNextState(timeLeft);
     }
-    pla->getNextState(timeLeft);
 /*
     glm::vec3 cross = glm::dot(par->getVelocity(), planeNorm) * planeNorm;
     glm::vec3 up = -elasticity * cross;

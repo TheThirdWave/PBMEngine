@@ -3,6 +3,8 @@
 EdgeObject::EdgeObject()
 {
     id = EDGE;
+    alive = true;
+    active = true;
     numChildren = 0;
     childPtrs = new PhysicsObject*[MAX_EDGE_CHILDREN];
 }

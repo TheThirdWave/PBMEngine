@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
 //    geometry george;
 //    george.radius = 0.00001f;
 //    george.normal = glm::vec3(10.0f, 30.0f, 0.0f);
-//    physicsManager.addDirectionalForce(glm::vec3(0.0f, -0.00001f, 0.0f));
+    physicsManager.addDirectionalForce(glm::vec3(0.0f, -0.00001f, 0.0f));
 //    physicsManager.addAttractorForce(george);
 //    physicsManager.addScalarForce(-0.001);
 
@@ -305,14 +305,22 @@ int main(int argc, char *argv[])
         physicsManager.addPhysObj(&part[i]);
     }
     part[0].setPosition(glm::vec3(-1.0f, 1.0f, -1.0f));
+    //part[0].setActive(false);
     part[1].setPosition(glm::vec3(-1.0f, 1.0f, 1.0f));
+    //part[1].setActive(false);
     part[2].setPosition(glm::vec3(1.0f, 1.0f, 1.0f));
+    part[2].setActive(false);
     part[3].setPosition(glm::vec3(1.0f, 1.0f, -.0f));
+    part[3].setActive(false);
     part[4].setPosition(glm::vec3(-1.0f, -1.0f, -1.0f));
+    part[4].setActive(false);
     //part[4].setVelocity(glm::vec3(0.0f, 0.001f, 0.0f));
     part[5].setPosition(glm::vec3(-1.0f, -1.0f, 1.0f));
+    part[5].setActive(false);
     part[6].setPosition(glm::vec3(1.0f, -1.0f, 1.0f));
+    part[6].setActive(false);
     part[7].setPosition(glm::vec3(1.0f, -1.0f, -1.0f));
+    part[7].setActive(false);
 
     for(int i = 8; i < 16; i++)
     {
@@ -326,15 +334,35 @@ int main(int argc, char *argv[])
         physicsManager.addPhysObj(&part[i]);
     }
 
-    part[8].setPosition(glm::vec3(3.0f, 1.0f, -1.0f));
-    part[9].setPosition(glm::vec3(3.0f, 1.0f, 1.0f));
-    part[10].setPosition(glm::vec3(5.0f, 1.0f, 1.0f));
+    part[8].setPosition(glm::vec3(-5.0f, -1.0f, -1.0f));
+    part[8].setActive(false);
+    part[9].setPosition(glm::vec3(3.0f, -5.0f, 4.0f));
+    part[9].setActive(false);
+    part[10].setPosition(glm::vec3(3.0f, -5.0f, -4.0f));
+    part[10].setActive(false);
     part[11].setPosition(glm::vec3(5.0f, 1.0f, -.0f));
+    part[11].setActive(false);
     part[12].setPosition(glm::vec3(3.0f, 0.0f, 0.0f));
-    part[12].setVelocity(glm::vec3(-0.001f, 0.0f, 0.0f));
+    part[12].setActive(false);
+    //part[12].setVelocity(glm::vec3(-0.001f, 0.0f, 0.0f));
     part[13].setPosition(glm::vec3(3.0f, -1.0f, 1.0f));
+    part[13].setActive(false);
     part[14].setPosition(glm::vec3(5.0f, -1.0f, 1.0f));
+    part[14].setActive(false);
     part[15].setPosition(glm::vec3(5.0f, -1.0f, -1.0f));
+    part[15].setActive(false);
+
+    part[8].addParent(&plane[12]);
+    part[9].addParent(&plane[12]);
+    part[10].addParent(&plane[12]);
+    plane[12].addChild(&part[8]);
+    plane[12].addChild(&part[9]);
+    plane[12].addChild(&part[10]);
+    plane[12].setGeometry(glm::normalize(glm::normalize(glm::cross(part[8].getPosition() - part[9].getPosition(),part[8].getPosition() - part[10].getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
+    plane[12].setRenderObject(&pModel);
+    plane[12].setScale(glm::vec3(1.0f, 1.0f, 1.0f));
+    plane[12].setActive(false);
+    physicsManager.addPhysObj((PhysicsObject*)&plane[12]);
 /*
     edge[0].addChild(&part[0]);
     edge[0].addChild(&part[1]);
@@ -360,7 +388,7 @@ int main(int argc, char *argv[])
 
     //setFace(&part[0], &part[1], &part[2], &part[3], 0, 0);
     //setFace(&part[4], &part[5], &part[6], &part[7], 6, 1);
-    setCube(&part[0], &part[1], &part[2], &part[3], &part[4], &part[5], &part[6], &part[7], &cube1, 0, 0);
+    //setCube(&part[0], &part[1], &part[2], &part[3], &part[4], &part[5], &part[6], &part[7], &cube1, 0, 0);
     //setCube(&part[8], &part[9], &part[10], &part[11], &part[12], &part[13], &part[14], &part[15], &cube2, 24, 6);
 
 
@@ -488,6 +516,7 @@ void setFace(ParticleObject* o, ParticleObject* t, ParticleObject* th, ParticleO
     plane[idx1].setScale(glm::vec3(1.0f, 1.0f, 1.0f));
     physicsManager.addPhysObj((PhysicsObject*)&plane[idx1]);
 }
+
 void setCube(ParticleObject* rtc, ParticleObject* rtf, ParticleObject* ltf, ParticleObject* ltc, ParticleObject* rbc, ParticleObject* rbf, ParticleObject* lbf, ParticleObject* lbc, ObjCollection* col, int idx, int idx1)
 {
     edge[idx].addChild(rtc);

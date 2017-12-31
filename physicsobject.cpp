@@ -14,6 +14,9 @@ PhysicsObject::PhysicsObject()
     rendrPtr = NULL;
     numChildren = 0;
     numParents = 0;
+    alive = true;
+    active = true;
+    solid = true;
 }
 
 PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos, glm::vec3 vel, glm::vec3 accel)
@@ -30,6 +33,9 @@ PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos, glm::vec3 vel, gl
     newState.velocity = curState.velocity;
     numChildren = 0;
     numParents = 0;
+    alive = true;
+    active = true;
+    solid = true;
 }
 
 PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos, glm::vec3 vel)
@@ -46,6 +52,9 @@ PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos, glm::vec3 vel)
     ttl = -1;
     numChildren = 0;
     numParents = 0;
+    alive = true;
+    active = true;
+    solid = true;
 }
 
 PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos)
@@ -62,6 +71,9 @@ PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos)
     ttl = -1;
     numChildren = 0;
     numParents = 0;
+    alive = true;
+    active = true;
+    solid = true;
 }
 
 PhysicsObject::PhysicsObject(RenderObject* ptr, float x, float y, float z)
@@ -78,6 +90,9 @@ PhysicsObject::PhysicsObject(RenderObject* ptr, float x, float y, float z)
     ttl = -1;
     numChildren = 0;
     numParents = 0;
+    alive = true;
+    active = true;
+    solid = true;
 }
 
 PhysicsObject::PhysicsObject(glm::vec3 pos, glm::vec3 vel, glm::vec3 accel)
@@ -94,6 +109,9 @@ PhysicsObject::PhysicsObject(glm::vec3 pos, glm::vec3 vel, glm::vec3 accel)
     ttl = -1;
     numChildren = 0;
     numParents = 0;
+    alive = true;
+    active = true;
+    solid = true;
 }
 
 PhysicsObject::PhysicsObject(glm::vec3 pos, glm::vec3 vel)
@@ -110,6 +128,9 @@ PhysicsObject::PhysicsObject(glm::vec3 pos, glm::vec3 vel)
     ttl = -1;
     numChildren = 0;
     numParents = 0;
+    alive = true;
+    active = true;
+    solid = true;
 }
 
 PhysicsObject::PhysicsObject(glm::vec3 pos)
@@ -126,6 +147,9 @@ PhysicsObject::PhysicsObject(glm::vec3 pos)
     ttl = -1;
     numChildren = 0;
     numParents = 0;
+    alive = true;
+    active = true;
+    solid = true;
 }
 
 PhysicsObject::PhysicsObject(float x, float y, float z)
@@ -142,6 +166,9 @@ PhysicsObject::PhysicsObject(float x, float y, float z)
     ttl = -1;
     numChildren = 0;
     numParents = 0;
+    alive = true;
+    active = true;
+    solid = true;
 }
 
 void PhysicsObject::updateRenderObject()
@@ -222,6 +249,21 @@ void PhysicsObject::setTTL(double t)
 void PhysicsObject::setGeometry(geometry geo)
 {
     geoDescription = geo;
+}
+
+void PhysicsObject::setActive(bool in)
+{
+    active = in;
+}
+
+void PhysicsObject::setAlive(bool in)
+{
+    alive = in;
+}
+
+void PhysicsObject::setSolid(bool in)
+{
+    solid = in;
 }
 
 void PhysicsObject::addChild(PhysicsObject* c)

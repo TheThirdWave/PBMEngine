@@ -32,6 +32,7 @@ protected:
    float mass, springL, springD, springK;
    int id;
    int numChildren, numParents;
+   bool alive, active, solid;
 
 public:
     PhysicsObject(void);
@@ -59,6 +60,9 @@ public:
     void setID(int);
     void setTTL(double);
     void setGeometry(geometry);
+    void setAlive(bool);
+    void setActive(bool);
+    void setSolid(bool);
     void addChild(PhysicsObject*);
     void addParent(PhysicsObject*);
     void addRotation(glm::vec3);
