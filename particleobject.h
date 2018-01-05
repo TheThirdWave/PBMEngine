@@ -7,6 +7,7 @@ class ParticleObject:public PhysicsObject
 {
 public:
     ParticleObject();
+    ParticleObject(void*);
     void initRenderObj(model*);
     void updateRenderObject();
     void setGeometry(glm::vec3);

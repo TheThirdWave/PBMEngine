@@ -9,12 +9,14 @@ class EdgeObject: public PhysicsObject
 
 public:
     EdgeObject();
+    EdgeObject(void*);
     void setRenderObject(RenderObject *);
     void updateRenderObject();
     void getNextState(float);
     void getNextChildStates(float);
     void getNextRKState(float, int);
     void updateChildren();
+    void updateState();
     void addChild(PhysicsObject *);
     void setSpring(float, float, float);
 };

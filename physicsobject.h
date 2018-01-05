@@ -21,29 +21,16 @@ protected:
    PhysicsObject** childPtrs;
    PhysicsObject** parentPtrs;
    RenderObject* rendrPtr;
+   void* manager;
 
    glm::vec3 scale;
-   state    curState;
-   state    newState;
-   state    derivStates[4];
-   geometry geoDescription;
 
-   double ttl;
-   float mass, springL, springD, springK;
-   int id;
+   int index;
    int numChildren, numParents;
-   bool alive, active, solid;
 
 public:
     PhysicsObject(void);
-    PhysicsObject(RenderObject*, glm::vec3, glm::vec3, glm::vec3);
-    PhysicsObject(RenderObject*, glm::vec3, glm::vec3);
-    PhysicsObject(RenderObject*, glm::vec3);
-    PhysicsObject(RenderObject*, float, float, float);
-    PhysicsObject(glm::vec3, glm::vec3, glm::vec3);
-    PhysicsObject(glm::vec3, glm::vec3);
-    PhysicsObject(glm::vec3);
-    PhysicsObject(float, float, float);
+    PhysicsObject(void*);
     void initRenderObj();
     virtual void updateRenderObject();
     virtual void setRenderObject(RenderObject*);
@@ -81,13 +68,16 @@ public:
     int getChildIdx(PhysicsObject*);
     int getCollections(int, int[]);
     int getId();
+    int getIndex();
     int getVertices(int[]);
     int getEdges(int[]);
     glm::vec3 getPosition();
     glm::vec3 getVelocity();
     glm::vec3 getNewPosition();
     glm::vec3 getNewVelocity();
+    glm::vec3 getRotation();
     RenderObject* getRenderObj();
+    geometry getGeometry();
     bool checkCollections(PhysicsObject*);
 
 };

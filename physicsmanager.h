@@ -22,20 +22,32 @@
 
 class PhysicsManager
 {
+    friend class PhysicsObject;
+    friend class PolygonObject;
+    friend class EdgeObject;
+    friend class SphereObject;
+    friend class PlaneObject;
+    friend class ParticleObject;
+    friend class ObjCollection;
+
 private:
-    PhysicsObject* objList[MAX_PHYS_OBJECTS];
     ParticleObject* partList;
     ParticleGenerator** generators;
     float       scalarGlobalForces[MAX_FORCES];
     glm::vec3   directonalGlobalForces[MAX_FORCES];
     geometry    attractorGlobalForces[MAX_FORCES];
+    state       curState[MAX_PHYS_OBJECTS];
+    state       nextState[MAX_PHYS_OBJECTS];
+    state       derivStates[NUM_DERIV_STATES][MAX_PHYS_OBJECTS];
+    attributes  attribs[MAX_PHYS_OBJECTS];
+    PhysicsObject* objList[MAX_PHYS_OBJECTS];
 
     int objLen, scaGFLen, dirGFLen, attGFLen, genLen, partLen, sPrecision;
     float elasticity;
     float fcoefficient;
 public:
     PhysicsManager();
-    void addPhysObj(PhysicsObject*);
+    int addPhysObj(PhysicsObject*);
     void addScalarForce(float);
     void addDirectionalForce(glm::vec3);
     void addAttractorForce(geometry);
@@ -43,17 +55,17 @@ public:
     void addParticleList(ParticleObject*, int);
     void runTimeStep(float);
     void runRK4TimeStep(float);
-    void getAccels();
-    void getAccelsRK4(float);
-    void getNState(float);
-    void getNStateRK4(float);
-    float detectCollision(PhysicsObject*, PhysicsObject*, float);
+    void setNextFromCurState();
+    void getNextRK4(float);
+    void getDerivFromNextState(int);
+    void addIntegralToNS(float, int);
+    void combineRK4DerivStates(float);
+    float detectCollision(int idx1, int idx2, float);
     float determineCollision(PhysicsObject*, PhysicsObject*, float);
-    float spherePlane(SphereObject*, PlaneObject*, float);
-    float spherePoly(SphereObject*, PolygonObject*, float);
-    float partPoly(ParticleObject*, PolygonObject*, float);
-    float edgeEdge(EdgeObject*, EdgeObject*, float);
-    float spherePlaneDet(SphereObject*, PlaneObject*);
+    float spherePlane(int, int, float);
+    float spherePoly(int, int, float);
+    float partPoly(int, int, float);
+    float edgeEdge(int, int, float);
     int pointLSeg2D(glm::vec2, glm::vec2, glm::vec2);
 };
 

@@ -12,7 +12,7 @@
 #define MAX_PICTURES 10
 #define MAX_SHADERS 10
 #define MAX_MODELS 10
-#define MAX_PHYS_OBJECTS 100
+#define MAX_PHYS_OBJECTS 1000
 #define MAX_FORCES 10
 #define MAX_FUNCTIONS 100
 #define MAX_GENERATORS 10
@@ -46,6 +46,7 @@ struct model {
 struct geometry {
     glm::vec3       normal;
     glm::vec3       upVec;
+    glm::vec3       scale;
     float           radius;
     float           width;
     float           height;
@@ -58,6 +59,16 @@ struct state
     glm::vec3 position;
     glm::vec3 velocity;
     glm::vec3 acceleration;
+};
+
+struct attributes
+{
+    double ttl;
+    float mass, springL, springD, springK;
+    int id;
+    int numChildren, numParents;
+    bool alive, active, solid;
+    geometry geo;
 };
 
 struct triangle {

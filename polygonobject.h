@@ -7,6 +7,7 @@ class PolygonObject:public PhysicsObject
 {
 public:
     PolygonObject();
+    PolygonObject(void*);
     void initRenderObj();
     void setGeometry(glm::vec3, glm::vec3);
     void addChild(PhysicsObject*);

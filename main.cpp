@@ -142,12 +142,12 @@ int main(int argc, char *argv[])
     //create sphere vao
     initSphere();
 
+    physicsManager.addPhysObj((PhysicsObject*)&sphere);
     sphere.setGeometry(0.5f);
     sphere.setRenderObject(&sModel);
     sphere.setVelocity(glm::vec3(-0.00f, 0.0f, 0.0f));
     sphere.setScale(glm::vec3(1.0f, 1.0f, 1.0f));
     sphere.setPosition(glm::vec3(-100.0f, 1.0f, 1.0f));
-    //physicsManager.addPhysObj((PhysicsObject*)&sphere);
 
 
     /*sphere1.setGeometry(1.0f);
@@ -295,6 +295,7 @@ int main(int argc, char *argv[])
 */
     for(int i = 0; i < 8; i++)
     {
+        physicsManager.addPhysObj(&part[i]);
         part[i].setGeometry(glm::normalize((camera.getPosition() - part[0].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
         part[i].setRenderObject(&sModel);
         part[i].setVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
@@ -302,7 +303,6 @@ int main(int argc, char *argv[])
         part[i].setTTL(-0);
         part[i].addParent((PhysicsObject*)&cube1);
         cube1.addChild((PhysicsObject*)&part[i]);
-        physicsManager.addPhysObj(&part[i]);
     }
     part[0].setPosition(glm::vec3(-1.0f, 1.0f, -1.0f));
     //part[0].setActive(false);
@@ -324,6 +324,7 @@ int main(int argc, char *argv[])
 
     for(int i = 8; i < 16; i++)
     {
+        physicsManager.addPhysObj(&part[i]);
         part[i].setGeometry(glm::normalize((camera.getPosition() - part[0].getPosition())), glm::vec3(0.0f, 0.0f, -1.0f));
         part[i].setRenderObject(&sModel);
         part[i].setVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
@@ -331,7 +332,6 @@ int main(int argc, char *argv[])
         part[i].setTTL(-0);
         part[i].addParent((PhysicsObject*)&cube2);
         cube2.addChild((PhysicsObject*)&part[i]);
-        physicsManager.addPhysObj(&part[i]);
     }
 
     part[8].setPosition(glm::vec3(-5.0f, -1.0f, -1.0f));
@@ -355,6 +355,7 @@ int main(int argc, char *argv[])
     part[8].addParent(&plane[12]);
     part[9].addParent(&plane[12]);
     part[10].addParent(&plane[12]);
+    physicsManager.addPhysObj((PhysicsObject*)&plane[12]);
     plane[12].addChild(&part[8]);
     plane[12].addChild(&part[9]);
     plane[12].addChild(&part[10]);
@@ -362,7 +363,6 @@ int main(int argc, char *argv[])
     plane[12].setRenderObject(&pModel);
     plane[12].setScale(glm::vec3(1.0f, 1.0f, 1.0f));
     plane[12].setActive(false);
-    physicsManager.addPhysObj((PhysicsObject*)&plane[12]);
 /*
     edge[0].addChild(&part[0]);
     edge[0].addChild(&part[1]);

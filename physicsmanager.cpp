@@ -14,9 +14,28 @@ PhysicsManager::PhysicsManager()
     sPrecision = 10;
 }
 
-void PhysicsManager::addPhysObj(PhysicsObject* obj)
+int PhysicsManager::addPhysObj(PhysicsObject* backPtr)
 {
-    objList[objLen++] = obj;
+    if(objLen >= MAX_PHYS_OBJECTS)
+    {
+        fprintf(stderr,"Error, MAX_PHYS_OBJECTS reached.\n");
+        return -1;
+    }
+    objList[objLen] = backPtr;
+    memset(&curState[objLen], NULL, sizeof(state));
+    memset(&nextState[objLen], NULL, sizeof(state));
+    for(int i = 0; i < NUM_DERIV_STATES; i++)
+    {
+        memset(&derivStates[i][objLen], NULL, sizeof(state));
+    }
+    memset(&attribs[objLen], NULL, sizeof(attributes));
+    attribs[objLen].mass = 1;
+    attribs[objLen].ttl = -1;
+    attribs[objLen].alive = true;
+    attribs[objLen].active = true;
+    attribs[objLen].solid = true;
+    attribs[objLen].geo.scale = glm::vec3(1.0f);
+    return objLen++;
 }
 
 void PhysicsManager::addScalarForce(float f)
@@ -45,12 +64,13 @@ void PhysicsManager::addParticleGen(ParticleGenerator * pG)
     generators[genLen++] = pG;
 }
 
+/*
 void PhysicsManager::runTimeStep(float ts)
 {
     //forces
     getAccels();
 
-    getNState(ts);
+    addIntegralToNS(ts);
 
     float timeLeft = ts;
     //calculate next state
@@ -73,7 +93,7 @@ void PhysicsManager::runTimeStep(float ts)
                 {
                     while(timeLeft > 0)
                     {
-                        timeLeft = detectCollision(objList[i], objList[j], timeLeft);
+                        timeLeft = detectCollision(i, j, timeLeft);
                     }
                     timeLeft = ts;
                 }
@@ -114,33 +134,32 @@ void PhysicsManager::runTimeStep(float ts)
         generators[i]->setpartsMade(100);
     }
 }
+*/
 
 void PhysicsManager::runRK4TimeStep(float ts)
 {
     float timeLeft = ts;
     while(ts > 0)
     {
-        getAccelsRK4(ts);
-        getNStateRK4(ts);
-
+        getNextRK4(ts);
 
         //check for collisions for objects
         for(int i = 0; i < objLen-1; i++)
         {
-            if(objList[i]->alive && objList[i]->solid)
+            if(attribs[i].alive && attribs[i].solid)
             {
                 for(int j = i + 1; j < objLen; j++)
                 {
-                    if(objList[j]->alive && objList[j]->solid)
+                    if(attribs[j].alive && attribs[j].solid)
                     {
-                        timeLeft = detectCollision(objList[i], objList[j], timeLeft);
+                        timeLeft = detectCollision(i, j, timeLeft);
                     }
                 }
             }
         }
 
         //check for collisions for particles
-        for(int i = 0; i < partLen; i++)
+/*        for(int i = 0; i < partLen; i++)
         {
             for(int j = 0; j < objLen; j++)
             {
@@ -152,24 +171,26 @@ void PhysicsManager::runRK4TimeStep(float ts)
                 timeLeft = ts;
             }
         }
-
+*/
         if(ts == timeLeft) ts = 0;
         else ts = timeLeft;
 
         //update state
         for(int i = 0; i< objLen; i++)
         {
-            objList[i]->updateState();
+            curState[i] = nextState[i];
+            if(attribs[i].id == POLYGON || attribs[i].id == EDGE || attribs[i].id == COLLECTION)
+            {
+                objList[i]->updateState();
+            }
             objList[i]->updateRenderObject();
-            objList[i]->ttl -= ts;
         }
         //update state for particles.
-        for(int i = 0; i< partLen; i++)
+        /*for(int i = 0; i< partLen; i++)
         {
             partList[i].updateState();
             partList[i].updateRenderObject();
-            partList[i].ttl -= ts;
-        }
+        }*/
         //reset generators.
         for(int i = 0; i < genLen; i++)
         {
@@ -178,12 +199,37 @@ void PhysicsManager::runRK4TimeStep(float ts)
     }
 }
 
-void PhysicsManager::getAccels()
+void PhysicsManager::setNextFromCurState()
 {
     for(int i = 0; i < objLen; i++)
     {
+        nextState[i] = curState[i];
+    }
+}
+
+void PhysicsManager::getNextRK4(float ts)
+{
+    getDerivFromNextState(0);
+    addIntegralToNS(ts / 2.0f, 0);
+    getDerivFromNextState(1);
+    setNextFromCurState();
+    addIntegralToNS(ts / 2.0f, 1);
+    getDerivFromNextState(2);
+    setNextFromCurState();
+    addIntegralToNS(ts, 2);
+    getDerivFromNextState(3);
+    combineRK4DerivStates(ts);
+}
+
+void PhysicsManager::getDerivFromNextState(int idx)
+{
+
+    //forces
+    for(int i = 0; i < objLen; i++)
+    {
+
         //apply global forces to objects
-        if(objList[i]->id != EDGE)
+        if(attribs[i].id != EDGE || attribs[i].id != POLYGON)
         {
             glm::vec3 hold = glm::vec3(0.0f);
             for(int j = 0; j < dirGFLen; j++)
@@ -192,306 +238,93 @@ void PhysicsManager::getAccels()
             }
             for(int j = 0; j < scaGFLen; j++)
             {
-                glm::vec3 blah = objList[i]->getVelocity() * scalarGlobalForces[j];
+                glm::vec3 blah = nextState[i].velocity * scalarGlobalForces[j];
                 hold = hold + blah;
             }
             for(int j = 0; j < attGFLen; j++)
             {
-                glm::vec3 point = glm::normalize(attractorGlobalForces[j].normal - objList[i]->getPosition());
+                glm::vec3 point = glm::normalize(attractorGlobalForces[j].normal - nextState[i].position);
                 hold = hold + (point * attractorGlobalForces[j].radius);
             }
-            objList[i]->setAcceleration(hold);
+            derivStates[idx][i].acceleration = hold / attribs[i].mass;
         }
         //spring forces.
-        else if(objList[i]->id == EDGE)
+        else if(attribs[i].id == EDGE)
         {
-            glm::vec3 pt1 = objList[i]->childPtrs[0]->getPosition();
-            glm::vec3 pt2 = objList[i]->childPtrs[1]->getPosition();
-            glm::vec3 v1 = objList[i]->childPtrs[0]->getVelocity();
-            glm::vec3 v2 = objList[i]->childPtrs[1]->getVelocity();
+            glm::vec3 pt1 = nextState[objList[i]->childPtrs[0]->getIndex()].position;
+            glm::vec3 pt2 = nextState[objList[i]->childPtrs[1]->getIndex()].position;
+            glm::vec3 v1 = nextState[objList[i]->childPtrs[0]->getIndex()].velocity;
+            glm::vec3 v2 = nextState[objList[i]->childPtrs[1]->getIndex()].velocity;
             glm::vec3 pt12 = pt2 - pt1;
             glm::vec3 npt12 = glm::normalize(pt12);
-            glm::vec3 sf = objList[i]->springK * (glm::length(pt12) - objList[i]->springL) * npt12;
-            glm::vec3 df = objList[i]->springD * (glm::dot((v2 - v1), npt12)) * npt12;
-            objList[i]->childPtrs[0]->addAcceleration(sf + df);
-            objList[i]->childPtrs[1]->addAcceleration(-sf + -df);
+            glm::vec3 sf = attribs[i].springK * (glm::length(pt12) - attribs[i].springL) * npt12;
+            glm::vec3 df = attribs[i].springD * (glm::dot((v2 - v1), npt12)) * npt12;
+            derivStates[idx][objList[i]->childPtrs[0]->index].acceleration += (sf + df) / attribs[objList[i]->childPtrs[0]->index].mass;
+            derivStates[idx][objList[i]->childPtrs[1]->index].acceleration += (-sf + -df) / attribs[objList[i]->childPtrs[1]->index].mass;
         }
     }
+
 }
 
-void PhysicsManager::getAccelsRK4(float ts)
-{
-    for(int f = 0; f < NUM_DERIV_STATES; f++)
-    {
-
-        //forces
-        for(int i = 0; i < objLen; i++)
-        {
-            if(f == 0) objList[i]->setNextFromCurrent();
-            //apply global forces to objects
-            if(objList[i]->id != EDGE)
-            {
-                glm::vec3 hold = glm::vec3(0.0f);
-                for(int j = 0; j < dirGFLen; j++)
-                {
-                    hold = hold + directonalGlobalForces[j];
-                }
-                for(int j = 0; j < scaGFLen; j++)
-                {
-                    glm::vec3 blah = objList[i]->newState.velocity * scalarGlobalForces[j];
-                    hold = hold + blah;
-                }
-                for(int j = 0; j < attGFLen; j++)
-                {
-                    glm::vec3 point = glm::normalize(attractorGlobalForces[j].normal - objList[i]->newState.position);
-                    hold = hold + (point * attractorGlobalForces[j].radius);
-                }
-                objList[i]->derivStates[f].acceleration = hold / objList[i]->getMass();
-            }
-            //spring forces.
-            else if(objList[i]->id == EDGE)
-            {
-                glm::vec3 pt1 = objList[i]->childPtrs[0]->newState.position;
-                glm::vec3 pt2 = objList[i]->childPtrs[1]->newState.position;
-                glm::vec3 v1 = objList[i]->childPtrs[0]->newState.velocity;
-                glm::vec3 v2 = objList[i]->childPtrs[1]->newState.velocity;
-                glm::vec3 pt12 = pt2 - pt1;
-                glm::vec3 npt12 = glm::normalize(pt12);
-                glm::vec3 sf = objList[i]->springK * (glm::length(pt12) - objList[i]->springL) * npt12;
-                glm::vec3 df = objList[i]->springD * (glm::dot((v2 - v1), npt12)) * npt12;
-                objList[i]->childPtrs[0]->derivStates[f].acceleration += (sf + df) / objList[i]->childPtrs[0]->getMass();
-                objList[i]->childPtrs[1]->derivStates[f].acceleration += (-sf + -df) / objList[i]->childPtrs[1]->getMass();
-            }
-        }
-
-        for(int fi = 0; fi < NUM_DERIV_STATES; fi++)
-        {
-            //calculate next state
-            for(int i = 0; i < objLen; i++)
-            {
-                if(objList[i]->alive && objList[i]->active)
-                {
-                    if(fi < 3) objList[i]->getNextRKState(ts/2, fi);
-                    else objList[i]->getNextRKState(ts, fi);
-                    objList[i]->setNextFromCurrent();
-                    objList[i]->getNextState(fi);
-                }
-            }
-
-        }
-    }
-}
-
-void PhysicsManager::getNState(float ts)
+void PhysicsManager::addIntegralToNS(float ts, int idx)
 {
     for(int i = 0; i < objLen; i++)
     {
-        objList[i]->getNextState(ts);
+        nextState[i].acceleration = derivStates[idx][i].acceleration;
+        nextState[i].velocity += derivStates[idx][i].acceleration * ts;
+        nextState[i].position += derivStates[idx][i].velocity * ts;
     }
 }
 
-void PhysicsManager::getNStateRK4(float ts)
+void PhysicsManager::combineRK4DerivStates(float ts)
 {
     for(int i = 0; i < objLen; i++)
     {
-        glm::vec3 position = objList[i]->derivStates[1].position;
-        glm::vec3 velocity = objList[i]->derivStates[1].velocity;
-        glm::vec3 acceleration = objList[i]->derivStates[1].acceleration;
-        objList[i]->derivStates[0].position += position * 2.0f;
-        objList[i]->derivStates[0].velocity += velocity * 2.0f;
-        objList[i]->derivStates[0].acceleration += acceleration * 2.0f;
-        objList[i]->derivStates[0].position += objList[i]->derivStates[2].position * 2.0f;
-        objList[i]->derivStates[0].velocity += objList[i]->derivStates[2].velocity * 2.0f;
-        objList[i]->derivStates[0].acceleration += objList[i]->derivStates[2].acceleration * 2.0f;
-        objList[i]->derivStates[0].position += objList[i]->derivStates[3].position;
-        objList[i]->derivStates[0].velocity += objList[i]->derivStates[3].velocity;
-        objList[i]->derivStates[0].acceleration += objList[i]->derivStates[3].acceleration;
-
-        objList[i]->derivStates[0].position = objList[i]->derivStates[0].position * (1/6.0f);
-        objList[i]->derivStates[0].velocity = objList[i]->derivStates[0].velocity * (1/6.0f);
-        objList[i]->derivStates[0].acceleration = objList[i]->derivStates[0].acceleration * (1/6.0f);
-        objList[i]->setNextFromCurrent();
-        objList[i]->getNextState(0);
+        nextState[i].acceleration = (1/6.0f) * (derivStates[0][i].acceleration + 2.0f * derivStates[1][i].acceleration + 2.0f * derivStates[2][i].acceleration + derivStates[3][i].acceleration);
+        nextState[i].velocity = curState[i].velocity + (ts/6.0f) * (derivStates[0][i].acceleration + 2.0f * derivStates[1][i].acceleration + 2.0f * derivStates[2][i].acceleration + derivStates[3][i].acceleration);
+        nextState[i].position = curState[i].position + (ts/6.0f) * (derivStates[0][i].velocity + 2.0f * derivStates[1][i].velocity + 2.0f * derivStates[2][i].velocity + derivStates[3][i].velocity);
     }
 }
 
-float PhysicsManager::detectCollision(PhysicsObject* one, PhysicsObject* two, float timeLeft)
+float PhysicsManager::detectCollision(int idx1, int idx2, float timeLeft)
 {
-    if(one->id == SPHERE && two->id == PLANE) return spherePlane((SphereObject*)one, (PlaneObject*)two, timeLeft);
-    if(one->id == PLANE && two->id == SPHERE) return spherePlane((SphereObject*)two, (PlaneObject*)one, timeLeft);
-    if(one->id == SPHERE && two->id == POLYGON) return spherePoly((SphereObject*)one, (PolygonObject*)two, timeLeft);
-    if(one->id == POLYGON && two->id == SPHERE) return spherePoly((SphereObject*)two, (PolygonObject*)one, timeLeft);
-    if(one->id == PARTICLE && two->id == POLYGON) return partPoly((ParticleObject*)one, (PolygonObject*)two, timeLeft);
-    if(one->id == POLYGON && two->id == PARTICLE) return partPoly((ParticleObject*)two, (PolygonObject*)one, timeLeft);
-    if(one->id == EDGE && two->id == EDGE)
+    if(attribs[idx1].id == SPHERE && attribs[idx2].id == PLANE) return spherePlane(idx1, idx2, timeLeft);
+    if(attribs[idx1].id == PLANE && attribs[idx2].id == SPHERE) return spherePlane(idx2, idx1, timeLeft);
+    if(attribs[idx1].id == SPHERE && attribs[idx2].id == POLYGON) return spherePoly(idx1, idx2, timeLeft);
+    if(attribs[idx1].id == POLYGON && attribs[idx2].id == SPHERE) return spherePoly(idx2, idx1, timeLeft);
+    if(attribs[idx1].id == PARTICLE && attribs[idx2].id == POLYGON) return partPoly(idx1, idx2, timeLeft);
+    if(attribs[idx1].id == POLYGON && attribs[idx2].id == PARTICLE) return partPoly(idx2, idx1, timeLeft);
+    if(attribs[idx1].id == EDGE && attribs[idx2].id == EDGE)
     {
-        return edgeEdge((EdgeObject*)one, (EdgeObject*)two, timeLeft);
+        return edgeEdge(idx1, idx2, timeLeft);
     }
     return timeLeft;
 }
 
-float PhysicsManager::determineCollision(PhysicsObject* one, PhysicsObject* two, float timeLeft)
+float PhysicsManager::spherePlane(int sphIdx, int plaIdx, float timeLeft)
 {
-    if(one->id == SPHERE && two->id == PLANE) return spherePlaneDet((SphereObject*)one, (PlaneObject*)two);
-    if(one->id == PLANE && two->id == SPHERE) return spherePlaneDet((SphereObject*)two, (PlaneObject*)one);
-}
 
-float PhysicsManager::spherePlane(SphereObject * sph, PlaneObject * pla, float timeLeft)
-{
-    //check collisions
-    glm::vec3 spherePos = sph->getPosition();
-    glm::vec3 nextSpherePos = sph->getNewPosition();
-    float radius = sph->geoDescription.radius;
-    glm::vec3 planePos = pla->getPosition();
-    glm::vec3 planeNorm = pla->geoDescription.normal;
-
-    glm::vec3 direction = nextSpherePos - spherePos;
-
-    if(glm::dot(direction, planeNorm) > 0) planePos = planePos - (radius * planeNorm);
-    else if(glm::dot(direction, planeNorm) < 0) planePos = planePos + (radius * planeNorm);
-
-    float origDist = (planeNorm.x * spherePos.x) + (planeNorm.y * spherePos.y) + (planeNorm.z * spherePos.z) + -(glm::dot(planePos, planeNorm));
-    float newDist = (planeNorm.x * nextSpherePos.x) + (planeNorm.y * nextSpherePos.y) + (planeNorm.z * nextSpherePos.z) + -(glm::dot(planePos, planeNorm));
-    if(!(newDist < 0 && origDist > 0 || newDist > 0 && origDist < 0 || newDist == 0 && origDist == 0)) return 0;
-
-    //determine collisions
-    float f = std::abs(origDist / (origDist - newDist));
-
-    //handle collision
-    sph->getNextState(timeLeft * f);
-    sph->updateState();
-
-    glm::vec3 cross = glm::dot(sph->getVelocity(), planeNorm) * planeNorm;
-    glm::vec3 up = -elasticity * cross;
-    glm::vec3 accross = sph->getVelocity() - cross;
-
-    if(glm::length(accross) != 0)
-    {
-        accross = accross - std::min(fcoefficient * sph->mass * glm::length(up), glm::length(accross)) * glm::normalize(accross);
-    }
-    glm::vec3 fnVec = up + accross;
-
-    sph->setVelocity(fnVec);
-    timeLeft = timeLeft * (1-f);
-    sph->getNextState(timeLeft);
-
-
-    return timeLeft;
 
 }
 
-float PhysicsManager::spherePoly(SphereObject * sph, PolygonObject * pla, float timeLeft)
+float PhysicsManager::spherePoly(int sphIdx, int polIdx, float timeLeft)
 {
+
+
+}
+
+float PhysicsManager::partPoly(int parIdx, int polIdx, float timeLeft)
+{
+    ParticleObject* par = (ParticleObject*)objList[parIdx];
+    PolygonObject* pol = (PolygonObject*)objList[polIdx];
     //check collision w/plane
-    glm::vec3 spherePos = sph->getPosition();
-    glm::vec3 nextSpherePos = sph->getNewPosition();
-    float radius = sph->geoDescription.radius;
-    glm::vec3 planePos = pla->getPosition();
-    glm::vec3 planeNorm = pla->geoDescription.normal;
-    glm::vec3 planeUp = pla->geoDescription.upVec;
-
-    glm::vec3 direction = nextSpherePos - spherePos;
-
-    if(glm::dot(direction, planeNorm) > 0) planePos = planePos - (radius * planeNorm);
-    else if(glm::dot(direction, planeNorm) < 0) planePos = planePos + (radius * planeNorm);
-
-    float origDist = (planeNorm.x * spherePos.x) + (planeNorm.y * spherePos.y) + (planeNorm.z * spherePos.z) + -(glm::dot(planePos, planeNorm));
-    float newDist = (planeNorm.x * nextSpherePos.x) + (planeNorm.y * nextSpherePos.y) + (planeNorm.z * nextSpherePos.z) + -(glm::dot(planePos, planeNorm));
-    if(!(newDist < 0 && origDist > 0 || newDist > 0 && origDist < 0 || newDist == 0 && origDist == 0)) return timeLeft;
-
-
-    //move sphere up to where it connects with the plane
-    float f = std::abs(origDist / (origDist - newDist));
-
-
-    sph->getNextState(timeLeft * f);
-    sph->updateState();
-
-    //get the verticies from the polygon and get them into world coordinates.
-    int numIdx = pla->rendrPtr->data->idxLen;
-    int numTris = numIdx / 3;
-    unsigned int *indicies = pla->rendrPtr->data->indicies;
-    float* verticies = pla->rendrPtr->data->vertices;
-    glm::vec3 vecs[numIdx];
-    triangle tris[numTris];
-
-    glm::mat4 rot;
-    if(glm::dot(planeNorm, planeUp) != -1) rot = glm::orientation(planeNorm, planeUp);
-    else rot = glm::rotate(glm::mat4(1.0f), (float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 pos = glm::translate(glm::mat4(1.0f), pla->getPosition());
-    glm::mat4 sca = glm::scale(glm::mat4(1.0f), pla->scale);
-    glm::mat4 trans = pos * rot * sca;
-
-    for(int i = 0; i < numTris; i ++)
-    {
-        for(int j = 3 * i; j < 3 * (i + 1); j++)
-        {
-            glm::vec4 h = glm::vec4(verticies[(indicies[j] * 3)], verticies[(indicies[j] * 3) + 1], verticies[(indicies[j] * 3) + 2], 1.0f);
-            h = trans * h;
-            vecs[j] = glm::vec3(h.x, h.y, h.z);
-        }
-        tris[i].a = vecs[(i * 3)];
-        tris[i].b = vecs[(i * 3) + 1];
-        tris[i].c = vecs[(i * 3) + 2];
-    }
-
-    //discard one of the vector components and check the polygon in 2D
-    float m = std::max(std::abs(planeNorm.x), std::abs(planeNorm.y));
-    m = std::max(m, std::abs(planeNorm.z));
-    int numIntercepts = 0;
-    for(int i = 0; i < numTris; i++)
-    {
-        if(m == std::abs(planeNorm.x))
-        {
-            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().y, sph->getPosition().z), glm::vec2(tris[i].a.y, tris[i].a.z), glm::vec2(tris[i].b.y, tris[i].b.z));
-            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().y, sph->getPosition().z), glm::vec2(tris[i].c.y, tris[i].c.z), glm::vec2(tris[i].b.y, tris[i].b.z));
-            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().y, sph->getPosition().z), glm::vec2(tris[i].a.y, tris[i].a.z), glm::vec2(tris[i].c.y, tris[i].c.z));
-        }
-        else if(m == std::abs(planeNorm.y))
-        {
-            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().x, sph->getPosition().z), glm::vec2(tris[i].a.x, tris[i].a.z), glm::vec2(tris[i].b.x, tris[i].b.z));
-            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().x, sph->getPosition().z), glm::vec2(tris[i].c.x, tris[i].c.z), glm::vec2(tris[i].b.x, tris[i].b.z));
-            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().x, sph->getPosition().z), glm::vec2(tris[i].a.x, tris[i].a.z), glm::vec2(tris[i].c.x, tris[i].c.z));
-        }
-        else
-        {
-            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().x, sph->getPosition().y), glm::vec2(tris[i].a.x, tris[i].a.y), glm::vec2(tris[i].b.x, tris[i].b.y));
-            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().x, sph->getPosition().y), glm::vec2(tris[i].c.x, tris[i].c.y), glm::vec2(tris[i].b.x, tris[i].b.y));
-            numIntercepts += pointLSeg2D(glm::vec2(sph->getPosition().x, sph->getPosition().y), glm::vec2(tris[i].a.x, tris[i].a.y), glm::vec2(tris[i].c.x, tris[i].c.y));
-        }
-    }
-    timeLeft = timeLeft * (1-f);
-    if(numIntercepts % 2 == 0) return timeLeft;
-
-    glm::vec3 cross = glm::dot(sph->getVelocity(), planeNorm) * planeNorm;
-    glm::vec3 up = -elasticity * cross;
-    glm::vec3 accross = sph->getVelocity() - cross;
-
-    if(glm::length(accross) != 0)
-    {
-        accross = accross - std::min(fcoefficient * sph->mass * glm::length(up), glm::length(accross)) * glm::normalize(accross);
-    }
-
-    glm::vec3 fnVec = up + accross;
-
-    sph->setVelocity(fnVec);
-    sph->getNextState(timeLeft);
-
-
-    return timeLeft;
-
-}
-
-float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float timeLeft)
-{
-    //check collision w/plane
-    if(pla->getChildIdx((PhysicsObject*)par) >= 0) return timeLeft;
-    if(pla->checkCollections((PhysicsObject*)par)) return timeLeft;
-    glm::vec3 spherePos = par->getPosition();
-    glm::vec3 nextSpherePos = par->getNewPosition();
-    glm::vec3 planePos = pla->getPosition();
-    glm::vec3 planeNorm = pla->geoDescription.normal;
-    glm::vec3 planeUp = pla->geoDescription.upVec;
+    if(pol->getChildIdx((PhysicsObject*)par) >= 0) return timeLeft;
+    if(pol->checkCollections((PhysicsObject*)par)) return timeLeft;
+    glm::vec3 spherePos = curState[parIdx].position;
+    glm::vec3 nextSpherePos = nextState[parIdx].position;
+    glm::vec3 planePos = curState[polIdx].position;
+    glm::vec3 planeNorm = attribs[polIdx].geo.normal;
+    glm::vec3 planeUp = attribs[polIdx].geo.upVec;
 
     //get the position of the sphere in relation to some arbitrary point on the plane.
     glm::vec3 srefPlane = spherePos - planePos;
@@ -511,14 +344,12 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
     float middle = start + timeLeft / 2;
     bool collision = false;
     f = middle;
-    getNStateRK4(middle);
+    getNextRK4(middle);
     for(int i = 0; i < sPrecision; i++)
     {
-        spherePos = par->getPosition();
-        nextSpherePos = par->getNewPosition();
-        planePos = pla->getPosition();
-        planeNorm = pla->geoDescription.normal;
-        planeUp = pla->geoDescription.upVec;
+        nextSpherePos = nextState[parIdx].position;
+        planeNorm = attribs[polIdx].geo.normal;
+        planeUp = attribs[polIdx].geo.upVec;
 
         //get the position of the sphere in relation to some arbitrary point on the plane.
         srefPlane = spherePos - planePos;
@@ -540,7 +371,7 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
             collision = true;
         }
         f = middle;
-        getNStateRK4(middle);
+        getNextRK4(middle);
     }
 
     timeLeft = timeLeft * (1-f);
@@ -549,21 +380,21 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
     glm::vec3 point = nextSpherePos - spherePos;
     float len = std::abs(glm::dot((point), planeNorm));
     len = glm::dot((spherePos - planePos), planeNorm) / len;
-    getNStateRK4(timeLeft * len);
+    getNextRK4(timeLeft * len);
     nextSpherePos = spherePos + (point * len);
-    nextSpherePos = pla->getNewPosition();
+    nextSpherePos = nextState[polIdx].position;
 
 
     //get the points from the children of the polygon to use as collision edges.
     int childs[MAX_POLYGON_CHILDREN];
-    int count = pla->getVertices(childs);
+    int count = pol->getVertices(childs);
 
     //Get the barycentric coordinates of the point of collision on the plane. (We're assuming that the "polygon" is a triangle here)
-    glm::vec3 e01 = pla->childPtrs[childs[1]]->getPosition() - pla->childPtrs[childs[0]]->getPosition();
-    glm::vec3 e12 = pla->childPtrs[childs[2]]->getPosition() - pla->childPtrs[childs[1]]->getPosition();
-    glm::vec3 e20 = pla->childPtrs[childs[0]]->getPosition() - pla->childPtrs[childs[2]]->getPosition();
-    glm::vec3 p1x = nextSpherePos - pla->childPtrs[childs[1]]->getPosition();
-    glm::vec3 p2x = nextSpherePos - pla->childPtrs[childs[2]]->getPosition();
+    glm::vec3 e01 = curState[pol->childPtrs[childs[1]]->index].position - curState[pol->childPtrs[childs[0]]->index].position;
+    glm::vec3 e12 = curState[pol->childPtrs[childs[2]]->index].position - curState[pol->childPtrs[childs[1]]->index].position;
+    glm::vec3 e20 = curState[pol->childPtrs[childs[0]]->index].position - curState[pol->childPtrs[childs[2]]->index].position;
+    glm::vec3 p1x = nextSpherePos - curState[pol->childPtrs[childs[1]]->index].position;
+    glm::vec3 p2x = nextSpherePos - curState[pol->childPtrs[childs[2]]->index].position;
     glm::vec3 Vn = glm::cross(e01, e12);
     float area2 = glm::length(Vn);
     glm::vec3 normal = Vn/area2;
@@ -614,27 +445,30 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
 
     //get the total mass of the object hit, we give different weights to each of the vertices of the object depending on how far away they are from
     //the point of collision.
-    if(pla->active)
+    if(attribs[polIdx].active)
     {
         float addedWeights = 0;
-        float* weights = new float[pla->numChildren];
+        float* weights = new float[pol->numChildren];
         float mass = 0;
         float cWeights = 0;
         glm::vec3 velCollPoly = glm::vec3(0.0f);
-        for(int i = 0; i< pla->numChildren; i++) addedWeights += glm::length(par->getPosition() - pla->childPtrs[i]->getPosition());
-        for(int i = 0; i < pla->numChildren; i++)
+        for(int i = 0; i < pol->numChildren; i++)
         {
-            weights[i] = 1 - (glm::length(par->getPosition() - pla->childPtrs[i]->getPosition()) / addedWeights);
+            addedWeights += glm::length(curState[par->index].position - curState[pol->childPtrs[i]->index].position);
+        }
+        for(int i = 0; i < pol->numChildren; i++)
+        {
+            weights[i] = 1 - (glm::length(curState[par->index].position - curState[pol->childPtrs[i]->index].position) / addedWeights);
             cWeights += weights[i] * weights[i];
-            mass += weights[i] * pla->childPtrs[i]->getMass();
-            velCollPoly += weights[i] * pla->childPtrs[i]->getVelocity();
+            mass += weights[i] * attribs[pol->childPtrs[i]->index].mass;
+            velCollPoly += weights[i] * curState[pol->childPtrs[i]->index].velocity;
         }
 
         float totalMass = mass / cWeights;
 
         //to get the center of momentum we add the moments of inertia of both objects (the face and the vector) and divide by the masses.
 
-        glm::vec3 com = (par->getMass() * par->getVelocity() + totalMass * velCollPoly) / (par->getMass() + totalMass);
+        glm::vec3 com = (attribs[par->index].mass * curState[par->index].velocity + totalMass * velCollPoly) / (attribs[par->index].mass + totalMass);
 
         //then we put the velocities of the colliding objects in terms of the center of mass.
         glm::vec3 deltaV1 = velCollPoly - com;
@@ -655,16 +489,16 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
 
         par->setVelocity(deltaV2);
         par->getNextState(timeLeft);
-        for(int i = 0; i < pla->numChildren; i++)
+        for(int i = 0; i < pol->numChildren; i++)
         {
-            pla->childPtrs[i]->setVelocity((deltaV1 + com) * weights[i]);
-            pla->childPtrs[i]->getNextState(timeLeft);
+            pol->childPtrs[i]->setVelocity((deltaV1 + com) * weights[i]);
+            pol->childPtrs[i]->getNextState(timeLeft);
         }
-        pla->getNextState(timeLeft);
+        pol->getNextState(timeLeft);
     }
     else
     {
-        glm::vec3 deltaV2 = (par->getVelocity());
+        glm::vec3 deltaV2 = (curState[parIdx].velocity);
         glm::vec3 normV2 = glm::dot(deltaV2, planeNorm) * planeNorm;
         glm::vec3 tanV2 = deltaV2 - normV2;
         normV2 = -elasticity * normV2;
@@ -698,8 +532,10 @@ float PhysicsManager::partPoly(ParticleObject * par, PolygonObject * pla, float 
 
 }
 
-float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLeft)
+float PhysicsManager::edgeEdge(int eo1Idx, int eo2Idx, float timeLeft)
 {
+    EdgeObject* eo1 = (EdgeObject*)objList[eo1Idx];
+    EdgeObject* eo2 = (EdgeObject*)objList[eo2Idx];
     if(eo1->checkCollections((PhysicsObject*)eo2)) return timeLeft;
 
     //points for each edge
@@ -752,7 +588,7 @@ float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLef
     timeLeft = timeLeft * (1-f);
     //I don't think I need to update the accelerations, test without after I get it nominally working.
     //getAccelsRK4(timePassed);
-    getNStateRK4(timePassed);
+    combineRK4DerivStates(timePassed);
 
     //get lines at the updated positions
     pt1 = eo1->childPtrs[0]->getNewPosition();
@@ -792,23 +628,6 @@ float PhysicsManager::edgeEdge(EdgeObject * eo1, EdgeObject * eo2, float timeLef
 
 }
 
-float PhysicsManager::spherePlaneDet(SphereObject * sph, PlaneObject * pla)
-{
-    glm::vec3 spherePos = sph->getPosition();
-    glm::vec3 nextSpherePos = sph->getNewPosition();
-    float radius = sph->geoDescription.radius;
-    glm::vec3 planePos = pla->getPosition();
-    glm::vec3 planeNorm = pla->geoDescription.normal;
-
-    glm::vec3 direction = nextSpherePos - spherePos;
-
-    if(glm::dot(direction, planeNorm) > 0) planePos = planePos - (radius * planeNorm);
-    else if(glm::dot(direction, planeNorm) < 0) planePos = planePos + (radius * planeNorm);
-
-    float origDist = (planeNorm.x * spherePos.x) + (planeNorm.y * spherePos.y) + (planeNorm.z * spherePos.z) + -(glm::dot(planePos, planeNorm));
-    float newDist = (planeNorm.x * nextSpherePos.x) + (planeNorm.y * nextSpherePos.y) + (planeNorm.z * nextSpherePos.z) + -(glm::dot(planePos, planeNorm));
-    return origDist / (origDist - newDist);
-}
 
 int PhysicsManager::pointLSeg2D(glm::vec2 pt, glm::vec2 l0, glm::vec2 l1)
 {

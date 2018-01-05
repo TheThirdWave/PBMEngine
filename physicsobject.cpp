@@ -1,179 +1,27 @@
 #include "physicsobject.h"
+#include "physicsmanager.h"
 
 PhysicsObject::PhysicsObject()
 {
-    curState.rotation = glm::vec3(0.0f);
-    curState.position = glm::vec3(0.0f);
     scale = glm::vec3(1.0f);
-    curState.velocity = glm::vec3(0.0f, 0.0f, 0.0f);
-    curState.acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
-    newState.position = curState.position;
-    newState.velocity = curState.velocity;
-    mass = 1;
-    ttl = -1;
     rendrPtr = NULL;
     numChildren = 0;
     numParents = 0;
-    alive = true;
-    active = true;
-    solid = true;
+    manager = NULL;
 }
 
-PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos, glm::vec3 vel, glm::vec3 accel)
+PhysicsObject::PhysicsObject(void* mngr)
 {
-    curState.rotation = glm::vec3(0.0f);
-    rendrPtr = ptr;
-    curState.position = pos;
+    manager = mngr;
     scale = glm::vec3(1.0f);
-    curState.velocity = vel;
-    curState.acceleration = accel;
-    mass = 1;
-    ttl = -1;
-    newState.position = curState.position;
-    newState.velocity = curState.velocity;
-    numChildren = 0;
-    numParents = 0;
-    alive = true;
-    active = true;
-    solid = true;
-}
-
-PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos, glm::vec3 vel)
-{
-    curState.rotation = glm::vec3(0.0f);
-    rendrPtr = ptr;
-    curState.position = pos;
-    scale = glm::vec3(1.0f);
-    curState.velocity = vel;
-    curState.acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
-    mass = 1;
-    newState.position = curState.position;
-    newState.velocity = curState.velocity;
-    ttl = -1;
-    numChildren = 0;
-    numParents = 0;
-    alive = true;
-    active = true;
-    solid = true;
-}
-
-PhysicsObject::PhysicsObject(RenderObject* ptr, glm::vec3 pos)
-{
-    curState.rotation = glm::vec3(0.0f);
-    rendrPtr = ptr;
-    curState.position = pos;
-    scale = glm::vec3(1.0f);
-    curState.velocity = glm::vec3(0.0f, 0.0f, 0.0f);
-    curState.acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
-    mass = 1;
-    newState.position = curState.position;
-    newState.velocity = curState.velocity;
-    ttl = -1;
-    numChildren = 0;
-    numParents = 0;
-    alive = true;
-    active = true;
-    solid = true;
-}
-
-PhysicsObject::PhysicsObject(RenderObject* ptr, float x, float y, float z)
-{
-    curState.rotation = glm::vec3(0.0f);
-    rendrPtr = ptr;
-    curState.position = glm::vec3(x, y, z);
-    curState.velocity = glm::vec3(0.0f, 0.0f, 0.0f);
-    scale = glm::vec3(1.0f);
-    curState.acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
-    mass = 1;
-    newState.position = curState.position;
-    newState.velocity = curState.velocity;
-    ttl = -1;
-    numChildren = 0;
-    numParents = 0;
-    alive = true;
-    active = true;
-    solid = true;
-}
-
-PhysicsObject::PhysicsObject(glm::vec3 pos, glm::vec3 vel, glm::vec3 accel)
-{
-    curState.rotation = glm::vec3(0.0f);
     rendrPtr = NULL;
-    curState.position = pos;
-    curState.velocity = vel;
-    scale = glm::vec3(1.0f);
-    curState.acceleration = accel;
-    mass = 1;
-    newState.position = curState.position;
-    newState.velocity = curState.velocity;
-    ttl = -1;
     numChildren = 0;
     numParents = 0;
-    alive = true;
-    active = true;
-    solid = true;
-}
-
-PhysicsObject::PhysicsObject(glm::vec3 pos, glm::vec3 vel)
-{
-    curState.rotation = glm::vec3(0.0f);
-    rendrPtr = NULL;
-    curState.position = pos;
-    scale = glm::vec3(1.0f);
-    curState.velocity = vel;
-    curState.acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
-    mass = 1;
-    newState.position = curState.position;
-    newState.velocity = curState.velocity;
-    ttl = -1;
-    numChildren = 0;
-    numParents = 0;
-    alive = true;
-    active = true;
-    solid = true;
-}
-
-PhysicsObject::PhysicsObject(glm::vec3 pos)
-{
-    curState.rotation = glm::vec3(0.0f);
-    rendrPtr = NULL;
-    curState.position = pos;
-    scale = glm::vec3(1.0f);
-    curState.velocity = glm::vec3(0.0f, 0.0f, 0.0f);
-    curState.acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
-    mass = 1;
-    newState.position = curState.position;
-    newState.velocity = curState.velocity;
-    ttl = -1;
-    numChildren = 0;
-    numParents = 0;
-    alive = true;
-    active = true;
-    solid = true;
-}
-
-PhysicsObject::PhysicsObject(float x, float y, float z)
-{
-    curState.rotation = glm::vec3(0.0f);
-    rendrPtr = NULL;
-    curState.position = glm::vec3(x, y, z);
-    curState.velocity = glm::vec3(0.0f, 0.0f, 0.0f);
-    scale = glm::vec3(1.0f);
-    curState.acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
-    mass = 1;
-    newState.position = curState.position;
-    newState.velocity = curState.velocity;
-    ttl = -1;
-    numChildren = 0;
-    numParents = 0;
-    alive = true;
-    active = true;
-    solid = true;
 }
 
 void PhysicsObject::updateRenderObject()
 {
-    glm::mat4 pos = glm::translate(glm::mat4(1.0f), curState.position);
+    glm::mat4 pos = glm::translate(glm::mat4(1.0f), getPosition());
     glm::mat4 sca = glm::scale(glm::mat4(1.0f), scale);
 
     rendrPtr->setPosMatrix(pos * sca);
@@ -186,24 +34,26 @@ void PhysicsObject::setRenderObject(RenderObject* ptr)
 
 void PhysicsObject::setNextFromCurrent()
 {
-    newState.velocity = curState.velocity;
-    newState.position = curState.position;
-    newState.rotation = curState.rotation;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->nextState[index] = boop->curState[index];
 }
 
 void PhysicsObject::setRotation(glm::vec3 rot)
 {
-    curState.rotation = rot;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->curState[index].rotation = rot;
 }
 
 void PhysicsObject::setNewRotation(glm::vec3 rot)
 {
-    newState.rotation = rot;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->nextState[index].rotation = rot;
 }
 
 void PhysicsObject::setPosition(glm::vec3 pos)
 {
-    curState.position = pos;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->curState[index].position = pos;
 }
 
 void PhysicsObject::setScale(glm::vec3 sca)
@@ -213,57 +63,68 @@ void PhysicsObject::setScale(glm::vec3 sca)
 
 void PhysicsObject::setNewPosition(glm::vec3 pos)
 {
-    newState.position = pos;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->nextState[index].position = pos;
 }
 
 void PhysicsObject::setVelocity(glm::vec3 vel)
 {
-    curState.velocity = vel;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->curState[index].velocity = vel;
 }
 
 void PhysicsObject::setNewVelocity(glm::vec3 vel)
 {
-    newState.velocity = vel;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->nextState[index].velocity = vel;
 }
 
 void PhysicsObject::setAcceleration(glm::vec3 accel)
 {
-    curState.acceleration = accel / mass;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->curState[index].acceleration = accel;
 }
 
 void PhysicsObject::setMass(float ma)
 {
-    mass = ma;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->attribs[index].mass = ma;
 }
 
 void PhysicsObject::setID(int i)
 {
-    id = i;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->attribs[index].id = i;
 }
 
 void PhysicsObject::setTTL(double t)
 {
-    ttl = t;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->attribs[index].ttl = t;
 }
 
 void PhysicsObject::setGeometry(geometry geo)
 {
-    geoDescription = geo;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->attribs[index].geo = geo;
 }
 
 void PhysicsObject::setActive(bool in)
 {
-    active = in;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->attribs[index].active = in;
 }
 
 void PhysicsObject::setAlive(bool in)
 {
-    alive = in;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->attribs[index].alive = in;
 }
 
 void PhysicsObject::setSolid(bool in)
 {
-    solid = in;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->attribs[index].solid = in;
 }
 
 void PhysicsObject::addChild(PhysicsObject* c)
@@ -280,22 +141,26 @@ void PhysicsObject::addParent(PhysicsObject* p)
 
 void PhysicsObject::addRotation(glm::vec3 nr)
 {
-    curState.rotation = curState.rotation + nr;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->curState[index].rotation += nr;
 }
 
 void PhysicsObject::addNewRotation(glm::vec3 nr)
 {
-    newState.rotation = newState.rotation + nr;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->nextState[index].rotation += nr;
 }
 
 void PhysicsObject::addPosition(glm::vec3 np)
 {
-    curState.position = curState.position + np;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->curState[index].position += np;
 }
 
 void PhysicsObject::addVelocity(glm::vec3 nv)
 {
-    curState.velocity = curState.velocity + nv;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->curState[index].velocity += nv;
 }
 
 void PhysicsObject::addScale(glm::vec3 sc)
@@ -305,26 +170,24 @@ void PhysicsObject::addScale(glm::vec3 sc)
 
 void PhysicsObject::addAcceleration(glm::vec3 na)
 {
-    derivStates[0].acceleration = derivStates[0].acceleration + (na / mass);
 }
 
 void PhysicsObject::getNextState(float ts)
 {
-    newState.velocity = curState.velocity + (derivStates[0].acceleration * ts);
-    newState.position = curState.position + (newState.velocity * ts);
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    boop->nextState[index].velocity = boop->curState[index].velocity + boop->nextState[index].acceleration * ts;
+    boop->nextState[index].position = boop->curState[index].position + boop->nextState[index].velocity * ts;
 }
 
 void PhysicsObject::getNextState(int idx)
 {
-    newState.velocity = newState.velocity + derivStates[idx].velocity;
-    newState.position = newState.position + derivStates[idx].position;
+
 }
 
 
 void PhysicsObject::getNextRKState(float ts, int idx)
 {
-    derivStates[idx].velocity = (derivStates[idx].acceleration * ts);
-    derivStates[idx].position =  (newState.velocity + derivStates[idx].velocity) * ts;
+
 }
 
 int PhysicsObject::getChildIdx(PhysicsObject* ptr)
@@ -339,15 +202,22 @@ int PhysicsObject::getChildIdx(PhysicsObject* ptr)
 
 int PhysicsObject::getId()
 {
-    return id;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    return boop->attribs[index].id;
+}
+
+int PhysicsObject::getIndex()
+{
+    return index;
 }
 
 int PhysicsObject::getCollections(int size, int* buf)
 {
+    PhysicsManager* boop = (PhysicsManager*) manager;
    int count = 0;
    for(int i = 0; i < numParents; i++)
    {
-       if(parentPtrs[i]->getId() == COLLECTION) buf[count++] = i;
+       if(boop->attribs[parentPtrs[i]->getIndex()].id == COLLECTION) buf[count++] = i;
        if(count >= size) return count;
    }
    return count;
@@ -355,20 +225,22 @@ int PhysicsObject::getCollections(int size, int* buf)
 
 int PhysicsObject::getVertices(int buf[])
 {
+    PhysicsManager* boop = (PhysicsManager*) manager;
     int count = 0;
     for(int i = 0; i < numChildren; i++)
     {
-        if(childPtrs[i]->getId() == 3) buf[count++] = i;
+        if(boop->attribs[childPtrs[i]->getIndex()].id == PARTICLE) buf[count++] = i;
     }
     return count;
 }
 
 int PhysicsObject::getEdges(int buf[])
 {
+    PhysicsManager* boop = (PhysicsManager*) manager;
     int count = 0;
     for(int i = 0; i < numChildren; i++)
     {
-        if(childPtrs[i]->getId() == 4) buf[count++] = i;
+        if(boop->attribs[childPtrs[i]->getIndex()].id == EDGE) buf[count++] = i;
     }
     return count;
 }
@@ -376,45 +248,63 @@ int PhysicsObject::getEdges(int buf[])
 
 void PhysicsObject::updateState()
 {
-    curState = newState;
 }
 
 float PhysicsObject::getVelMag()
 {
-    return glm::length(curState.velocity);
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    return glm::length(boop->curState[index].velocity);
 }
 
 float PhysicsObject::getAccelMag()
 {
-    return glm::length(curState.acceleration);
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    return glm::length(boop->curState[index].acceleration);
 }
 
 float PhysicsObject::getMass()
 {
-    return mass;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    return boop->attribs[index].mass;
 }
 
 glm::vec3 PhysicsObject::getPosition(){
-    return curState.position;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    return boop->curState[index].position;
 }
 
 glm::vec3 PhysicsObject::getVelocity(){
-    return curState.velocity;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    return boop->curState[index].velocity;
 }
 
 glm::vec3 PhysicsObject::getNewPosition()
 {
-    return newState.position;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    return boop->nextState[index].position;
 }
 
 glm::vec3 PhysicsObject::getNewVelocity()
 {
-    return newState.velocity;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    return boop->nextState[index].velocity;
+}
+
+glm::vec3 PhysicsObject::getRotation()
+{
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    return boop->nextState[index].rotation;
 }
 
 RenderObject* PhysicsObject::getRenderObj()
 {
     return rendrPtr;
+}
+
+geometry PhysicsObject::getGeometry()
+{
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    return boop->attribs[index].geo;
 }
 
 bool PhysicsObject::checkCollections(PhysicsObject* ptr)
@@ -426,7 +316,7 @@ bool PhysicsObject::checkCollections(PhysicsObject* ptr)
     {
         for(int i = 0; i < count; i++)
         {
-            if(parentPtrs[i]->getChildIdx(ptr) > -1) return true;
+            if(parentPtrs[col[i]]->getChildIdx(ptr) > -1) return true;
         }
     }
     return false;

@@ -8,6 +8,7 @@ class PlaneObject: public PhysicsObject
     friend class PhysicsManager;
 public:
     PlaneObject();
+    PlaneObject(void*);
     void initRenderObj();
     void setGeometry(glm::vec3, glm::vec3);
     void updateRenderObject();

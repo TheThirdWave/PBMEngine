@@ -7,6 +7,7 @@ class SphereObject: public PhysicsObject
 {
 public:
     SphereObject();
+    SphereObject(void*);
     void initRenderObj(model*);
     void setGeometry(float);
 };
