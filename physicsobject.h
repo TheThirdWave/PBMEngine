@@ -50,6 +50,7 @@ public:
     void setAlive(bool);
     void setActive(bool);
     void setSolid(bool);
+    void addToManager(void* mngr);
     void addChild(PhysicsObject*);
     void addParent(PhysicsObject*);
     void addRotation(glm::vec3);

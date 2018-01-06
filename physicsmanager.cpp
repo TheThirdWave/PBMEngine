@@ -228,39 +228,42 @@ void PhysicsManager::getDerivFromNextState(int idx)
     for(int i = 0; i < objLen; i++)
     {
 
-        //apply global forces to objects
-        if(attribs[i].id != EDGE || attribs[i].id != POLYGON)
+        if(attribs[i].alive && attribs[i].active)
         {
-            glm::vec3 hold = glm::vec3(0.0f);
-            for(int j = 0; j < dirGFLen; j++)
+            //apply global forces to objects
+            if(attribs[i].id != EDGE && attribs[i].id != POLYGON)
             {
-                hold = hold + directonalGlobalForces[j];
+                glm::vec3 hold = glm::vec3(0.0f);
+                for(int j = 0; j < dirGFLen; j++)
+                {
+                    hold = hold + directonalGlobalForces[j];
+                }
+                for(int j = 0; j < scaGFLen; j++)
+                {
+                    glm::vec3 blah = nextState[i].velocity * scalarGlobalForces[j];
+                    hold = hold + blah;
+                }
+                for(int j = 0; j < attGFLen; j++)
+                {
+                    glm::vec3 point = glm::normalize(attractorGlobalForces[j].normal - nextState[i].position);
+                    hold = hold + (point * attractorGlobalForces[j].radius);
+                }
+                derivStates[idx][i].acceleration = hold / attribs[i].mass;
             }
-            for(int j = 0; j < scaGFLen; j++)
+            //spring forces.
+            else if(attribs[i].id == EDGE)
             {
-                glm::vec3 blah = nextState[i].velocity * scalarGlobalForces[j];
-                hold = hold + blah;
+                glm::vec3 pt1 = nextState[objList[i]->childPtrs[0]->getIndex()].position;
+                glm::vec3 pt2 = nextState[objList[i]->childPtrs[1]->getIndex()].position;
+                glm::vec3 v1 = nextState[objList[i]->childPtrs[0]->getIndex()].velocity;
+                glm::vec3 v2 = nextState[objList[i]->childPtrs[1]->getIndex()].velocity;
+                glm::vec3 pt12 = pt2 - pt1;
+                glm::vec3 npt12 = glm::normalize(pt12);
+                glm::vec3 sf = attribs[i].springK * (glm::length(pt12) - attribs[i].springL) * npt12;
+                glm::vec3 df = attribs[i].springD * (glm::dot((v2 - v1), npt12)) * npt12;
+                derivStates[idx][objList[i]->childPtrs[0]->index].acceleration += (sf + df) / attribs[objList[i]->childPtrs[0]->index].mass;
+                derivStates[idx][objList[i]->childPtrs[1]->index].acceleration += (-sf + -df) / attribs[objList[i]->childPtrs[1]->index].mass;
             }
-            for(int j = 0; j < attGFLen; j++)
-            {
-                glm::vec3 point = glm::normalize(attractorGlobalForces[j].normal - nextState[i].position);
-                hold = hold + (point * attractorGlobalForces[j].radius);
-            }
-            derivStates[idx][i].acceleration = hold / attribs[i].mass;
-        }
-        //spring forces.
-        else if(attribs[i].id == EDGE)
-        {
-            glm::vec3 pt1 = nextState[objList[i]->childPtrs[0]->getIndex()].position;
-            glm::vec3 pt2 = nextState[objList[i]->childPtrs[1]->getIndex()].position;
-            glm::vec3 v1 = nextState[objList[i]->childPtrs[0]->getIndex()].velocity;
-            glm::vec3 v2 = nextState[objList[i]->childPtrs[1]->getIndex()].velocity;
-            glm::vec3 pt12 = pt2 - pt1;
-            glm::vec3 npt12 = glm::normalize(pt12);
-            glm::vec3 sf = attribs[i].springK * (glm::length(pt12) - attribs[i].springL) * npt12;
-            glm::vec3 df = attribs[i].springD * (glm::dot((v2 - v1), npt12)) * npt12;
-            derivStates[idx][objList[i]->childPtrs[0]->index].acceleration += (sf + df) / attribs[objList[i]->childPtrs[0]->index].mass;
-            derivStates[idx][objList[i]->childPtrs[1]->index].acceleration += (-sf + -df) / attribs[objList[i]->childPtrs[1]->index].mass;
         }
     }
 
@@ -272,7 +275,7 @@ void PhysicsManager::addIntegralToNS(float ts, int idx)
     {
         nextState[i].acceleration = derivStates[idx][i].acceleration;
         nextState[i].velocity += derivStates[idx][i].acceleration * ts;
-        nextState[i].position += derivStates[idx][i].velocity * ts;
+        nextState[i].position += nextState[i].velocity * ts;
     }
 }
 
@@ -282,7 +285,7 @@ void PhysicsManager::combineRK4DerivStates(float ts)
     {
         nextState[i].acceleration = (1/6.0f) * (derivStates[0][i].acceleration + 2.0f * derivStates[1][i].acceleration + 2.0f * derivStates[2][i].acceleration + derivStates[3][i].acceleration);
         nextState[i].velocity = curState[i].velocity + (ts/6.0f) * (derivStates[0][i].acceleration + 2.0f * derivStates[1][i].acceleration + 2.0f * derivStates[2][i].acceleration + derivStates[3][i].acceleration);
-        nextState[i].position = curState[i].position + (ts/6.0f) * (derivStates[0][i].velocity + 2.0f * derivStates[1][i].velocity + 2.0f * derivStates[2][i].velocity + derivStates[3][i].velocity);
+        nextState[i].position = curState[i].position + (ts/6.0f) * nextState[i].velocity;
     }
 }
 
@@ -347,10 +350,6 @@ float PhysicsManager::partPoly(int parIdx, int polIdx, float timeLeft)
     getNextRK4(middle);
     for(int i = 0; i < sPrecision; i++)
     {
-        nextSpherePos = nextState[parIdx].position;
-        planeNorm = attribs[polIdx].geo.normal;
-        planeUp = attribs[polIdx].geo.upVec;
-
         //get the position of the sphere in relation to some arbitrary point on the plane.
         srefPlane = spherePos - planePos;
         nSRefPlane = nextSpherePos - planePos;
@@ -372,17 +371,19 @@ float PhysicsManager::partPoly(int parIdx, int polIdx, float timeLeft)
         }
         f = middle;
         getNextRK4(middle);
-    }
 
-    timeLeft = timeLeft * (1-f);
-    if(collision == false) return timeLeft;
+        nextSpherePos = nextState[parIdx].position;
+        planeNorm = attribs[polIdx].geo.normal;
+        planeUp = attribs[polIdx].geo.upVec;
+    }
 
     glm::vec3 point = nextSpherePos - spherePos;
     float len = std::abs(glm::dot((point), planeNorm));
     len = glm::dot((spherePos - planePos), planeNorm) / len;
-    getNextRK4(timeLeft * len);
+    f = f * len;
+    getNextRK4(f);
     nextSpherePos = spherePos + (point * len);
-    nextSpherePos = nextState[polIdx].position;
+    nextSpherePos = nextState[parIdx].position;
 
 
     //get the points from the children of the polygon to use as collision edges.

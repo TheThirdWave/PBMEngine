@@ -32,6 +32,13 @@ void PhysicsObject::setRenderObject(RenderObject* ptr)
     rendrPtr = ptr;
 }
 
+void PhysicsObject::addToManager(void* mngr)
+{
+    manager = mngr;
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    index = boop->addPhysObj(this);
+}
+
 void PhysicsObject::setNextFromCurrent()
 {
     PhysicsManager* boop = (PhysicsManager*) manager;
