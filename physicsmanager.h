@@ -56,6 +56,7 @@ public:
     void runTimeStep(float);
     void runRK4TimeStep(float);
     void setNextFromCurState();
+    void getNextEuler(float);
     void getNextRK4(float);
     void getDerivFromNextState(int);
     void addIntegralToNS(float, int);

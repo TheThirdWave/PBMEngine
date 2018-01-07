@@ -52,8 +52,8 @@ void EdgeObject::getNextRKState(float ts, int idx)
 
 void EdgeObject::getNextChildStates(float ts)
 {
-//    childPtrs[0]->getNextState(ts);
-//    childPtrs[1]->getNextState(ts);
+    childPtrs[0]->getNextState(ts);
+    childPtrs[1]->getNextState(ts);
 }
 
 void EdgeObject::updateChildren()

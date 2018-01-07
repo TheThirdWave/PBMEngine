@@ -141,7 +141,8 @@ void PhysicsManager::runRK4TimeStep(float ts)
     float timeLeft = ts;
     while(ts > 0)
     {
-        getNextRK4(ts);
+        //We do an Euler integration to check for collisions, if we don't find any then we do a full RK4 integration.
+        getNextEuler(ts);
 
         //check for collisions for objects
         for(int i = 0; i < objLen-1; i++)
@@ -172,7 +173,11 @@ void PhysicsManager::runRK4TimeStep(float ts)
             }
         }
 */
-        if(ts == timeLeft) ts = 0;
+        if(ts == timeLeft)
+        {
+            getNextRK4(ts);
+            ts = 0;
+        }
         else ts = timeLeft;
 
         //update state
@@ -207,8 +212,16 @@ void PhysicsManager::setNextFromCurState()
     }
 }
 
+void PhysicsManager::getNextEuler(float ts)
+{
+    setNextFromCurState();
+    getDerivFromNextState(0);
+    addIntegralToNS(ts, 0);
+}
+
 void PhysicsManager::getNextRK4(float ts)
 {
+    setNextFromCurState();
     getDerivFromNextState(0);
     addIntegralToNS(ts / 2.0f, 0);
     getDerivFromNextState(1);
@@ -342,48 +355,15 @@ float PhysicsManager::partPoly(int parIdx, int polIdx, float timeLeft)
     if((origDist >= 0 && newDist >= 0) || (origDist <= 0 && newDist <= 0)) return timeLeft;
 
     float f;
-    float start = 0;
-    float end = timeLeft;
-    float middle = start + timeLeft / 2;
-    bool collision = false;
-    f = middle;
-    getNextRK4(middle);
-    for(int i = 0; i < sPrecision; i++)
-    {
-        //get the position of the sphere in relation to some arbitrary point on the plane.
-        srefPlane = spherePos - planePos;
-        nSRefPlane = nextSpherePos - planePos;
-
-        //use that to get the distance of the sphere from the plane by taking the dot product of the normal and the position of the sphere in terms of the point on the plane.
-        origDist = glm::dot(srefPlane, planeNorm);
-        newDist = glm::dot(nSRefPlane, planeNorm);
-
-        if((origDist >= 0 && newDist >= 0) || (origDist <= 0 && newDist <= 0))
-        {
-            start = middle;
-            middle = start + (end - start)/2;
-        }
-        else
-        {
-            end = middle;
-            middle = start + (end - start)/2;
-            collision = true;
-        }
-        f = middle;
-        getNextRK4(middle);
-
-        nextSpherePos = nextState[parIdx].position;
-        planeNorm = attribs[polIdx].geo.normal;
-        planeUp = attribs[polIdx].geo.upVec;
-    }
-
     glm::vec3 point = nextSpherePos - spherePos;
     float len = std::abs(glm::dot((point), planeNorm));
-    len = glm::dot((spherePos - planePos), planeNorm) / len;
-    f = f * len;
-    getNextRK4(f);
-    nextSpherePos = spherePos + (point * len);
-    nextSpherePos = nextState[parIdx].position;
+    if(len != 0)
+    {
+        len = glm::dot((spherePos - planePos), planeNorm) / len;
+        f = timeLeft * len;
+        getNextEuler(f);
+        nextSpherePos = nextState[parIdx].position;
+    }
 
 
     //get the points from the children of the polygon to use as collision edges.
@@ -404,7 +384,12 @@ float PhysicsManager::partPoly(int parIdx, int polIdx, float timeLeft)
     float w = 1 - u - v;
 
     //If the barycentric coordinates are all between 0 and 1, the collision point is inside the triangle, otherwise it's a miss.
-    if(u < 0 || v < 0 || w < 0) return timeLeft;
+    if(u < 0 || v < 0 || w < 0)
+    {
+        getNextEuler(timeLeft);
+        return timeLeft;
+    }
+    timeLeft = timeLeft - f;
 
     /*//We assume edges between successive child points, so there's a line between child 0 and child 1,
     //a line between child 1 and child 2, a line between child 3 and child 4, and so on.  We also assume a line between the last child and the first, so if there
@@ -539,12 +524,67 @@ float PhysicsManager::edgeEdge(int eo1Idx, int eo2Idx, float timeLeft)
     EdgeObject* eo2 = (EdgeObject*)objList[eo2Idx];
     if(eo1->checkCollections((PhysicsObject*)eo2)) return timeLeft;
 
+    //Check to see if the point where the lines are closest is actually on the line segments defined by the vertices.
     //points for each edge
-    glm::vec3 pt1 = eo1->childPtrs[0]->getPosition();
-    glm::vec3 pt2 = eo2->childPtrs[0]->getPosition();
+    glm::vec3 p1 = eo1->childPtrs[0]->getPosition();
+    glm::vec3 p2 = eo1->childPtrs[1]->getPosition();
+    glm::vec3 q1 = eo2->childPtrs[0]->getPosition();
+    glm::vec3 q2 = eo2->childPtrs[1]->getPosition();
     //vectors for the line that describes the edge.
-    glm::vec3 e1 = eo1->childPtrs[1]->getPosition() - pt1;
-    glm::vec3 e2 = eo2->childPtrs[1]->getPosition() - pt2;
+    glm::vec3 p12 = p2 - p1;
+    glm::vec3 q12 = q2 - q1;
+    //get the cross product of the lines, it is the vector pointing to where the lines cross (oh now I get it)
+    glm::vec3 n = glm::cross(p12, q12);
+    if(n == glm::vec3(0.0f)) return timeLeft;
+    n = glm::normalize(n);
+    glm::vec3 r = q1 - p1;
+    glm::vec3 bn = glm::cross(glm::normalize(q12), n);
+    float sAll = glm::dot(p12, bn);
+    float sSome = glm::dot(r, bn);
+    float s = sSome/sAll;
+    glm::vec3 an = glm::cross(glm::normalize(p12), n);
+    float tAll = glm::dot(q12, an);
+    float tSome = glm::dot(-r, an);
+    float t = tSome/tAll;
+    if(t >= 1 || t <= 0 || s >= 1 || s <= 0) return timeLeft;
+
+    glm::vec3 pa = p1 + (p12 * s);
+    glm::vec3 qa = q1 + (q12 * t);
+    glm::vec3 m = qa - pa;
+
+    //Do everything over again but with the next position to see if the lines actually hit each other between timesteps.
+    glm::vec3 p1Next = eo1->childPtrs[0]->getNewPosition();
+    glm::vec3 p2Next = eo1->childPtrs[1]->getNewPosition();
+    glm::vec3 q1Next = eo2->childPtrs[0]->getNewPosition();
+    glm::vec3 q2Next = eo2->childPtrs[1]->getNewPosition();
+    //vectors for the line that describes the edge.
+    glm::vec3 p12Next = p2Next - p1Next;
+    glm::vec3 q12Next = q2Next - q1Next;
+    //get the cross product of the lines, it is the vector pointing to where the lines cross (oh now I get it)
+    glm::vec3 nNext = glm::cross(p12Next, q12Next);
+    if(nNext == glm::vec3(0.0f)) return timeLeft;
+    nNext = glm::normalize(nNext);
+    glm::vec3 rNext = q1Next - p1Next;
+    glm::vec3 bnNext = glm::cross(glm::normalize(q12Next), nNext);
+    float sAllNext = glm::dot(p12Next, bnNext);
+    float sSomeNext = glm::dot(rNext, bnNext);
+    float sNext = sSomeNext/sAllNext;
+    glm::vec3 anNext = glm::cross(glm::normalize(p12Next), nNext);
+    float tAllNext = glm::dot(q12Next, anNext);
+    float tSomeNext = glm::dot(-rNext, anNext);
+    float tNext = tSomeNext/tAllNext;
+
+    glm::vec3 paNext = p1Next + (p12Next * sNext);
+    glm::vec3 qaNext = q1Next + (q12Next * tNext);
+    glm::vec3 mNext = qaNext - paNext;
+
+    if(glm::dot(m, mNext) >= 0) return timeLeft;
+
+    if(attribs[eo1Idx].active == false)
+    {
+
+    }
+
     glm::vec3 hold;
     glm::vec3 hold1;
     //The normal that describes a plane between the two edges.
@@ -586,25 +626,27 @@ float PhysicsManager::edgeEdge(int eo1Idx, int eo2Idx, float timeLeft)
     else f = 0;
 
     float timePassed = timeLeft * f;
-    timeLeft = timeLeft * (1-f);
-    //I don't think I need to update the accelerations, test without after I get it nominally working.
-    //getAccelsRK4(timePassed);
-    combineRK4DerivStates(timePassed);
+    getNextEuler(timePassed);
 
     //get lines at the updated positions
-    pt1 = eo1->childPtrs[0]->getNewPosition();
-    pt2 = eo2->childPtrs[0]->getNewPosition();
-    e1 = eo1->childPtrs[1]->getNewPosition() - pt1;
-    e2 = eo2->childPtrs[1]->getNewPosition() - pt2;
+    npt1 = eo1->childPtrs[0]->getNewPosition();
+    npt2 = eo2->childPtrs[0]->getNewPosition();
+    ne1 = eo1->childPtrs[1]->getNewPosition() - npt1;
+    ne2 = eo2->childPtrs[1]->getNewPosition() - npt2;
 
-    dist = pt2 - pt1;
+    dist = npt2 - npt1;
 
     //find whether the lines intersect inside the marked segments
-    float s = (glm::dot(dist, glm::cross(glm::normalize(e2), plane)))/(glm::dot(e1, glm::cross(glm::normalize(e2), plane)));
-    float t = -(glm::dot(dist, glm::cross(glm::normalize(e1), plane)))/(glm::dot(e2, glm::cross(glm::normalize(e1), plane)));
+    float s = (glm::dot(dist, glm::cross(glm::normalize(ne2), plane)))/(glm::dot(ne1, glm::cross(glm::normalize(ne2), plane)));
+    float t = -(glm::dot(dist, glm::cross(glm::normalize(ne1), plane)))/(glm::dot(ne2, glm::cross(glm::normalize(ne1), plane)));
 
     //if they meet outside the segments just return.
-    if(s <= 0 || s >= 1 || t <= 0 || t >= 1) return timeLeft;
+    if(s <= 0 || s >= 1 || t <= 0 || t >= 1)
+    {
+        getNextEuler(timeLeft);
+        return timeLeft;
+    }
+    timeLeft = timeLeft * (1-f);
 
 
     //HACK ALERT: I don't think I take elasticity into account when calculating the velocities.
@@ -622,8 +664,9 @@ float PhysicsManager::edgeEdge(int eo1Idx, int eo2Idx, float timeLeft)
 
     eo1->getNextChildStates(timeLeft);
     eo2->getNextChildStates(timeLeft);
-    eo1->getNextState(timeLeft);
-    eo2->getNextState(timeLeft);
+
+    npt1 = eo1->childPtrs[0]->getNewPosition();
+    npt2 = eo2->childPtrs[0]->getNewPosition();
 
     return timeLeft;
 
