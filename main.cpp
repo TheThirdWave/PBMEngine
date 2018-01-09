@@ -95,7 +95,7 @@ glm::vec2 mDownPos;
 glm::vec2 mUpPos;
 int progState = CONVEX;
 
-const float timeStep = 1000 / (60.0f);
+const float timeStep = 1000 / (60.0f * 40.0f);
 
 int rotation = 15;
 
@@ -309,29 +309,29 @@ int main(int argc, char *argv[])
         part[i].addParent((PhysicsObject*)&cube1);
         cube1.addChild((PhysicsObject*)&part[i]);
     }
-    part[0].setPosition(glm::vec3(-1.0f, 1.0f, -1.0f));
-    part[0].setVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
+    part[0].setPosition(glm::vec3(-1.0f, 1.0f, -0.5f));
+    part[0].setVelocity(glm::vec3(0.005f, 0.0f, 0.0f));
     //part[0].setActive(false);
-    part[1].setPosition(glm::vec3(-1.0f, 1.0f, 1.0f));
-    part[1].setVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
+    part[1].setPosition(glm::vec3(-1.0f, -1.0f, -0.5f));
+    part[1].setVelocity(glm::vec3(0.005f, 0.0f, 0.0f));
     //part[1].setActive(false);
     part[2].setPosition(glm::vec3(1.0f, 1.0f, 1.0f));
-    part[2].setVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
+    //part[2].setVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
     //part[2].setActive(false);
     part[3].setPosition(glm::vec3(1.0f, 1.0f, -1.0f));
-    part[3].setVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
+    //part[3].setVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
     //part[3].setActive(false);
     part[4].setPosition(glm::vec3(-1.0f, -1.0f, -1.0f));
-    part[4].setVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
+    //part[4].setVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
     //part[4].setActive(false);
     part[5].setPosition(glm::vec3(-1.0f, -1.0f, 1.0f));
-    part[5].setVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
+    //part[5].setVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
     //part[5].setActive(false);
     part[6].setPosition(glm::vec3(1.0f, -1.0f, 1.0f));
-    part[6].setVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
+    //part[6].setVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
     //part[6].setActive(false);
     part[7].setPosition(glm::vec3(1.0f, -1.0f, -1.0f));
-    part[7].setVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
+    //part[7].setVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
     //part[7].setActive(false);
 
     for(int i = 8; i < 16; i++)
@@ -347,10 +347,10 @@ int main(int argc, char *argv[])
         cube2.addChild((PhysicsObject*)&part[i]);
     }
 
-    part[8].setPosition(glm::vec3(3.0f, 1.0f, -1.0f));
-    part[8].setActive(false);
-    part[9].setPosition(glm::vec3(3.0f, 1.0f, 1.0f));
-    part[9].setActive(false);
+    part[8].setPosition(glm::vec3(3.0f, 0.0f, -1.0f));
+    //part[8].setActive(false);
+    part[9].setPosition(glm::vec3(3.0f, 0.0f, 1.0f));
+    //part[9].setActive(false);
     part[10].setPosition(glm::vec3(5.0f, 1.0f, 1.0f));
     part[10].setActive(false);
     part[11].setPosition(glm::vec3(5.0f, 1.0f, -1.0f));
@@ -365,7 +365,7 @@ int main(int argc, char *argv[])
     part[15].setPosition(glm::vec3(5.0f, -1.0f, -1.0f));
     part[15].setActive(false);
 
-    /*part[8].addParent((PhysicsObject*)&edge[1]);
+    part[8].addParent((PhysicsObject*)&edge[1]);
     part[9].addParent((PhysicsObject*)&edge[1]);
     edge[1].addToManager((void*)&physicsManager);
     edge[1].setID(EDGE);
@@ -378,7 +378,7 @@ int main(int argc, char *argv[])
     edge[0].setID(EDGE);
     edge[0].addChild(&part[0]);
     edge[0].addChild(&part[1]);
-    edge[0].setSpring(2.0, 0.001, 0.00005);*/
+    edge[0].setSpring(2.0, 0.001, 0.00005);
     //part[8].addParent(&plane[12]);
     //part[9].addParent(&plane[12]);
     //part[10].addParent(&plane[12]);
@@ -416,8 +416,8 @@ int main(int argc, char *argv[])
 
     //setFace(&part[0], &part[1], &part[2], &part[3], 0, 0);
     //setFace(&part[4], &part[5], &part[6], &part[7], 6, 1);
-    setCube(&part[0], &part[1], &part[2], &part[3], &part[4], &part[5], &part[6], &part[7], &cube1, 0, 0);
-    setCube(&part[8], &part[9], &part[10], &part[11], &part[12], &part[13], &part[14], &part[15], &cube2, 24, 6);
+    //setCube(&part[0], &part[1], &part[2], &part[3], &part[4], &part[5], &part[6], &part[7], &cube1, 0, 0);
+    //setCube(&part[8], &part[9], &part[10], &part[11], &part[12], &part[13], &part[14], &part[15], &cube2, 24, 6);
 
 
     /*edge[0].addChild(&part[1]);

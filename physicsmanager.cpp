@@ -580,96 +580,88 @@ float PhysicsManager::edgeEdge(int eo1Idx, int eo2Idx, float timeLeft)
 
     if(glm::dot(m, mNext) >= 0) return timeLeft;
 
-    if(attribs[eo1Idx].active == false)
+    if(attribs[eo2Idx].active == false)
     {
-
+        edgeStaticResponse(eo1, (ParticleObject*)eo1->childPtrs[0], (ParticleObject*)eo1->childPtrs[1], n, pa, timeLeft);
     }
-
-    glm::vec3 hold;
-    glm::vec3 hold1;
-    //The normal that describes a plane between the two edges.
-    if(glm::normalize(e1) == glm::normalize(-e2)) return timeLeft;
-    if(e1 == e2 || glm::cross(e1, e2) == glm::vec3(0.0f))
+    else if(attribs[eo1Idx].active == false)
     {
-        hold = glm::cross(pt1 - pt2, e1);
-        if(glm::length(hold) == 0) hold = glm::vec3(0.0f, 1.0f, 0.0f);
-        e1 += glm::normalize(hold) * 0.0000001f;
+        edgeStaticResponse(eo2, (ParticleObject*)eo2->childPtrs[0], (ParticleObject*)eo2->childPtrs[1], n, qa, timeLeft);
     }
-    //glm::vec3 blah = glm::cross(e1, e2);
-    //glm::vec3 glah = glm::normalize(blah);
-    hold1 = glm::cross(e1, e2);
-    if(glm::length(hold1) == 0) hold1 = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 plane = glm::normalize(hold1);
-
-    //do the same thing with for the new positions of the edges.
-    glm::vec3 npt1 = eo1->childPtrs[0]->getNewPosition();
-    glm::vec3 npt2 = eo2->childPtrs[0]->getNewPosition();
-
-    glm::vec3 ne1 = eo1->childPtrs[1]->getNewPosition() - pt1;
-    glm::vec3 ne2 = eo2->childPtrs[1]->getNewPosition() - pt2;
-
-    //get the old and new vector between the edges.
-    glm::vec3 dist = pt2 - pt1;
-    glm::vec3 ndist = npt2-npt1;
-
-    //if the dot product changes sign between the old and new distance, we know that the lines have crossed the plane between them,
-    //and we need to check if they actually hit or if they're miles away from each other.
-    float norm = glm::dot(dist, plane);
-    float nnorm = glm::dot(ndist, plane);
-
-    //return if they don't pass through the plane
-    if((norm >= 0 && nnorm >= 0) || (norm <= 0 && nnorm <= 0)) return timeLeft;
-
-    //update edges to the point where they were at the plane (I think)
-    float f;
-    if(norm-nnorm != 0) f = std::abs(norm/(norm-nnorm));
-    else f = 0;
-
-    float timePassed = timeLeft * f;
-    getNextEuler(timePassed);
-
-    //get lines at the updated positions
-    npt1 = eo1->childPtrs[0]->getNewPosition();
-    npt2 = eo2->childPtrs[0]->getNewPosition();
-    ne1 = eo1->childPtrs[1]->getNewPosition() - npt1;
-    ne2 = eo2->childPtrs[1]->getNewPosition() - npt2;
-
-    dist = npt2 - npt1;
-
-    //find whether the lines intersect inside the marked segments
-    float s = (glm::dot(dist, glm::cross(glm::normalize(ne2), plane)))/(glm::dot(ne1, glm::cross(glm::normalize(ne2), plane)));
-    float t = -(glm::dot(dist, glm::cross(glm::normalize(ne1), plane)))/(glm::dot(ne2, glm::cross(glm::normalize(ne1), plane)));
-
-    //if they meet outside the segments just return.
-    if(s <= 0 || s >= 1 || t <= 0 || t >= 1)
+    else
     {
-        getNextEuler(timeLeft);
-        return timeLeft;
+        edgeEdgeResponse(eo1, (ParticleObject*)eo1->childPtrs[0], (ParticleObject*)eo1->childPtrs[1], pa, eo2, (ParticleObject*)eo2->childPtrs[0], (ParticleObject*)eo2->childPtrs[1], qa, n, timeLeft);
     }
-    timeLeft = timeLeft * (1-f);
+}
 
+void PhysicsManager::edgeStaticResponse(EdgeObject* edge, ParticleObject* point1, ParticleObject* point2, glm::vec3 normal, glm::vec3 colPoint, float timeleft)
+{
+    glm::vec3 p1 = curState[point1->index].position;
+    glm::vec3 p2 = curState[point2->index].position;
+    glm::vec3 p1V = curState[point1->index].velocity;
+    glm::vec3 p2V = curState[point2->index].velocity;
+    float v = glm::length(colPoint - p1);
+    float u = glm::length(colPoint - p2);
+    glm::vec3 colVel = (p1V * u) + (p2V * v);
+    glm::vec3 colVelPar = glm::dot(colVel, normal) * normal;
+    glm::vec3 colVelPerp = colVel - colVelPar;
+    glm::vec3 colVelParNext = -colVelPar * elasticity;
+    glm::vec3 colVelPerpNext = colVelPerp * fcoefficient;
+    glm::vec3 colVelNext = colVelParNext + colVelPerpNext;
+    glm::vec3 deltaColVel = colVelNext - colVel;
+    nextState[point1->index].velocity += deltaColVel * u;
+    nextState[point2->index].velocity += deltaColVel * v;
+    edge->getNextChildStates(timeleft);
+}
 
-    //HACK ALERT: I don't think I take elasticity into account when calculating the velocities.
-    //HACK ALERT: Also I'm not taking mass into account.
-    glm::vec3 velColl1 = s*eo1->childPtrs[0]->getVelocity() + (1-s)*eo1->childPtrs[1]->getVelocity();
-    glm::vec3 velColl2 = t*eo2->childPtrs[0]->getVelocity() + (1-t)*eo2->childPtrs[1]->getVelocity();
-    glm::vec3 deltaV1 = velColl1 - velColl2;
-    glm::vec3 deltaV2 = velColl2 - velColl1;
-    glm::vec3 pDeltaV1 = deltaV2/(s * s + (1-s) * (1-s));
-    glm::vec3 pDeltaV2 = deltaV1/(t * t + (1-t) * (1-t));
-    eo1->childPtrs[0]->addVelocity((1-s) * pDeltaV1);
-    eo1->childPtrs[1]->addVelocity((s) * pDeltaV1);
-    eo2->childPtrs[0]->addVelocity((1-t) * pDeltaV2);
-    eo2->childPtrs[1]->addVelocity((t) * pDeltaV2);
+void PhysicsManager::edgeEdgeResponse(EdgeObject * edge1, ParticleObject * point11, ParticleObject * point12, glm::vec3 colPoint1, EdgeObject * edge2, ParticleObject * point21, ParticleObject * point22, glm::vec3 colPoint2, glm::vec3 normal, float timeleft)
+{
+    glm::vec3 p1 = curState[point11->index].position;
+    glm::vec3 p2 = curState[point12->index].position;
+    glm::vec3 p1V = curState[point11->index].velocity;
+    glm::vec3 p2V = curState[point12->index].velocity;
+    float v1 = glm::length(colPoint1 - p1)/glm::length(p2 - p1);
+    float u1 = glm::length(colPoint1 - p2)/glm::length(p2 - p1);
+    glm::vec3 colVel1 = (p1V * u1) + (p2V * v1);
+    float colmass1 = (attribs[point11->index].mass * u1 + attribs[point12->index].mass * v1)/(u1 * u1 + v1 * v1);
 
-    eo1->getNextChildStates(timeLeft);
-    eo2->getNextChildStates(timeLeft);
+    glm::vec3 q1 = curState[point21->index].position;
+    glm::vec3 q2 = curState[point22->index].position;
+    glm::vec3 q1V = curState[point21->index].velocity;
+    glm::vec3 q2V = curState[point22->index].velocity;
+    float v2 = glm::length(colPoint2 - q1)/glm::length(q2 - q1);
+    float u2 = glm::length(colPoint2 - q2)/glm::length(q2 - q1);
+    glm::vec3 colVel2 = (q1V * v2) + (q2V * u2);
+    float colmass2 = (attribs[point21->index].mass * u2 + attribs[point22->index].mass * v2)/(u2 * u2 + v2 * v2);
 
-    npt1 = eo1->childPtrs[0]->getNewPosition();
-    npt2 = eo2->childPtrs[0]->getNewPosition();
+    glm::vec3 COM = (colVel1 * colmass1 + colVel2 * colmass2)/(colmass1 + colmass2);
+    glm::vec3 colVelCOM1 = colVel1 - COM;
+    glm::vec3 colVelCOM2 = colVel2 - COM;
 
-    return timeLeft;
+    glm::vec3 colVel1Par = glm::dot(colVelCOM1, normal) * normal;
+    glm::vec3 colVel1Perp = colVelCOM1 - colVel1Par;
+    glm::vec3 colVel1ParNext = -colVel1Par * elasticity;
+    glm::vec3 colVel1PerpNext = colVel1Perp * fcoefficient;
+    glm::vec3 colVel1COMNext = colVel1ParNext + colVel1PerpNext;
+    glm::vec3 colVel1Next = colVel1COMNext + COM;
+    glm::vec3 deltaColVel1 = colVel1Next - colVel1;
+    glm::vec3 deltaColVelPrime1 = deltaColVel1 / (u1 * u1 + v1 * v1);
 
+    glm::vec3 colVel2Par = glm::dot(colVelCOM2, normal) * normal;
+    glm::vec3 colVel2Perp = colVelCOM2 - colVel2Par;
+    glm::vec3 colVel2ParNext = -colVel2Par * elasticity;
+    glm::vec3 colVel2PerpNext = colVel2Perp * fcoefficient;
+    glm::vec3 colVel2COMNext = colVel2ParNext + colVel2PerpNext;
+    glm::vec3 colVel2Next = colVel2COMNext + COM;
+    glm::vec3 deltaColVel2 = colVel2Next - colVel2;
+    glm::vec3 deltaColVelPrime2 = deltaColVel2 / (u2 * u2 + v2 * v2);
+
+    curState[point11->index].velocity += deltaColVelPrime1 * u1;
+    curState[point12->index].velocity += deltaColVelPrime1 * v1;
+    curState[point21->index].velocity += deltaColVelPrime2 * u2;
+    curState[point22->index].velocity += deltaColVelPrime2 * v2;
+    edge1->getNextChildStates(timeleft);
+    edge2->getNextChildStates(timeleft);
 }
 
 
