@@ -67,6 +67,9 @@ public:
     float spherePoly(int, int, float);
     float partPoly(int, int, float);
     float edgeEdge(int, int, float);
+    void staticPartResponse(PolygonObject*, glm::vec3, ParticleObject*, ParticleObject*, ParticleObject*, float, float, float, float);
+    void staticPolyResponse(ParticleObject*, glm::vec3, float);
+    void partPolyResponse(ParticleObject*, PolygonObject*, glm::vec3, ParticleObject*, ParticleObject*, ParticleObject*, float, float, float, float);
     void edgeStaticResponse(EdgeObject*, ParticleObject*, ParticleObject*, glm::vec3, glm::vec3, float);
     void edgeEdgeResponse(EdgeObject*, ParticleObject*, ParticleObject*, glm::vec3, EdgeObject*, ParticleObject*, ParticleObject*, glm::vec3, glm::vec3, float);
     int pointLSeg2D(glm::vec2, glm::vec2, glm::vec2);

@@ -340,7 +340,6 @@ float PhysicsManager::partPoly(int parIdx, int polIdx, float timeLeft)
     glm::vec3 nextSpherePos = nextState[parIdx].position;
     glm::vec3 planePos = curState[polIdx].position;
     glm::vec3 planeNorm = attribs[polIdx].geo.normal;
-    glm::vec3 planeUp = attribs[polIdx].geo.upVec;
 
     //get the position of the sphere in relation to some arbitrary point on the plane.
     glm::vec3 srefPlane = spherePos - planePos;
@@ -355,14 +354,13 @@ float PhysicsManager::partPoly(int parIdx, int polIdx, float timeLeft)
     if((origDist >= 0 && newDist >= 0) || (origDist <= 0 && newDist <= 0)) return timeLeft;
 
     float f;
-    glm::vec3 point = nextSpherePos - spherePos;
-    float len = std::abs(glm::dot((point), planeNorm));
+    glm::vec3 hitPoint = nextSpherePos - spherePos;
+    float len = std::abs(glm::dot((hitPoint), planeNorm));
     if(len != 0)
     {
         len = glm::dot((spherePos - planePos), planeNorm) / len;
+        hitPoint = spherePos + (hitPoint * len);
         f = timeLeft * len;
-        getNextEuler(f);
-        nextSpherePos = nextState[parIdx].position;
     }
 
 
@@ -374,8 +372,8 @@ float PhysicsManager::partPoly(int parIdx, int polIdx, float timeLeft)
     glm::vec3 e01 = curState[pol->childPtrs[childs[1]]->index].position - curState[pol->childPtrs[childs[0]]->index].position;
     glm::vec3 e12 = curState[pol->childPtrs[childs[2]]->index].position - curState[pol->childPtrs[childs[1]]->index].position;
     glm::vec3 e20 = curState[pol->childPtrs[childs[0]]->index].position - curState[pol->childPtrs[childs[2]]->index].position;
-    glm::vec3 p1x = nextSpherePos - curState[pol->childPtrs[childs[1]]->index].position;
-    glm::vec3 p2x = nextSpherePos - curState[pol->childPtrs[childs[2]]->index].position;
+    glm::vec3 p1x = hitPoint - curState[pol->childPtrs[childs[1]]->index].position;
+    glm::vec3 p2x = hitPoint - curState[pol->childPtrs[childs[2]]->index].position;
     glm::vec3 Vn = glm::cross(e01, e12);
     float area2 = glm::length(Vn);
     glm::vec3 normal = Vn/area2;
@@ -386,134 +384,25 @@ float PhysicsManager::partPoly(int parIdx, int polIdx, float timeLeft)
     //If the barycentric coordinates are all between 0 and 1, the collision point is inside the triangle, otherwise it's a miss.
     if(u < 0 || v < 0 || w < 0)
     {
-        getNextEuler(timeLeft);
         return timeLeft;
     }
-    timeLeft = timeLeft - f;
-
-    /*//We assume edges between successive child points, so there's a line between child 0 and child 1,
-    //a line between child 1 and child 2, a line between child 3 and child 4, and so on.  We also assume a line between the last child and the first, so if there
-    //are n children there's a line between child n and child 0.
-    //We use the children to check to see if the position of the colliding object on the collision plane is within the bounds of the polygon.
-    //To do that, we discard one of the coordinate components and check the position of the colliding object against the line segements defined by the children of the polygon.
-    //To avoid a degenerative case, we make sure that we're discarding the largest component of the polygon's surface normal.
-    float m = std::max(std::abs(planeNorm.x), std::abs(planeNorm.y));
-    m = std::max(m, std::abs(planeNorm.z));
-    int numIntercepts = 0;
-    for(int i = 0; i < count; i++)
-    {
-        glm::vec3 pt1, pt2;
-        if(i < count - 1)
-        {
-            pt1 = pla->childPtrs[childs[i]]->getPosition();
-            pt2 = pla->childPtrs[childs[i+1]]->getPosition();
-        }
-        else
-        {
-            pt1 = pla->childPtrs[childs[i]]->getPosition();
-            pt2 = pla->childPtrs[childs[0]]->getPosition();
-        }
-        if(m == std::abs(planeNorm.x))
-        {
-            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().y, par->getPosition().z), glm::vec2(pt1.y, pt1.z), glm::vec2(pt2.y, pt2.z));
-        }
-        else if(m == std::abs(planeNorm.y))
-        {
-            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().x, par->getPosition().z), glm::vec2(pt1.x, pt1.z), glm::vec2(pt2.x, pt2.z));
-        }
-        else
-        {
-            numIntercepts += pointLSeg2D(glm::vec2(par->getPosition().b, par->getPosition().y), glm::vec2(pt1.b, pt1.y), glm::vec2(pt2.b, pt2.y));
-        }
-    }
-
-    if(numIntercepts % 2 == 0) return timeLeft;*/
+    timeLeft = timeLeft - (1 - f);
 
     //get the total mass of the object hit, we give different weights to each of the vertices of the object depending on how far away they are from
     //the point of collision.
-    if(attribs[polIdx].active)
+    if(attribs[polIdx].active == false)
     {
-        float addedWeights = 0;
-        float* weights = new float[pol->numChildren];
-        float mass = 0;
-        float cWeights = 0;
-        glm::vec3 velCollPoly = glm::vec3(0.0f);
-        for(int i = 0; i < pol->numChildren; i++)
-        {
-            addedWeights += glm::length(curState[par->index].position - curState[pol->childPtrs[i]->index].position);
-        }
-        for(int i = 0; i < pol->numChildren; i++)
-        {
-            weights[i] = 1 - (glm::length(curState[par->index].position - curState[pol->childPtrs[i]->index].position) / addedWeights);
-            cWeights += weights[i] * weights[i];
-            mass += weights[i] * attribs[pol->childPtrs[i]->index].mass;
-            velCollPoly += weights[i] * curState[pol->childPtrs[i]->index].velocity;
-        }
-
-        float totalMass = mass / cWeights;
-
-        //to get the center of momentum we add the moments of inertia of both objects (the face and the vector) and divide by the masses.
-
-        glm::vec3 com = (attribs[par->index].mass * curState[par->index].velocity + totalMass * velCollPoly) / (attribs[par->index].mass + totalMass);
-
-        //then we put the velocities of the colliding objects in terms of the center of mass.
-        glm::vec3 deltaV1 = velCollPoly - com;
-        glm::vec3 deltaV2 = (par->getVelocity()) - com;
-        //we get the normal vectors and tangent vectors.
-        glm::vec3 normV1 = glm::dot(deltaV1, planeNorm) * planeNorm;
-        glm::vec3 tanV1 = deltaV1 - normV1;
-        glm::vec3 normV2 = glm::dot(deltaV2, planeNorm) * planeNorm;
-        glm::vec3 tanV2 = deltaV2 - normV2;
-        //get the new velocities in terms of center of mass, accounting for elasticity and friction.
-        normV1 = -elasticity * normV1;
-        tanV1 = fcoefficient * tanV1;
-        normV2 = -elasticity * normV2;
-        tanV2 = fcoefficient * tanV2;
-        deltaV1 = normV1 + tanV1;
-        deltaV2 = normV2 + tanV2;
-        deltaV2 = deltaV2 + com;
-
-        par->setVelocity(deltaV2);
-        par->getNextState(timeLeft);
-        for(int i = 0; i < pol->numChildren; i++)
-        {
-            pol->childPtrs[i]->setVelocity((deltaV1 + com) * weights[i]);
-            pol->childPtrs[i]->getNextState(timeLeft);
-        }
-        pol->getNextState(timeLeft);
+        staticPolyResponse(par, planeNorm, timeLeft);
+    }
+    else if(attribs[parIdx].active == false)
+    {
+        staticPartResponse(pol, normal, (ParticleObject*)pol->childPtrs[childs[0]], (ParticleObject*)pol->childPtrs[childs[1]], (ParticleObject*)pol->childPtrs[childs[2]], u, v, w, timeLeft);
     }
     else
     {
-        glm::vec3 deltaV2 = (curState[parIdx].velocity);
-        glm::vec3 normV2 = glm::dot(deltaV2, planeNorm) * planeNorm;
-        glm::vec3 tanV2 = deltaV2 - normV2;
-        normV2 = -elasticity * normV2;
-        tanV2 = fcoefficient * tanV2;
-        deltaV2 = normV2 + tanV2;
-        par->setVelocity(deltaV2);
-        par->getNextState(timeLeft);
-    }
-/*
-    glm::vec3 cross = glm::dot(par->getVelocity(), planeNorm) * planeNorm;
-    glm::vec3 up = -elasticity * cross;
-    glm::vec3 accross = par->getVelocity() - cross;
-
-    if(glm::length(accross) != 0)
-    {
-        accross = accross - std::min(fcoefficient * par->mass * glm::length(up), glm::length(accross)) * glm::normalize(accross);
+        partPolyResponse(par, pol, planeNorm, (ParticleObject*)pol->childPtrs[childs[0]], (ParticleObject*)pol->childPtrs[childs[1]], (ParticleObject*)pol->childPtrs[childs[2]], u, v, w, timeLeft);
     }
 
-    glm::vec3 fnVec = up + accross;
-
-    par->setVelocity(fnVec);
-    par->getNextState(timeLeft);
-    float newnewDist = (planeNorm.x * nextSpherePos.x) + (planeNorm.y * nextSpherePos.y) + (planeNorm.z * nextSpherePos.z) + -(glm::dot(planePos, planeNorm));
-    if((newnewDist > 0 && newDist > 0) || (newnewDist < 0 && newDist < 0))
-    {
-        par->getNewPosition() = par->getNewPosition() + (planeNorm * - newnewDist);
-    }
-
-*/
     return timeLeft;//timeLeft;
 
 }
@@ -592,6 +481,80 @@ float PhysicsManager::edgeEdge(int eo1Idx, int eo2Idx, float timeLeft)
     {
         edgeEdgeResponse(eo1, (ParticleObject*)eo1->childPtrs[0], (ParticleObject*)eo1->childPtrs[1], pa, eo2, (ParticleObject*)eo2->childPtrs[0], (ParticleObject*)eo2->childPtrs[1], qa, n, timeLeft);
     }
+}
+
+void PhysicsManager::staticPartResponse(PolygonObject * pol, glm::vec3 normal, ParticleObject * pt1, ParticleObject * pt2, ParticleObject * pt3, float u, float v, float w, float timeLeft)
+{
+    glm::vec3 pt1Vel = curState[pt1->index].velocity;
+    glm::vec3 pt2Vel = curState[pt2->index].velocity;
+    glm::vec3 pt3Vel = curState[pt3->index].velocity;
+    glm::vec3 polColVel = u * pt1Vel + v * pt2Vel + w * pt3Vel;
+    glm::vec3 polColVelPar = glm::dot(polColVel, normal) * normal;
+    glm::vec3 polColVelPerp = polColVel - polColVelPar;
+    glm::vec3 polColVelParNew = -elasticity * polColVelPar;
+    glm::vec3 polColVelPerpNew = polColVelPerp * fcoefficient;
+    glm::vec3 polColVelNew = polColVelParNew + polColVelPerpNew;
+    glm::vec3 polColVelDelta = polColVelNew - polColVel;
+    glm::vec3 polColVelDeltaP = polColVelDelta/(u * u + v * v + w * w);
+
+    curState[pt1->index].velocity += polColVelDeltaP * u;
+    curState[pt2->index].velocity += polColVelDeltaP * v;
+    curState[pt3->index].velocity += polColVelDeltaP * w;
+    pol->getNextChildStates(timeLeft);
+}
+
+void PhysicsManager::staticPolyResponse(ParticleObject * part, glm::vec3 normal, float timeLeft)
+{
+    glm::vec3 partVel = curState[part->index].velocity;
+    glm::vec3 partVelPar = glm::dot(partVel, normal) * normal;
+    glm::vec3 partVelPerp = partVel - partVelPar;
+    glm::vec3 partVelParNew = -elasticity * partVelPar;
+    glm::vec3 partVelPerpNew = partVelPerp * fcoefficient;
+    glm::vec3 partVelNew = partVelParNew + partVelPerpNew;
+    curState[part->index].velocity = partVelNew;
+    part->getNextState(timeLeft);
+}
+
+void PhysicsManager::partPolyResponse(ParticleObject* part, PolygonObject* pol, glm::vec3 normal, ParticleObject* pt1, ParticleObject* pt2, ParticleObject* pt3, float u, float v, float w, float timeLeft)
+{
+    glm::vec3 partVel = curState[part->index].velocity;
+    float partMass = attribs[part->index].mass;
+
+    glm::vec3 pt1Vel = curState[pt1->index].velocity;
+    glm::vec3 pt2Vel = curState[pt2->index].velocity;
+    glm::vec3 pt3Vel = curState[pt3->index].velocity;
+    float pt1Mass = attribs[pt1->index].mass;
+    float pt2Mass = attribs[pt2->index].mass;
+    float pt3Mass = attribs[pt3->index].mass;
+
+    float polColMass = (u * pt1Mass + v * pt2Mass + w * pt3Mass)/(u * u + v * v + w * w);
+    glm::vec3 polColVel = u * pt1Vel + v * pt2Vel + w * pt3Vel;
+
+    glm::vec3 COM = (partMass * pt1Vel + polColMass * polColVel)/(partMass + polColMass);
+    glm::vec3 partVelCOM = partVel - COM;
+    glm::vec3 partVelCOMPar = glm::dot(partVelCOM, normal) * normal;
+    glm::vec3 partVelCOMPerp = partVelCOM - partVelCOMPar;
+    glm::vec3 partVelCOMParNew = -elasticity * partVelCOMPar;
+    glm::vec3 partVelCOMPerpNew = partVelCOMPerp * fcoefficient;
+    glm::vec3 partVelCOMNew = partVelCOMParNew + partVelCOMPerpNew;
+    glm::vec3 partVelNew = partVelCOMNew + COM;
+
+    glm::vec3 polColVelCOM = polColVel - COM;
+    glm::vec3 polColVelCOMPar = glm::dot(polColVelCOM, normal) * normal;
+    glm::vec3 polColVelCOMPerp = polColVelCOM - polColVelCOMPar;
+    glm::vec3 polColVelCOMParNew = -elasticity * polColVelCOMPar;
+    glm::vec3 polColVelCOMPerpNew = polColVelCOMPerp * fcoefficient;
+    glm::vec3 polColVelCOMNew = polColVelCOMParNew + polColVelCOMPerpNew;
+    glm::vec3 polColVelNew = polColVelCOMNew + COM;
+    glm::vec3 polColDeltaVel = polColVelNew - polColVel;
+    glm::vec3 polColDeltaVelP = polColDeltaVel / (u * u + v * v + w * w);
+
+    curState[part->index].velocity = partVelNew;
+    curState[pt1->index].velocity += polColDeltaVelP * u;
+    curState[pt2->index].velocity += polColDeltaVelP * v;
+    curState[pt3->index].velocity += polColDeltaVelP * w;
+    part->getNextState(timeLeft);
+    pol->getNextChildStates(timeLeft);
 }
 
 void PhysicsManager::edgeStaticResponse(EdgeObject* edge, ParticleObject* point1, ParticleObject* point2, glm::vec3 normal, glm::vec3 colPoint, float timeleft)
