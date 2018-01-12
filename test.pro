@@ -23,7 +23,8 @@ SOURCES += main.cpp \
     particleobject.cpp \
     particlegenerator.cpp \
     edgeobject.cpp \
-    objcollection.cpp
+    objcollection.cpp \
+    objectcreator.cpp
 
 OTHER_FILES += \
     vertshade \
@@ -52,7 +53,8 @@ HEADERS += \
     particleobject.h \
     particlegenerator.h \
     edgeobject.h \
-    objcollection.h
+    objcollection.h \
+    objectcreator.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt
 

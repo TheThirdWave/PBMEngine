@@ -56,10 +56,10 @@ void PolygonObject::updateRenderObject()
 
 void PolygonObject::getNextChildStates(float ts)
 {
-    //for(int i = 0; i < numChildren; i++)
-    //{
-//        childPtrs[i]->getNextState(ts);
-//    }
+    for(int i = 0; i < numChildren; i++)
+    {
+        childPtrs[i]->getNextState(ts);
+    }
 }
 
 void PolygonObject::updateChildren()

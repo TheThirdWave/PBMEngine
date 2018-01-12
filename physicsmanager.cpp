@@ -264,7 +264,7 @@ void PhysicsManager::getDerivFromNextState(int idx)
                 derivStates[idx][i].acceleration = hold / attribs[i].mass;
             }
             //spring forces.
-            else if(attribs[i].id == EDGE)
+            else if(attribs[i].id == EDGE && attribs[i].active && attribs[i].alive)
             {
                 glm::vec3 pt1 = nextState[objList[i]->childPtrs[0]->getIndex()].position;
                 glm::vec3 pt2 = nextState[objList[i]->childPtrs[1]->getIndex()].position;
@@ -386,7 +386,6 @@ float PhysicsManager::partPoly(int parIdx, int polIdx, float timeLeft)
     {
         return timeLeft;
     }
-    timeLeft = timeLeft - (1 - f);
 
     //get the total mass of the object hit, we give different weights to each of the vertices of the object depending on how far away they are from
     //the point of collision.
@@ -530,7 +529,7 @@ void PhysicsManager::partPolyResponse(ParticleObject* part, PolygonObject* pol, 
     float polColMass = (u * pt1Mass + v * pt2Mass + w * pt3Mass)/(u * u + v * v + w * w);
     glm::vec3 polColVel = u * pt1Vel + v * pt2Vel + w * pt3Vel;
 
-    glm::vec3 COM = (partMass * pt1Vel + polColMass * polColVel)/(partMass + polColMass);
+    glm::vec3 COM = (partMass * partVel + polColMass * polColVel)/(partMass + polColMass);
     glm::vec3 partVelCOM = partVel - COM;
     glm::vec3 partVelCOMPar = glm::dot(partVelCOM, normal) * normal;
     glm::vec3 partVelCOMPerp = partVelCOM - partVelCOMPar;
@@ -563,8 +562,8 @@ void PhysicsManager::edgeStaticResponse(EdgeObject* edge, ParticleObject* point1
     glm::vec3 p2 = curState[point2->index].position;
     glm::vec3 p1V = curState[point1->index].velocity;
     glm::vec3 p2V = curState[point2->index].velocity;
-    float v = glm::length(colPoint - p1);
-    float u = glm::length(colPoint - p2);
+    float v = glm::length(colPoint - p1)/glm::length(p2 - p1);
+    float u = glm::length(colPoint - p2)/glm::length(p2 - p1);
     glm::vec3 colVel = (p1V * u) + (p2V * v);
     glm::vec3 colVelPar = glm::dot(colVel, normal) * normal;
     glm::vec3 colVelPerp = colVel - colVelPar;
@@ -572,8 +571,9 @@ void PhysicsManager::edgeStaticResponse(EdgeObject* edge, ParticleObject* point1
     glm::vec3 colVelPerpNext = colVelPerp * fcoefficient;
     glm::vec3 colVelNext = colVelParNext + colVelPerpNext;
     glm::vec3 deltaColVel = colVelNext - colVel;
-    nextState[point1->index].velocity += deltaColVel * u;
-    nextState[point2->index].velocity += deltaColVel * v;
+    glm::vec3 deltaColVelPrime = deltaColVel/(v * v + u * u);
+    curState[point1->index].velocity += deltaColVelPrime * u;
+    curState[point2->index].velocity += deltaColVelPrime * v;
     edge->getNextChildStates(timeleft);
 }
 
