@@ -2,12 +2,12 @@
 
 PhysicsManager::PhysicsManager()
 {
-    generators = new ParticleGenerator*[MAX_GENERATORS];
     scaGFLen = 0;
     dirGFLen = 0;
     attGFLen = 0;
     objLen = 0;
     genLen = 0;
+    genIdx = 0;
     partLen = 0;
     elasticity = 1.0f;
     fcoefficient = 0.1f;
@@ -34,6 +34,7 @@ int PhysicsManager::addPhysObj(PhysicsObject* backPtr)
     attribs[objLen].alive = true;
     attribs[objLen].active = true;
     attribs[objLen].solid = true;
+    attribs[objLen].particle = false;
     attribs[objLen].geo.scale = glm::vec3(1.0f);
     return objLen++;
 }
@@ -53,88 +54,96 @@ void PhysicsManager::addAttractorForce(geometry g)
     attractorGlobalForces[attGFLen++] = g;
 }
 
-void PhysicsManager::addParticleList(ParticleObject* p, int len)
+int PhysicsManager::addParticleGen()
 {
-    partList = p;
-    partLen = len;
+    if(genLen == 0) genIdx = 0;
+    return genLen++;
 }
 
-void PhysicsManager::addParticleGen(ParticleGenerator * pG)
+void PhysicsManager::addParticles(int num)
 {
-    generators[genLen++] = pG;
+    int hold;
+    for(int i = 0; i < num; i++)
+    {
+        hold = addPhysObj(&particles[partLen]);
+        particles[partLen].manager = this;
+        particles[partLen].index = hold;
+        particles[partLen].setRenderObject(vModel);
+        partLen++;
+        if(hold == -1 || partLen >= NUM_PARTS) break;
+        attribs[hold].id = PARTICLE;
+        attribs[hold].particle = true;
+    }
 }
 
-/*
+ParticleGenerator* PhysicsManager::getGenerator(int idx)
+{
+    return &generators[idx];
+}
+
+
 void PhysicsManager::runTimeStep(float ts)
 {
-    //forces
-    getAccels();
-
-    addIntegralToNS(ts);
-
     float timeLeft = ts;
-    //calculate next state
-    for(int i = 0; i < objLen; i++)
+    while(ts > 0)
     {
-        if(objList[i]->active && objList[i]->alive)
-        {
-            objList[i]->getNextState(ts);
-        }
-    } 
+        //We do an Euler integration to check for collisions, if we don't find any then we do a full RK4 integration.
+        getNextEuler(ts);
 
-    //check for collisions for objects
-    for(int i = 0; i < objLen-1; i++)
-    {
-        if(objList[i]->alive)
+        //check for collisions for objects
+        for(int i = 0; i < objLen-1; i++)
         {
-            for(int j = i + 1; j < objLen; j++)
+            if(attribs[i].alive && attribs[i].solid)
             {
-                if(objList[j]->alive)
+                for(int j = i + 1; j < objLen; j++)
                 {
-                    while(timeLeft > 0)
+                    if(attribs[j].alive && attribs[j].solid)
                     {
                         timeLeft = detectCollision(i, j, timeLeft);
                     }
-                    timeLeft = ts;
                 }
             }
         }
-    }
-    //check for collisions for particles
-    for(int i = 0; i < partLen; i++)
-    {
-        for(int j = 0; j < objLen; j++)
-        {
-            while(timeLeft > 0)
-            {
-                timeLeft = detectCollision(&partList[i], objList[j], timeLeft);
 
+        if(ts == timeLeft)
+        {
+            ts = 0;
+        }
+        else ts = timeLeft;
+
+        //update state
+        for(int i = 0; i< objLen; i++)
+        {
+            curState[i] = nextState[i];
+            if(attribs[i].id == POLYGON || attribs[i].id == EDGE || attribs[i].id == COLLECTION)
+            {
+                objList[i]->updateState();
             }
-            timeLeft = ts;
+            objList[i]->updateRenderObject();
+            if(attribs[i].particle == true && attribs[i].ttl <= 0 && genLen > 0)
+            {
+                attribs[i].ttl--;
+                if(generators[genIdx].partsMade > 0)
+                {
+                    generators[genIdx].createParticle((ParticleObject*)objList[i]);
+                }
+                genIdx = (genIdx + 1) % genLen;
+            }
+        }
+        //update state for particles.
+        /*for(int i = 0; i< partLen; i++)
+        {
+            partList[i].updateState();
+            partList[i].updateRenderObject();
+        }*/
+        //reset generators.
+        for(int i = 0; i < genLen; i++)
+        {
+            generators[i].setpartsMade(100);
         }
     }
-
-    //update state
-    for(int i = 0; i< objLen; i++)
-    {
-        objList[i]->updateState();
-        objList[i]->updateRenderObject();
-        objList[i]->ttl -= ts;
-    }
-    //update state for particles.
-    for(int i = 0; i< partLen; i++)
-    {
-        partList[i].updateState();
-        partList[i].updateRenderObject();
-        partList[i].ttl -= ts;
-    }
-    //reset generators.
-    for(int i = 0; i < genLen; i++)
-    {
-        generators[i]->setpartsMade(100);
-    }
 }
-*/
+
 
 void PhysicsManager::runRK4TimeStep(float ts)
 {
@@ -159,20 +168,6 @@ void PhysicsManager::runRK4TimeStep(float ts)
             }
         }
 
-        //check for collisions for particles
-/*        for(int i = 0; i < partLen; i++)
-        {
-            for(int j = 0; j < objLen; j++)
-            {
-                while(timeLeft > 0)
-                {
-                    timeLeft = detectCollision(&partList[i], objList[j], timeLeft);
-
-                }
-                timeLeft = ts;
-            }
-        }
-*/
         if(ts == timeLeft)
         {
             getNextRK4(ts);
@@ -188,6 +183,15 @@ void PhysicsManager::runRK4TimeStep(float ts)
             {
                 objList[i]->updateState();
             }
+            if(attribs[i].particle == true && genLen > 0)
+            {
+                attribs[i].ttl--;
+                if(generators[genIdx].partsMade > 0 && attribs[i].ttl <= 0)
+                {
+                    generators[genIdx].createParticle((ParticleObject*)objList[i]);
+                }
+                genIdx = (genIdx + 1) % genLen;
+            }
             objList[i]->updateRenderObject();
         }
         //update state for particles.
@@ -199,7 +203,7 @@ void PhysicsManager::runRK4TimeStep(float ts)
         //reset generators.
         for(int i = 0; i < genLen; i++)
         {
-            generators[i]->setpartsMade(100);
+            generators[i].setpartsMade(100);
         }
     }
 }
@@ -244,7 +248,7 @@ void PhysicsManager::getDerivFromNextState(int idx)
         if(attribs[i].alive && attribs[i].active)
         {
             //apply global forces to objects
-            if(attribs[i].id != EDGE && attribs[i].id != POLYGON)
+            if(attribs[i].id != EDGE && attribs[i].id != POLYGON && attribs[i].id != COLLECTION)
             {
                 glm::vec3 hold = glm::vec3(0.0f);
                 for(int j = 0; j < dirGFLen; j++)
@@ -280,6 +284,12 @@ void PhysicsManager::getDerivFromNextState(int idx)
         }
     }
 
+}
+
+int PhysicsManager::getParticleList(ParticleObject* &ptr)
+{
+    ptr = particles;
+    return partLen;
 }
 
 void PhysicsManager::addIntegralToNS(float ts, int idx)
@@ -411,6 +421,7 @@ float PhysicsManager::edgeEdge(int eo1Idx, int eo2Idx, float timeLeft)
     EdgeObject* eo1 = (EdgeObject*)objList[eo1Idx];
     EdgeObject* eo2 = (EdgeObject*)objList[eo2Idx];
     if(eo1->checkCollections((PhysicsObject*)eo2)) return timeLeft;
+    if(attribs[eo1Idx].active == false && attribs[eo1Idx].active == false) return timeLeft;
 
     //Check to see if the point where the lines are closest is actually on the line segments defined by the vertices.
     //points for each edge
@@ -656,6 +667,32 @@ int PhysicsManager::pointLSeg2D(glm::vec2 pt, glm::vec2 l0, glm::vec2 l1)
     }
     else return 0;
 
+}
+
+void PhysicsManager::clearAllObjects()
+{
+    memset(objList, NULL, sizeof(PhysicsObject*) * objLen);
+    memset(attribs, NULL, sizeof(attributes) * objLen);
+    for(int i = 0; i < NUM_DERIV_STATES; i++)
+    {
+        memset(derivStates[i], NULL, sizeof(state) * objLen);
+    }
+    memset(nextState, NULL, sizeof(state) * objLen);
+    memset(curState, NULL, sizeof(state) * objLen);
+    objLen = 0;
+    memset(attractorGlobalForces, NULL, sizeof(geometry) * attGFLen);
+    attGFLen = 0;
+    memset(directonalGlobalForces, NULL, sizeof(glm::vec3) * dirGFLen);
+    dirGFLen = 0;
+    memset(scalarGlobalForces, NULL, sizeof(float) * scaGFLen);
+    scaGFLen = 0;
+    genLen = 0;
+    partLen = 0;
+}
+
+void PhysicsManager::setParticleModel(RenderObject * ptr)
+{
+    vModel = ptr;
 }
 
 

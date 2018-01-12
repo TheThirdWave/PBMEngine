@@ -20,6 +20,7 @@ private:
     RenderObject* vModel;
     RenderObject* eModel;
     RenderObject* pModel;
+    float springL, springD, springK;
     int maxEdges;
     int numEdges;
     int maxPolys;
@@ -39,6 +40,7 @@ public:
     void setDefaultVModel(RenderObject*);
     void setDefaultEModel(RenderObject*);
     void setDefaultPModel(RenderObject*);
+    void setSpringAttribs(float, float, float);
 
     int createVertex(glm::vec3);
     int createEdge(glm::vec3, glm::vec3);
@@ -47,12 +49,16 @@ public:
     int createPoly(int, int, int);
     int createSTriangle(glm::vec3, glm::vec3, glm::vec3);
     int createSTriangle(int, int, int);
+    int createTriangle(glm::vec3, glm::vec3, glm::vec3);
+    int createTriangle(int, int, int);
     int createCube(glm::vec3, float);
 
     int getNumPolys();
     int getNumEdges();
     int getNumVerts();
     int getNumCollections();
+
+    void clearAllObjects();
 
 };
 

@@ -39,6 +39,11 @@ void PhysicsObject::addToManager(void* mngr)
     index = boop->addPhysObj(this);
 }
 
+void PhysicsObject::setManager(void *mngr)
+{
+    manager = mngr;
+}
+
 void PhysicsObject::setNextFromCurrent()
 {
     PhysicsManager* boop = (PhysicsManager*) manager;

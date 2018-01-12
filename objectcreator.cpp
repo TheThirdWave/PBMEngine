@@ -52,6 +52,13 @@ void ObjectCreator::setDefaultPModel(RenderObject * mod)
     pModel = mod;
 }
 
+void ObjectCreator::setSpringAttribs(float l, float d, float k)
+{
+    springL = l;
+    springD = d;
+    springK = k;
+}
+
 int ObjectCreator::createVertex(glm::vec3 pos)
 {
     if(numVerts < maxVerts)
@@ -87,7 +94,7 @@ int ObjectCreator::createEdge(int pt1, int pt2)
         edges[numEdges].setID(EDGE);
         edges[numEdges].addChild(&verticies[pt1]);
         edges[numEdges].addChild(&verticies[pt2]);
-        edges[numEdges].setSpring(4.0, 0.001, 0.00005);
+        edges[numEdges].setSpring(springL, springD, springK);
         return numEdges++;
     }
     return -1;
@@ -95,7 +102,14 @@ int ObjectCreator::createEdge(int pt1, int pt2)
 
 int ObjectCreator::createSTriangle(glm::vec3 pt1, glm::vec3 pt2, glm::vec3 pt3)
 {
-
+    int pt1Idx = createVertex(pt1);
+    int pt2Idx = createVertex(pt2);
+    int pt3Idx = createVertex(pt3);
+    if(pt1Idx >= 0 && pt2Idx >= 0 && pt3Idx >= 0)
+    {
+        return createSTriangle(pt1Idx, pt2Idx, pt3Idx);
+    }
+    return -1;
 }
 
 int ObjectCreator::createSTriangle(int pt1, int pt2, int pt3)
@@ -126,6 +140,8 @@ int ObjectCreator::createSTriangle(int pt1, int pt2, int pt3)
             polys[numPolys].setScale(glm::vec3(1.0f, 1.0f, 1.0f));
             polys[numPolys].setActive(false);
             numPolys++;
+            collections[numCols].addToManager(manager);
+            collections[numCols].setID(COLLECTION);
             collections[numCols].addChild(&verticies[pt1]);
             collections[numCols].addChild(&verticies[pt2]);
             collections[numCols].addChild(&verticies[pt3]);
@@ -162,7 +178,7 @@ int ObjectCreator::createPoly(int pt1, int pt2, int pt3)
 {
     if(numPolys < maxPolys)
     {
-        polys[numPolys].addToManager((void*)&manager);
+        polys[numPolys].addToManager((void*)manager);
         polys[numPolys].setID(POLYGON);
         polys[numPolys].setRenderObject(pModel);
         polys[numPolys].setScale(glm::vec3(1.0f, 1.0f, 1.0f));
@@ -180,7 +196,7 @@ int ObjectCreator::createPoly(int pt1, int pt2, int pt3)
 
 int ObjectCreator::createCube(glm::vec3 pos, float scale)
 {
-    if(numEdges < maxEdges - 24 && numPolys < maxPolys - 12 && numCols < maxCols)
+    if(numEdges < maxEdges - 24 && numPolys < maxPolys - 11 && numCols < maxCols)
     {
         int p1 = createVertex(pos + (glm::vec3(-0.5f, 0.5f, -0.5f) * scale));
         int p2 = createVertex(pos + (glm::vec3(-0.5f, 0.5f, 0.5f) * scale));
@@ -239,6 +255,8 @@ int ObjectCreator::createCube(glm::vec3 pos, float scale)
         int pol11 = createPoly(p2, p6, p1);
         int pol12 = createPoly(p1, p5, p2);
 
+        collections[numCols].addToManager(manager);
+        collections[numCols].setID(COLLECTION);
         collections[numCols].addChild(&verticies[p1]);
         collections[numCols].addChild(&verticies[p2]);
         collections[numCols].addChild(&verticies[p3]);
@@ -334,6 +352,61 @@ int ObjectCreator::createCube(glm::vec3 pos, float scale)
     return -1;
 }
 
+int ObjectCreator::createTriangle(glm::vec3 pt1, glm::vec3 pt2, glm::vec3 pt3)
+{
+    int pt1Idx = createVertex(pt1);
+    int pt2Idx = createVertex(pt2);
+    int pt3Idx = createVertex(pt3);
+    if(pt1Idx >= 0 && pt2Idx >= 0 && pt3Idx >= 0)
+    {
+        return createTriangle(pt1Idx, pt2Idx, pt3Idx);
+    }
+    return -1;
+}
+
+int ObjectCreator::createTriangle(int pt1, int pt2, int pt3)
+{
+    if(numPolys < maxPolys && numCols < maxCols)
+    {
+        int e1 = createEdge(pt1, pt2);
+        int e2 = createEdge(pt1, pt3);
+        int e3 = createEdge(pt2, pt3);
+        if(e1 >= 0 && e2 >= 0 && e3 >= 0)
+        {
+            verticies[pt1].addParent(&polys[numPolys]);
+            verticies[pt2].addParent(&polys[numPolys]);
+            verticies[pt3].addParent(&polys[numPolys]);
+            polys[numPolys].addToManager((void*)manager);
+            polys[numPolys].setID(POLYGON);
+            polys[numPolys].addChild(&verticies[pt1]);
+            polys[numPolys].addChild(&verticies[pt2]);
+            polys[numPolys].addChild(&verticies[pt3]);
+            polys[numPolys].setGeometry(glm::normalize(glm::normalize(glm::cross(verticies[pt1].getPosition() - verticies[pt2].getPosition(), verticies[pt1].getPosition() - verticies[pt3].getPosition()))), glm::vec3(0.0f, 0.0f, -1.0f));
+            polys[numPolys].setRenderObject(pModel);
+            polys[numPolys].setScale(glm::vec3(1.0f, 1.0f, 1.0f));
+            numPolys++;
+            collections[numCols].addToManager(manager);
+            collections[numCols].setID(COLLECTION);
+            collections[numCols].addChild(&verticies[pt1]);
+            collections[numCols].addChild(&verticies[pt2]);
+            collections[numCols].addChild(&verticies[pt3]);
+            collections[numCols].addChild(&edges[e1]);
+            collections[numCols].addChild(&edges[e2]);
+            collections[numCols].addChild(&edges[e3]);
+            collections[numCols].addChild(&polys[numPolys]);
+            verticies[pt1].addParent(&collections[numCols]);
+            verticies[pt2].addParent(&collections[numCols]);
+            verticies[pt3].addParent(&collections[numCols]);
+            edges[e1].addParent(&collections[numCols]);
+            edges[e2].addParent(&collections[numCols]);
+            edges[e3].addParent(&collections[numCols]);
+            polys[numPolys].addParent(&collections[numCols]);
+            return numCols++;
+        }
+    }
+    return -1;
+}
+
 int ObjectCreator::getNumCollections()
 {
     return numCols;
@@ -352,4 +425,12 @@ int ObjectCreator::getNumPolys()
 int ObjectCreator::getNumVerts()
 {
     return numVerts;
+}
+
+void ObjectCreator::clearAllObjects()
+{
+    numEdges = 0;
+    numPolys = 0;
+    numVerts = 0;
+    numCols = 0;
 }

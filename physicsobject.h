@@ -50,6 +50,7 @@ public:
     void setAlive(bool);
     void setActive(bool);
     void setSolid(bool);
+    void setManager(void* mngr);
     void addToManager(void* mngr);
     void addChild(PhysicsObject*);
     void addParent(PhysicsObject*);

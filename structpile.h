@@ -3,7 +3,7 @@
 
 #define YFOV    50.625f
 #define ZNEAR   0.01f
-#define ZFAR    100.0f
+#define ZFAR    1000.0f
 #define RGBA    4
 
 #define MAX_IMAGES 10
@@ -12,7 +12,7 @@
 #define MAX_PICTURES 10
 #define MAX_SHADERS 10
 #define MAX_MODELS 10
-#define MAX_PHYS_OBJECTS 1000
+#define MAX_PHYS_OBJECTS 100000
 #define MAX_FORCES 10
 #define MAX_FUNCTIONS 100
 #define MAX_GENERATORS 10
@@ -22,7 +22,7 @@
 #define MAX_POLYGON_CHILDREN MAX_CHILDREN
 #define MAX_PARTICLE_PARENTS MAX_PARENTS
 
-#define NUM_PARTS 16
+#define NUM_PARTS 10000
 #define NUM_DERIV_STATES 4
 
 #include "../glm-0.9.8.5/glm/glm.hpp"
@@ -67,7 +67,7 @@ struct attributes
     float mass, springL, springD, springK;
     int id;
     int numChildren, numParents;
-    bool alive, active, solid;
+    bool alive, active, solid, particle;
     geometry geo;
 };
 

@@ -45,8 +45,14 @@ void ParticleGenerator::createParticle(ParticleObject* part)
         discUnit = glm::rotate(discUnit, discDir, geoDescription.normal);
         float discLen = (1 - geoDescription.radius * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX))) * geoDescription.radius;
         discUnit = discUnit * discLen;
+        glm::vec3 rVelocity = glm::cross(geoDescription.normal, glm::vec3(0.0f, 1.0f, 0.0f));
+        if(glm::length(rVelocity) == 0) rVelocity = glm::cross(geoDescription.normal, glm::vec3(1.0f, 0.0f, 0.0f));
+        glm::vec3 r2Velocity = glm::cross(geoDescription.normal, rVelocity);
+        rVelocity = rVelocity * (velocity * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) - velocity / 2);
+        r2Velocity = r2Velocity * (velocity * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) - velocity / 2);
+        rVelocity = geoDescription.normal + rVelocity + r2Velocity;
         part->setPosition(position + discUnit);
-        part->setVelocity(geoDescription.normal * velocity);
+        part->setVelocity(rVelocity * velocity);
         part->setNewPosition(position + discUnit);
         part->setNewVelocity(geoDescription.normal * velocity);
         part->setTTL(ttl * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)));

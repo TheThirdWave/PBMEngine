@@ -15,6 +15,7 @@ public:
     void setNextFromCurrent();
     void updateState();
     void updateRenderObject();
+    void setVertVelocities(glm::vec3);
 };
 
 #endif // OBJCOLLECTION_H

@@ -31,8 +31,9 @@ class PhysicsManager
     friend class ObjCollection;
 
 private:
-    ParticleObject* partList;
-    ParticleGenerator** generators;
+    RenderObject* vModel;
+    ParticleObject particles[NUM_PARTS];
+    ParticleGenerator generators[MAX_GENERATORS];
     float       scalarGlobalForces[MAX_FORCES];
     glm::vec3   directonalGlobalForces[MAX_FORCES];
     geometry    attractorGlobalForces[MAX_FORCES];
@@ -42,7 +43,7 @@ private:
     attributes  attribs[MAX_PHYS_OBJECTS];
     PhysicsObject* objList[MAX_PHYS_OBJECTS];
 
-    int objLen, scaGFLen, dirGFLen, attGFLen, genLen, partLen, sPrecision;
+    int objLen, scaGFLen, dirGFLen, attGFLen, genLen, genIdx, partLen, sPrecision;
     float elasticity;
     float fcoefficient;
 public:
@@ -51,14 +52,16 @@ public:
     void addScalarForce(float);
     void addDirectionalForce(glm::vec3);
     void addAttractorForce(geometry);
-    void addParticleGen(ParticleGenerator*);
-    void addParticleList(ParticleObject*, int);
+    void addParticles(int);
+    int addParticleGen();
     void runTimeStep(float);
     void runRK4TimeStep(float);
     void setNextFromCurState();
     void getNextEuler(float);
     void getNextRK4(float);
     void getDerivFromNextState(int);
+    ParticleGenerator* getGenerator(int);
+    int getParticleList(ParticleObject*&);
     void addIntegralToNS(float, int);
     void combineRK4DerivStates(float);
     float detectCollision(int idx1, int idx2, float);
@@ -73,6 +76,9 @@ public:
     void edgeStaticResponse(EdgeObject*, ParticleObject*, ParticleObject*, glm::vec3, glm::vec3, float);
     void edgeEdgeResponse(EdgeObject*, ParticleObject*, ParticleObject*, glm::vec3, EdgeObject*, ParticleObject*, ParticleObject*, glm::vec3, glm::vec3, float);
     int pointLSeg2D(glm::vec2, glm::vec2, glm::vec2);
+    void setParticleModel(RenderObject*);
+
+    void clearAllObjects();
 };
 
 #endif // PHYSICSMANAGER_H

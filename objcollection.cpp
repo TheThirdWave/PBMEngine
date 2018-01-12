@@ -60,3 +60,14 @@ void ObjCollection::updateRenderObject()
 {
 
 }
+
+void ObjCollection::setVertVelocities(glm::vec3 vel)
+{
+    PhysicsManager* boop = (PhysicsManager*) manager;
+    int buf[MAX_CHILDREN];
+    int count = getVertices(buf);
+    for(int i = 0; i < count; i ++)
+    {
+        boop->curState[childPtrs[buf[i]]->getIndex()].velocity = vel;
+    }
+}
