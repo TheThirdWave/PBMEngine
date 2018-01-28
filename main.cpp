@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
+#include <cstring>
 #include <sys/time.h>
 
 #include "../glm-0.9.8.5/glm/glm.hpp"

@@ -6,7 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <png.h>
-
+#include <cstring>
 #include "structpile.h"
 
 class ReaderWriter
