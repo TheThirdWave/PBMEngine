@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
+#include <cstring>
 #include <png.h>
 
 #include "structpile.h"
