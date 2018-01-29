@@ -25,7 +25,9 @@ SOURCES += main.cpp \
     kernel.cpp \
     lsegfunction.cpp \
     function3d.cpp \
-    spherefunction3d.cpp
+    spherefunction3d.cpp \
+    planefunction.cpp \
+    quadraticfunction3d.cpp
 
 OTHER_FILES += \
     vertshade \
@@ -57,7 +59,9 @@ HEADERS += \
     kernel.h \
     lsegfunction.h \
     function3d.h \
-    spherefunction3d.h
+    spherefunction3d.h \
+    planefunction.h \
+    quadraticfunction3d.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt
 

@@ -643,7 +643,7 @@ void Imagemanip::draw3D(glm::vec3 translation, glm::vec3 upVec, glm::vec3 v2, fl
 {
     if(func3DNum > 0)
     {
-        float s0 = (float)screen.width / (float)screen.height * s1;
+        float s0 = (float)screen.height / (float)screen.width * s1;
         glm::vec3 v0 = glm::cross(v2, upVec);
         glm::vec3 v1 = glm::cross(v0, v2);
         glm::vec3 n0 = glm::normalize(v0);
@@ -656,16 +656,17 @@ void Imagemanip::draw3D(glm::vec3 translation, glm::vec3 upVec, glm::vec3 v2, fl
             {
                 float r1 = ((1.0f/resolution) * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)));
                 float r2 = ((1.0f/resolution) * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)));
-                glm::vec3 color = glm::vec3(0.0f);
+                glm::vec4 color = glm::vec4(0.0f);
+                int count = 0;
                 for(int u = 0; u < resolution; u++)
                 {
                     for(int v = 0; v < resolution; v++)
                     {
-                        float uf = (float)x + (float)u * (1.0f / resolution);
-                        float vf = (float)y + (float)v *(1.0f / resolution);
+                        float uf = (float)x / screen.unitbytes + (float)u * (1.0f / resolution);
+                        float vf = (float)y / screen.unitbytes + (float)v *(1.0f / resolution);
                         uf = uf + r1;
                         vf = vf + r2;
-                        uf = uf / screen.width;
+                        uf = uf / screen.height;
                         vf = vf / screen.width;
                         glm::vec3 point = translation + n0*s0*uf + n1*s1*vf;
                         for(int i = 0; i < func3DNum; i++)
@@ -673,17 +674,18 @@ void Imagemanip::draw3D(glm::vec3 translation, glm::vec3 upVec, glm::vec3 v2, fl
                             if(functions3D[i]->getRelativePoint(point) < 0)
                             {
                                 color += functions3D[i]->color;
-                                break;
                             }
-                            color += background;
+                            else color += glm::vec4(background * 100.0f, 100.0f);
+                            count++;
                         }
+
                     }
                 }
 
-                color = color / (float)func3DNum;
-                screen.data[x + (y * screen.width)] = color.r * 255;
-                screen.data[(x + 1) + (y * screen.width)] = color.g * 255;
-                screen.data[(x + 2) + (y * screen.width)] = color.b * 255;
+                color = color / (float)count;
+                screen.data[x + (y * screen.width)] = color.r / color.a * 255;
+                screen.data[(x + 1) + (y * screen.width)] = color.g / color.a * 255;
+                screen.data[(x + 2) + (y * screen.width)] = color.b / color.a * 255;
                 //the alpha is always at max for now.
                 screen.data[(x + 3) + (y * screen.width)] = 255;
             }

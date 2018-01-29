@@ -21,10 +21,12 @@
 #include "function3d.h"
 #include "lsegfunction.h"
 #include "linefunction.h"
+#include "planefunction.h"
 #include "spherefunction.h"
 #include "spherefunction3d.h"
 #include "trigfunction.h"
 #include "quadraticfunction.h"
+#include "quadraticfunction3d.h"
 #include "structpile.h"
 #include "renderobject.h"
 #include "physicsobject.h"
@@ -447,9 +449,33 @@ void KeyHandler(unsigned char key, int x, int y)
             SphereFunction3D hold;
             hold.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f, (float)Screen.getHeight() / 2.0f, 0.0f));
             hold.setRadius(100.0f);
-            hold.setColor(glm::vec3(1.0f, 1.0f, 1.0f));
+            hold.setColor(glm::vec4(100.0f, 0.0f, 0.0f, 100.0f));
             Screen.addFunction3D(&hold);
-            Screen.draw3D(glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), (float)Screen.getWidth(), 1);
+            SphereFunction3D hold2;
+            hold2.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f + 100, (float)Screen.getHeight() / 2.0f, 0.0f));
+            hold2.setRadius(100.0f);
+            hold2.setColor(glm::vec4(0.0f, 100.0f, 0.0f, 100.0f));
+            Screen.addFunction3D(&hold2);
+            PlaneFunction hold3;
+            hold3.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f + 300, (float)Screen.getHeight() / 2.0f, 0.0f));
+            hold3.setNormal(glm::vec3(0.5f, 0.0f, 0.5f));
+            hold3.setColor(glm::vec4(0.0f, 0.0f, 100.0f, 100.0f));
+            Screen.addFunction3D(&hold3);
+            QuadraticFunction3D hold4;
+            hold4.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f - 300, (float)Screen.getHeight() / 2.0f, 0.0f));
+            hold4.setNormal(glm::vec3(0.5f, 0.0f, 0.5f), glm::vec3(0.5f, 0.0f, 0.5f), glm::vec3(0.0f, 1.0f, 0.0f));
+            hold4.setQParams(0, 0, 0, 1, 0);
+            hold4.setQReals(1, 1, 1);
+            hold4.setColor(glm::vec4(0.0f, 0.0f, 100.0f, 100.0f));
+            Screen.addFunction3D(&hold4);
+            QuadraticFunction3D hold5;
+            hold5.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f - 200, (float)Screen.getHeight() / 2.0f - 200, 0.0f));
+            hold5.setNormal(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+            hold5.setQParams(1, 1, 0, 0, -1);
+            hold5.setQReals(100.0f, 50.0f, 100.0);
+            hold5.setColor(glm::vec4(0.0f, 100.0f, 100.0f, 100.0f));
+            Screen.addFunction3D(&hold5);
+            Screen.draw3D(glm::vec3(0.0f, 0.0f, -90.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), (float)Screen.getWidth(), 8);
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }
