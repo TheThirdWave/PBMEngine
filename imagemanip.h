@@ -11,6 +11,7 @@
 #include "function2d.h"
 #include "linefunction.h"
 #include "spherefunction.h"
+#include "function3d.h"
 #include "structpile.h"
 #include "kernel.h"
 
@@ -23,7 +24,8 @@ private:
     Kernel kern;
     glm::vec3 background, foreground;
     Function2D* functions[MAX_FUNCTIONS];
-    int funcNum;
+    Function3D* functions3D[MAX_FUNCTIONS];
+    int funcNum, func3DNum;
 public:
     Imagemanip();
     ~Imagemanip();
@@ -42,6 +44,7 @@ public:
     void setBackground(char, char, char);
     void setForeground(char, char, char);
     void addFunction(Function2D*);
+    void addFunction3D(Function3D*);
     void emptyFunctions();
     image getScreen();
     image* getPtr();
@@ -59,6 +62,7 @@ public:
     void drawStarAA(int);
     void drawModAA(int, int);
     void drawBlobbyAA(int);
+    void draw3D(glm::vec3, glm::vec3, glm::vec3, float, int);
     void drawShaded();
     void simpleBlur();
     void motionBlur(Function2D*);

@@ -18,9 +18,11 @@
 #include "modelmanager.h"
 #include "imagemanip.h"
 #include "function2d.h"
+#include "function3d.h"
 #include "lsegfunction.h"
 #include "linefunction.h"
 #include "spherefunction.h"
+#include "spherefunction3d.h"
 #include "trigfunction.h"
 #include "quadraticfunction.h"
 #include "structpile.h"
@@ -439,10 +441,15 @@ void KeyHandler(unsigned char key, int x, int y)
     {
     case 'z':
     {
-        if(progState != BLUR) progState = BLUR;
+        if(progState != FUNC3D) progState = FUNC3D;
         else
         {
-            Screen.simpleBlur();
+            SphereFunction3D hold;
+            hold.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f, (float)Screen.getHeight() / 2.0f, 0.0f));
+            hold.setRadius(100.0f);
+            hold.setColor(glm::vec3(1.0f, 1.0f, 1.0f));
+            Screen.addFunction3D(&hold);
+            Screen.draw3D(glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), (float)Screen.getWidth(), 1);
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }

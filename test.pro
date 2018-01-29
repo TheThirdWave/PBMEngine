@@ -23,7 +23,9 @@ SOURCES += main.cpp \
     particleobject.cpp \
     particlegenerator.cpp \
     kernel.cpp \
-    lsegfunction.cpp
+    lsegfunction.cpp \
+    function3d.cpp \
+    spherefunction3d.cpp
 
 OTHER_FILES += \
     vertshade \
@@ -53,7 +55,9 @@ HEADERS += \
     particlegenerator.h \
     kernel.h \
     kernel.h \
-    lsegfunction.h
+    lsegfunction.h \
+    function3d.h \
+    spherefunction3d.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt
 

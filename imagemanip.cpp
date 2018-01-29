@@ -15,6 +15,7 @@ Imagemanip::Imagemanip(image* i)
     foreground = glm::vec3(0, 0, 0);
     background = glm::vec3(1.0f, 1.0f, 1.0f);
     funcNum = 0;
+    func3DNum = 0;
 }
 
 Imagemanip::Imagemanip(int width, int height)
@@ -28,6 +29,7 @@ Imagemanip::Imagemanip(int width, int height)
     foreground = glm::vec3(0, 0, 0);
     background = glm::vec3(1.0f, 1.0f, 1.0f);
     funcNum = 0;
+    func3DNum = 0;
 }
 
 Imagemanip::~Imagemanip()
@@ -83,6 +85,7 @@ void Imagemanip::initScreen(int width, int height)
     foreground = glm::vec3(0, 0, 0);
     background = glm::vec3(1.0f, 1.0f, 1.0f);
     funcNum = 0;
+    func3DNum = 0;
 }
 
 void Imagemanip::initScreen(image* i)
@@ -102,6 +105,7 @@ void Imagemanip::initScreen(image* i)
     foreground = glm::vec3(0, 0, 0);
     background = glm::vec3(1.0f, 1.0f, 1.0f);
     funcNum = 0;
+    func3DNum = 0;
 }
 
 void Imagemanip::setBackground(char r, char g, char b)
@@ -125,6 +129,12 @@ void Imagemanip::addFunction(Function2D* func)
     functions[funcNum]->origPoint.x *= screen.unitbytes;
     functions[funcNum]->origPoint.y *= screen.unitbytes;
     funcNum++;
+}
+
+void Imagemanip::addFunction3D(Function3D* func)
+{
+    functions3D[func3DNum] = func;
+    func3DNum++;
 }
 
 int Imagemanip::getHeight()
@@ -622,6 +632,58 @@ void Imagemanip::drawBlobbyAA(int resolution)
                 screen.data[x + (y * screen.width)] = interpolate.r * 255;
                 screen.data[(x + 1) + (y * screen.width)] = interpolate.g * 255;
                 screen.data[(x + 2) + (y * screen.width)] = interpolate.b * 255;
+                //the alpha is always at max for now.
+                screen.data[(x + 3) + (y * screen.width)] = 255;
+            }
+        }
+    }
+}
+
+void Imagemanip::draw3D(glm::vec3 translation, glm::vec3 upVec, glm::vec3 v2, float s1, int resolution)
+{
+    if(func3DNum > 0)
+    {
+        float s0 = (float)screen.width / (float)screen.height * s1;
+        glm::vec3 v0 = glm::cross(v2, upVec);
+        glm::vec3 v1 = glm::cross(v0, v2);
+        glm::vec3 n0 = glm::normalize(v0);
+        glm::vec3 n1 = glm::normalize(v1);
+        glm::vec3 n2 = glm::normalize(v2);
+
+        for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
+        {
+            for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
+            {
+                float r1 = ((1.0f/resolution) * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)));
+                float r2 = ((1.0f/resolution) * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)));
+                glm::vec3 color = glm::vec3(0.0f);
+                for(int u = 0; u < resolution; u++)
+                {
+                    for(int v = 0; v < resolution; v++)
+                    {
+                        float uf = (float)x + (float)u * (1.0f / resolution);
+                        float vf = (float)y + (float)v *(1.0f / resolution);
+                        uf = uf + r1;
+                        vf = vf + r2;
+                        uf = uf / screen.width;
+                        vf = vf / screen.width;
+                        glm::vec3 point = translation + n0*s0*uf + n1*s1*vf;
+                        for(int i = 0; i < func3DNum; i++)
+                        {
+                            if(functions3D[i]->getRelativePoint(point) < 0)
+                            {
+                                color += functions3D[i]->color;
+                                break;
+                            }
+                            color += background;
+                        }
+                    }
+                }
+
+                color = color / (float)func3DNum;
+                screen.data[x + (y * screen.width)] = color.r * 255;
+                screen.data[(x + 1) + (y * screen.width)] = color.g * 255;
+                screen.data[(x + 2) + (y * screen.width)] = color.b * 255;
                 //the alpha is always at max for now.
                 screen.data[(x + 3) + (y * screen.width)] = 255;
             }
