@@ -1,1111 +1,341 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <iostream>
 #include <fstream>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string>
-#include <GL/glew.h>
-#include <GL/freeglut.h>
-#include <sys/time.h>
+#include <sstream>
+#include <vector>
 
-#include "../glm-0.9.8.5/glm/glm.hpp"
-#include "../glm-0.9.8.5/glm/gtc/matrix_transform.hpp"
-#include "../glm-0.9.8.5/glm/gtc/type_ptr.hpp"
-#include "../glm-0.9.8.5/glm/gtx/transform.hpp"
-#include "../glm-0.9.8.5/glm/gtx/rotate_vector.hpp"
+//openGL stuff.
+#include <GL1/glew.h>
+#include <GLFW/glfw3.h>
 
-#include "CJRW.h"
-#include "shadermanager.h"
-#include "modelmanager.h"
-#include "imagemanip.h"
-#include "function2d.h"
-#include "function3d.h"
-#include "lsegfunction.h"
-#include "linefunction.h"
-#include "planefunction.h"
-#include "spherefunction.h"
-#include "spherefunction3d.h"
-#include "trigfunction.h"
-#include "quadraticfunction.h"
-#include "quadraticfunction3d.h"
-#include "structpile.h"
-#include "renderobject.h"
-#include "physicsobject.h"
-#include "physicsmanager.h"
-#include "sphereobject.h"
-#include "particleobject.h"
-#include "planeobject.h"
-#include "camera.h"
+//glm includes
+#include <glm-0.9.8.5/glm/glm.hpp>
+#include <glm-0.9.8.5/glm/gtc/matrix_transform.hpp>
 
+//headers
+GLuint LoadShaders(const char * vertex_file_path, const char * fragment_file_path);
 
+//static variables.
+static float WIDTH, HEIGHT;
 
-using namespace std;
-
-image* flatImageRWStuff(int, char**);
-void loadShades(void);
-void initSphere(void);
-void initParticle(float*, float*, unsigned int*);
-void initPlane(float*, float*, unsigned int*);
-void initShade(void);
-void initMatricies(int, int);
-void initTexture();
-void initTexture(image*);
-void configureAttributes(void);
-void testRender(void);
-void testTexture(void);
-void update(float);
-void handleKeyStates(float);
-void display();
-void reshape(GLsizei width, GLsizei height);
-void Timer(int value);
-void KeyHandler(unsigned char key, int x, int y);
-void MouseMoveHandler(int x, int y);
-void MouseHandler(int button, int state, int x, int y);
-void KeyUpHandler(unsigned char key, int x, int y);
-unsigned long getTickCount();
-
-ShaderManager shaderManager;
-ReaderWriter imageManager;
-ModelManager modelManager;
-PhysicsManager physicsManager;
-Imagemanip Screen, vecMask, layer1, outerMask, innerMask, alphaMask;
-
-SphereObject sphere, sphere1;
-ParticleObject* part;
-ParticleGenerator pGen;
-PolygonObject plane1, plane2, plane3, plane4, plane5;
-PolygonObject plane;
-RenderObject sModel, pModel, poModel;
-
-Camera camera;
-unsigned int kState = 0;
-
-unsigned long prev_time, cur_time;
-glm::mat4 modelViewProj, Proj, View, Model;
-GLuint buf, idx, tex, posAttrib, vao, vao1, vao2;
-GLfloat angle = 0.0f;
-int refreshMills = 30;
-int vShade, fShade, cShade, sModelIndex, tCount;
-float lHeight, rCoeff, reflHeight, refrHeight, fresnel;
-model* hold1;
-
-Function2D* functions[MAX_FUNCTIONS];
-
-LSegFunction* outer, inner;
-
-int numFuncs = 0;
-int numSFuncs = 0;
-bool mouseDown = false;
-glm::vec2 mDownPos;
-glm::vec2 mUpPos;
-int progState = CONVEX;
-
-const float timeStep = 1000 / (60.0f);
-
-int rotation = 15;
-
-
-const char* vertShade;
-
-const char* fragShade;
-
-
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
-    int width = 1920;
-    int height = 1080;
+	//set static variables.
+	WIDTH = 1024;
+	HEIGHT = 768;
+
+	//initialize glfw
+	if (!glfwInit())
+	{
+		fprintf(stderr, "Failed to initialize GLFW\n");
+		return -1;
+	}
+
+	glfwWindowHint(GLFW_SAMPLES, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	
+	GLFWwindow* window;
+	window = glfwCreateWindow(WIDTH, HEIGHT, "Tutorial 01", NULL, NULL);
+	if (window == NULL)
+	{
+		fprintf(stderr, "Failed to open GLFW window.\n");
+		glfwTerminate();
+		return -1;
+	}
+
+	glfwMakeContextCurrent(window);
+	glewExperimental = true;
+	if (glewInit() != GLEW_OK)
+	{
+		fprintf(stderr, "Failed to initialize GLEW\n");
+		glfwTerminate();
+		return -1;
+	}
+
+	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+
+	//GLEW init stuff
+	//Get depth buffer going
+	glEnable(GL_DEPTH_TEST);
+	//Accept a frament if it's closer to the camera than the previous value in the buffer.
+	glDepthFunc(GL_LESS);
+
+	//create a VAO
+	GLuint VertexArrayID;
+	glGenVertexArrays(1, &VertexArrayID);
+	glBindVertexArray(VertexArrayID);
+
+	//create vertex buffer
+	// An array of 3 vectors which represents 3 vertices
+	static const GLfloat g_vertex_buffer_data[] = {
+		-1.0f,-1.0f,-1.0f, // triangle 1 : begin
+		-1.0f,-1.0f, 1.0f,
+		-1.0f, 1.0f, 1.0f, // triangle 1 : end
+		1.0f, 1.0f,-1.0f, // triangle 2 : begin
+		-1.0f,-1.0f,-1.0f,
+		-1.0f, 1.0f,-1.0f, // triangle 2 : end
+		1.0f,-1.0f, 1.0f,
+		-1.0f,-1.0f,-1.0f,
+		1.0f,-1.0f,-1.0f,
+		1.0f, 1.0f,-1.0f,
+		1.0f,-1.0f,-1.0f,
+		-1.0f,-1.0f,-1.0f,
+		-1.0f,-1.0f,-1.0f,
+		-1.0f, 1.0f, 1.0f,
+		-1.0f, 1.0f,-1.0f,
+		1.0f,-1.0f, 1.0f,
+		-1.0f,-1.0f, 1.0f,
+		-1.0f,-1.0f,-1.0f,
+		-1.0f, 1.0f, 1.0f,
+		-1.0f,-1.0f, 1.0f,
+		1.0f,-1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f,
+		1.0f,-1.0f,-1.0f,
+		1.0f, 1.0f,-1.0f,
+		1.0f,-1.0f,-1.0f,
+		1.0f, 1.0f, 1.0f,
+		1.0f,-1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f,-1.0f,
+		-1.0f, 1.0f,-1.0f,
+		1.0f, 1.0f, 1.0f,
+		-1.0f, 1.0f,-1.0f,
+		-1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f,
+		-1.0f, 1.0f, 1.0f,
+		1.0f,-1.0f, 1.0f
+	};
+
+	// This will identify our vertex buffer
+	GLuint vertexbuffer;
+	// Generate 1 buffer, put the resulting identifier in vertexbuffer
+	glGenBuffers(1, &vertexbuffer);
+	// The following commands will talk about our 'vertexbuffer' buffer
+	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+	// Give our vertices to OpenGL.
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+
+	// Create color buffer.
+	// One color for each vertex. They were generated randomly.
+	static const GLfloat g_color_buffer_data[] = {
+		0.583f,  0.771f,  0.014f,
+		0.609f,  0.115f,  0.436f,
+		0.327f,  0.483f,  0.844f,
+		0.822f,  0.569f,  0.201f,
+		0.435f,  0.602f,  0.223f,
+		0.310f,  0.747f,  0.185f,
+		0.597f,  0.770f,  0.761f,
+		0.559f,  0.436f,  0.730f,
+		0.359f,  0.583f,  0.152f,
+		0.483f,  0.596f,  0.789f,
+		0.559f,  0.861f,  0.639f,
+		0.195f,  0.548f,  0.859f,
+		0.014f,  0.184f,  0.576f,
+		0.771f,  0.328f,  0.970f,
+		0.406f,  0.615f,  0.116f,
+		0.676f,  0.977f,  0.133f,
+		0.971f,  0.572f,  0.833f,
+		0.140f,  0.616f,  0.489f,
+		0.997f,  0.513f,  0.064f,
+		0.945f,  0.719f,  0.592f,
+		0.543f,  0.021f,  0.978f,
+		0.279f,  0.317f,  0.505f,
+		0.167f,  0.620f,  0.077f,
+		0.347f,  0.857f,  0.137f,
+		0.055f,  0.953f,  0.042f,
+		0.714f,  0.505f,  0.345f,
+		0.783f,  0.290f,  0.734f,
+		0.722f,  0.645f,  0.174f,
+		0.302f,  0.455f,  0.848f,
+		0.225f,  0.587f,  0.040f,
+		0.517f,  0.713f,  0.338f,
+		0.053f,  0.959f,  0.120f,
+		0.393f,  0.621f,  0.362f,
+		0.673f,  0.211f,  0.457f,
+		0.820f,  0.883f,  0.371f,
+		0.982f,  0.099f,  0.879f
+	};
+
+	GLuint colorbuffer;
+	glGenBuffers(1, &colorbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data), g_color_buffer_data, GL_STATIC_DRAW);
 
 
+	//load the shaders.
+	GLuint programID = LoadShaders("VertS1.glsl", "FragS1.glsl");
 
-    image* img = flatImageRWStuff(argc, argv);
+	//Compute the ModelViewPerspective matrix.
+	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+	glm::mat4 Projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
 
-    glutInit(&argc, argv);
+	// Or, for an ortho camera :
+	//glm::mat4 Projection = glm::ortho(-10.0f,10.0f,-10.0f,10.0f,0.0f,100.0f); // In world coordinates
 
-    glutInitWindowPosition(100, 100);
-    glutInitWindowSize(img->width, img->height);
+	// Camera matrix
+	glm::mat4 View = glm::lookAt(
+		glm::vec3(4, 3, 3), // Camera is at (4,3,3), in World Space
+		glm::vec3(0, 0, 0), // and looks at the origin
+		glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
+	);
 
-    glutInitDisplayMode(GLUT_RGBA|GLUT_DOUBLE);
-    glutCreateWindow("TestWindow");
+	// Model matrix : an identity matrix (model will be at the origin)
+	glm::mat4 Model = glm::mat4(1.0f);
+	// Our ModelViewProjection : multiplication of our 3 matrices
+	glm::mat4 mvp = Projection * View * Model; // Remember, matrix multiplication is the other way around
 
-    glewExperimental = GL_TRUE;
-    GLenum err = glewInit();
-    if(GLEW_OK != err)
-    {
-        fprintf(stderr,"Error: %s\n", glewGetErrorString(err));
-    }
+	//Pass the matrix to GLSL.
+	// Get a handle for our "MVP" uniform
+	// Only during the initialisation
+	GLuint MatrixID = glGetUniformLocation(programID, "MVP");
 
+	
 
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    initTexture(img);
-    camera.setViewMatrix(&View);
-    initMatricies(width, height);
+	do {
+		//draw stuff.
+		//clear the screen.
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    initShade();
+		// Send our transformation to the currently bound shader, in the "MVP" uniform
+		// This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
+		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
 
-    float vertices[] = {
-        -1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f,
-        -1.0f, -1.0f, 1.0f,
-        1.0f, -1.0f, 1.0f
-    };
-    float colors[] = {
-        0.0f, 0.0f, 0.5f,
-        1.0f, 0.0f, 0.5f,
-        0.0f, 1.0f, 0.5f,
-        1.0f, 1.0f, 0.5f
-    };
-    unsigned int indicies[] = {
-        0, 1, 2,
-        3, 2, 1
-    };
-
-    //create plane vao
-    initPlane(vertices, colors, indicies);
-    initMatricies(width, height);
+		//set the shader.
+		glUseProgram(programID);
 
 
-    plane2.setGeometry(glm::normalize(glm::vec3(0.0f, 0.0f, 1.0f)), glm::vec3(0.0f, 0.0f, -1.0f));
-    plane2.setRenderObject(&pModel);
-    plane2.setPosition(glm::vec3(0.0f, 0.0f, -0.0f));
-    plane2.setScale(glm::vec3(1.0f, 1.0f, 1.0f));
-    physicsManager.addPhysObj((PhysicsObject*)&plane2);
-
-    glutDisplayFunc(testTexture);
-    glutKeyboardFunc(KeyHandler);
-    glutKeyboardUpFunc(KeyUpHandler);
-    glutPassiveMotionFunc(MouseMoveHandler);
-    glutMouseFunc(MouseHandler);
-
-    glutTimerFunc(0, Timer, 0);
-
-    cur_time = getTickCount();
-    prev_time = cur_time;
-    glutMainLoop();
-
-    return 0;
-}
-
-image* flatImageRWStuff(int argc, char** argv)
-{
-    int holdImage = imageManager.openPNG("../Skull.png");
-    if(holdImage < 0) fprintf(stderr,"Error, couldn't read PPM file.\n");
-    image* img = imageManager.getImgPtr(holdImage);
-    //int count = stoi(argv[2], NULL, 10);
-
-    //int count = stoi(argv[2], NULL, 10);
-    vecMask.initScreen(img);
-
-    holdImage = imageManager.openPNG("../AlphaTest2.png");
-    if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
-    img = imageManager.getImgPtr(holdImage);
-
-    layer1.initScreen(img);
-
-    holdImage = imageManager.openPNG("../GWbackground.png");
-    if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
-    img = imageManager.getImgPtr(holdImage);
-
-    outerMask.initScreen(img);
-
-    holdImage = imageManager.openPNG("../GWbackground.png");
-    if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
-    img = imageManager.getImgPtr(holdImage);
-
-    innerMask.initScreen(img);
-
-    holdImage = imageManager.openPNG("../SkullAlpha.png");
-    if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
-    img = imageManager.getImgPtr(holdImage);
-
-    alphaMask.initScreen(img);
-
-    holdImage = imageManager.openPNG("../Skull.png");
-    img = imageManager.getImgPtr(holdImage);
-    Screen.initScreen(img);
-    //Screen.initScreen(800, 800);
-    //Screen.clearScreen();
-    //Screen.psychedelic(1);
-    Screen.setKernel(7, 7);
-
-    img = Screen.getPtr();
-
-    return img;
-}
+		// 1st attribute buffer : vertices
+		glEnableVertexAttribArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+		glVertexAttribPointer(
+			0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+			3,                  // size
+			GL_FLOAT,           // type
+			GL_FALSE,           // normalized?
+			0,                  // stride
+			(void*)0            // array buffer offset
+		);
 
 
-void initShade()
-{
-    vShade = shaderManager.loadVertexShader("../PBMEngine/vertshade_2d");
-    fShade = shaderManager.loadFragmentShader("../PBMEngine/FragShade_2d");
-    cShade = shaderManager.combineShaders(vShade, fShade);
-    shaderManager.set3dShaderProgram(cShade);
-}
+		// 2nd attribute buffer : colors
+		glEnableVertexAttribArray(1);
+		glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+		glVertexAttribPointer(
+			1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+			3,                                // size
+			GL_FLOAT,                         // type
+			GL_FALSE,                         // normalized?
+			0,                                // stride
+			(void*)0                          // array buffer offset
+		);
 
-void initMatricies(int width, int height)
-{
-    Proj = glm::mat4(1.0f);
+		// Draw the triangle !
+		glDrawArrays(GL_TRIANGLES, 0, 12 * 3);// Starting from vertex 0; 3 vertices total -> 1 triangle
+		glDisableVertexAttribArray(0);
+		glDisableVertexAttribArray(1);
 
-    camera.setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
-    camera.setRotation(glm::vec3(0.0f, 0, 0.0f));
-    camera.updateViewMatrix();
-
-    Model = glm::mat4(1.0f);
-    modelViewProj = Proj * View * Model;
-
-    int shader = shaderManager.getCombinedShader(cShade);
-    glUniform1i(tex, 0);
-    GLuint mvpID = glGetUniformLocation(shader, "MVPMat");
-    glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(modelViewProj));
-}
-
-void initSphere()
-{
-    sModelIndex = modelManager.readObj("../testObj.obj");
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    sModel.setModel(modelManager.getModel(sModelIndex));
-
-
-    GLuint tough = shaderManager.getCombinedShader(cShade);
-    shaderManager.configure3DShaders(tough, &sModel);
-}
-
-void initParticle(float* vertices, float* colors, unsigned int* indicies)
-{
-    glGenVertexArrays(1, &vao2);
-    glBindVertexArray(vao2);
-
-
-    poModel.setModel(modelManager.getModel(sModelIndex));
-    //poModel.setVertexBuffer(vertices, 9);
-    //poModel.setColorBuffer(colors, 9);
-    //poModel.setIndexBuffer(indicies, 3);
-
-
-
-
-    GLuint tough = shaderManager.getCombinedShader(cShade);
-    shaderManager.configure3DShaders(tough, &sModel);
-}
-
-void initPlane(float* vertices, float* colors, unsigned int* indicies)
-{
-    glGenVertexArrays(1, &vao1);
-    glBindVertexArray(vao1);
-
-
-    pModel.setVertexBuffer(vertices, 12);
-    pModel.setColorBuffer(colors, 12);
-    pModel.setIndexBuffer(indicies, 6);
-
-
-
-    GLuint tough = shaderManager.getCombinedShader(cShade);
-    shaderManager.configure3DShaders(tough, &pModel);
-}
-
-void initTexture()
-{
-    glGenTextures(1, &tex);
-    glBindTexture(GL_TEXTURE_2D, tex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    unsigned char pixels[] = {
-        (unsigned char)255, (unsigned char)255, (unsigned char)255, (unsigned char)255, 	(unsigned char)255, (unsigned char)255, (unsigned char)255, (unsigned char)255,
-        (unsigned char)255, (unsigned char)255, (unsigned char)255, (unsigned char)255,       (unsigned char)255, (unsigned char)255, (unsigned char)0, (unsigned char)255
-    };
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+		//swap image buffers (though shouldn't it be a buffer chain, technically?)
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	} while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0);
 
 }
 
-void initTexture(image* texture)
-{
-    glGenTextures(1, &tex);
-    glBindTexture(GL_TEXTURE_2D, tex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+GLuint LoadShaders(const char * vertex_file_path, const char * fragment_file_path) {
 
-    unsigned char pixels[] = {
-        (unsigned char)255, (unsigned char)255, (unsigned char)255, (unsigned char)255, 	(unsigned char)255, (unsigned char)255, (unsigned char)255, (unsigned char)255,
-        (unsigned char)255, (unsigned char)255, (unsigned char)255, (unsigned char)255,       (unsigned char)255, (unsigned char)255, (unsigned char)0, (unsigned char)255
-    };
+	// Create the shaders
+	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
+	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture->width, texture->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture->data);
+	// Read the Vertex Shader code from the file
+	std::string VertexShaderCode;
+	std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
+	if (VertexShaderStream.is_open()) {
+		std::stringstream sstr;
+		sstr << VertexShaderStream.rdbuf();
+		VertexShaderCode = sstr.str();
+		VertexShaderStream.close();
+	}
+	else {
+		printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
+		getchar();
+		return 0;
+	}
 
+	// Read the Fragment Shader code from the file
+	std::string FragmentShaderCode;
+	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
+	if (FragmentShaderStream.is_open()) {
+		std::stringstream sstr;
+		sstr << FragmentShaderStream.rdbuf();
+		FragmentShaderCode = sstr.str();
+		FragmentShaderStream.close();
+	}
+
+	GLint Result = GL_FALSE;
+	int InfoLogLength;
+
+
+	// Compile Vertex Shader
+	printf("Compiling shader : %s\n", vertex_file_path);
+	char const * VertexSourcePointer = VertexShaderCode.c_str();
+	glShaderSource(VertexShaderID, 1, &VertexSourcePointer, NULL);
+	glCompileShader(VertexShaderID);
+
+	// Check Vertex Shader
+	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if (InfoLogLength > 0) {
+		std::vector<char> VertexShaderErrorMessage(InfoLogLength + 1);
+		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
+		printf("%s\n", &VertexShaderErrorMessage[0]);
+	}
+
+
+
+	// Compile Fragment Shader
+	printf("Compiling shader : %s\n", fragment_file_path);
+	char const * FragmentSourcePointer = FragmentShaderCode.c_str();
+	glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer, NULL);
+	glCompileShader(FragmentShaderID);
+
+	// Check Fragment Shader
+	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if (InfoLogLength > 0) {
+		std::vector<char> FragmentShaderErrorMessage(InfoLogLength + 1);
+		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
+		printf("%s\n", &FragmentShaderErrorMessage[0]);
+	}
+
+
+
+	// Link the program
+	printf("Linking program\n");
+	GLuint ProgramID = glCreateProgram();
+	glAttachShader(ProgramID, VertexShaderID);
+	glAttachShader(ProgramID, FragmentShaderID);
+	glLinkProgram(ProgramID);
+
+	// Check the program
+	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
+	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if (InfoLogLength > 0) {
+		std::vector<char> ProgramErrorMessage(InfoLogLength + 1);
+		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+		printf("%s\n", &ProgramErrorMessage[0]);
+	}
+
+
+	glDetachShader(ProgramID, VertexShaderID);
+	glDetachShader(ProgramID, FragmentShaderID);
+
+	glDeleteShader(VertexShaderID);
+	glDeleteShader(FragmentShaderID);
+
+	return ProgramID;
 }
-
-void testTexture()
-{
-    display();
-}
-
-void testRender()
-{
-    prev_time = cur_time;
-    cur_time = getTickCount();
-    long delta_time = cur_time - prev_time;
-    if(delta_time >= timeStep)
-    {
-        double loops  = 0;
-        while(loops < delta_time)
-        {
-            update(timeStep);
-
-            loops += timeStep;
-        }
-        display();
-    }
-    //cur_time = getTickCount();
-}
-
-void update(float tStep)
-{
-    handleKeyStates(tStep);
-    physicsManager.runTimeStep(tStep);
-}
-
-void handleKeyStates(float ts)
-{
-    if(kState & FORWARD)
-    {
-        camera.addVelocity(glm::vec3(0.0f, 0.0f, 0.01f));
-    }
-    if(kState & SLEFT) camera.addVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
-    if(kState & BACK) camera.addVelocity(glm::vec3(0.0f, 0.0f, -0.01f));
-    if(kState & SRIGHT) camera.addVelocity(glm::vec3(-0.01f, 0.0f, 0.0f));
-    if(kState & LUP)
-    {
-        camera.addRotation(glm::vec3(0.0f, -0.01f, 0.0f));
-    }
-    if(kState & LLEFT) camera.addRotation(glm::vec3(-0.01f, 0.0f, 0.0f));
-    if(kState & LDOWN) camera.addRotation(glm::vec3(0.0f, 0.01f, 0.0f));
-    if(kState & LRIGHT) camera.addRotation(glm::vec3(0.01f, 0.0f, 0.0f));
-
-    camera.getNextState(ts);
-    camera.updateState();
-    camera.setVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
-    camera.updateViewMatrix();
-}
-
-void display()
-{
-    int shader = shaderManager.getCombinedShader(cShade);
-    GLint mvpID = glGetUniformLocation(shader, "MVPMat");
-    glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(modelViewProj));
-
-    //draw box faces
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glBindVertexArray(vao1);
-
-    //draw plane2
-    plane2.updateRenderObject();
-    Model = *(plane2.getRenderObj()->getMatrix());
-    modelViewProj = Proj * View * Model;
-
-    RenderObject* puts = plane2.getRenderObj();
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    shaderManager.configure3DShaders(cShade, puts);
-
-    glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(modelViewProj));
-
-    model* hold  = plane2.getRenderObj()->getData();
-    glDrawElements(GL_TRIANGLES, hold->idxLen, GL_UNSIGNED_INT, 0);
-
-    glutSwapBuffers();
-}
-
-void Timer(int value)
-{
-    glutPostRedisplay();
-    glutTimerFunc(refreshMills, Timer, 0);
-}
-
-unsigned long getTickCount()
-{
-    struct timespec tv;
-    if(clock_gettime(CLOCK_MONOTONIC, &tv) == 0)
-    {
-        return ((long)tv.tv_sec * 1000) + (tv.tv_nsec / 1000000);
-    }
-}
-
-void KeyHandler(unsigned char key, int x, int y)
-{
-    switch(key)
-    {
-    case 'z':
-    {
-        if(progState != FUNC3D) progState = FUNC3D;
-        else
-        {
-            SphereFunction3D hold;
-            hold.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f, (float)Screen.getHeight() / 2.0f, 0.0f));
-            hold.setRadius(100.0f);
-            hold.setColor(glm::vec4(100.0f, 0.0f, 0.0f, 100.0f));
-            Screen.addFunction3D(&hold);
-            SphereFunction3D hold2;
-            hold2.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f + 100, (float)Screen.getHeight() / 2.0f, 0.0f));
-            hold2.setRadius(100.0f);
-            hold2.setColor(glm::vec4(0.0f, 100.0f, 0.0f, 100.0f));
-            Screen.addFunction3D(&hold2);
-            PlaneFunction hold3;
-            hold3.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f + 300, (float)Screen.getHeight() / 2.0f, 0.0f));
-            hold3.setNormal(glm::vec3(0.5f, 0.0f, 0.5f));
-            hold3.setColor(glm::vec4(0.0f, 0.0f, 100.0f, 100.0f));
-            Screen.addFunction3D(&hold3);
-            QuadraticFunction3D hold4;
-            hold4.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f - 300, (float)Screen.getHeight() / 2.0f, 0.0f));
-            hold4.setNormal(glm::vec3(0.5f, 0.0f, 0.5f), glm::vec3(0.5f, 0.0f, 0.5f), glm::vec3(0.0f, 1.0f, 0.0f));
-            hold4.setQParams(0, 0, 0, 1, 0);
-            hold4.setQReals(1, 1, 1);
-            hold4.setColor(glm::vec4(0.0f, 0.0f, 100.0f, 100.0f));
-            Screen.addFunction3D(&hold4);
-            QuadraticFunction3D hold5;
-            hold5.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f - 200, (float)Screen.getHeight() / 2.0f - 200, 0.0f));
-            hold5.setNormal(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-            hold5.setQParams(1, 1, 0, 0, -1);
-            hold5.setQReals(100.0f, 50.0f, 100.0);
-            hold5.setColor(glm::vec4(0.0f, 100.0f, 100.0f, 100.0f));
-            Screen.addFunction3D(&hold5);
-            Screen.draw3D(glm::vec3(0.0f, 0.0f, -90.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), (float)Screen.getWidth(), 8);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-    }
-        break;
-    case'x':
-    {
-        progState = CONVEX;
-        Screen.clearScreen();
-        image* img = Screen.getPtr();
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        numFuncs = 0;
-        Screen.emptyFunctions();
-    }
-        break;
-    case 'c':
-    {
-        if(progState != EMBOSS)
-        {
-            progState = EMBOSS;
-            Screen.setKernelValues(1.0f);
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.emboss();
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-    }
-        break;
-    case 'v':
-    {
-        if(progState != DILATION)
-        {
-            progState = DILATION;
-            Screen.setKernelValues(1.0f);
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.dilation();
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-    }
-        break;
-    case 'b':
-    {
-        if(progState != EROSION)
-        {
-            progState = EROSION;
-            Screen.setKernelValues(1.0f);
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.erosion();
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-    }
-        break;
-    case 'n':
-    {
-        if(progState != MBLUR)
-        {
-            progState = MBLUR;
-            Screen.setKernelValues(1.0f);
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.maskedMBlur(&vecMask);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-    }
-        break;
-    case 'm':
-    {
-        if(progState != MDILATION)
-        {
-            progState = MDILATION;
-            Screen.setKernelValues(1.0f);
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.maskedDilation(&vecMask);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-    }
-        break;
-    case 'l':
-    {
-        if(progState != MEROSION)
-        {
-            progState = MEROSION;
-            Screen.setKernelValues(1.0f);
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.maskedErosion(&vecMask);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-    }
-        break;
-    case 'k':
-    {
-        if(progState != BDLPF)
-        {
-            progState = BDLPF;
-            Screen.setKernelValues(1.0f);
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.bdlpf();
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-    }
-    case 'p':
-    {
-        if(progState != ALPHA)
-        {
-            progState = ALPHA;
-            Screen.setKernelValues(1.0f);
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.alphaLayer(&layer1);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case 'o':
-    {
-        if(progState != MULT)
-        {
-            progState = MULT;
-            Screen.setKernelValues(1.0f);
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.multiplyLayer(&layer1);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case 'i':
-    {
-        if(progState != SUBTRACT)
-        {
-            progState = SUBTRACT;
-            Screen.setKernelValues(1.0f);
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.subtractionLayer(&layer1);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case 'u':
-    {
-        if(progState != MIN)
-        {
-            progState = MIN;
-            Screen.setKernelValues(1.0f);
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.minLayer(&layer1);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case 'y':
-    {
-        if(progState != MAX)
-        {
-            progState = MAX;
-            Screen.setKernelValues(1.0f);
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.maxLayer(&layer1);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case 'w':
-    {
-        if(progState != COMPOSITE)
-        {
-            progState = COMPOSITE;
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            layer1.composite(&outerMask, &innerMask);
-            Screen.alphaLayer(&layer1);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case 'e':
-    {
-        if(progState != DITHER)
-        {
-            progState = DITHER;
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.oDither(5);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case 'r':
-    {
-        if(progState != FSDITHER)
-        {
-            progState = FSDITHER;
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.fsDither();
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case 't':
-    {
-        if(progState != CDITHER)
-        {
-            progState = CDITHER;
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.cDither(2);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case 'a':
-    {
-        if(progState != DIFFUSE)
-        {
-            progState = DIFFUSE;
-            layer1.makeNormal(&vecMask);
-            tCount = 0;
-            lHeight = 256.0f;
-        }
-        else
-        {
-            /*
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glm::vec3 l = glm::vec3(100.0f, 50.0f, 255.0f);
-            int idx = imageManager.addImage(*Screen.getPtr());
-            Screen.flipScreens();
-            Screen.makeNormal(&vecMask);
-
-            int count = 0;
-            string nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
-            imageManager.writePNG((char*)nameBuf.c_str(), idx);
-            for(int j = 0; j < 20; j++)
-            {
-                l.x += j * 3;
-                Screen.flipScreens();
-                Screen.specLight(&layer1, &vecMask, l, PI/20);
-                nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
-                imageManager.writePNG((char*)nameBuf.c_str(), idx);
-            }
-            for(int j = 0; j < 20; j++)
-            {
-                l.y += j * 3;
-                Screen.flipScreens();
-                Screen.specLight(&layer1, &vecMask, l, PI/20);
-                nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
-                imageManager.writePNG((char*)nameBuf.c_str(), idx);
-            }
-            for(int j = 0; j < 20; j++)
-            {
-                l.x -= j * 3;
-                Screen.flipScreens();
-                Screen.specLight(&layer1, &vecMask, l, PI/20);
-                nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
-                imageManager.writePNG((char*)nameBuf.c_str(), idx);
-            }
-            for(int j = 0; j < 20; j++)
-            {
-                l.y -= j * 3;
-                Screen.flipScreens();
-                Screen.specLight(&layer1, &vecMask, l, PI/20);
-                nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
-                imageManager.writePNG((char*)nameBuf.c_str(), idx);
-            }
-            for(int j = 0; j < 20; j++)
-            {
-                l.x += j * 2;
-                l.y += j * 2;
-                l.z -= j * 1;
-                Screen.flipScreens();
-                Screen.specLight(&layer1, &vecMask, l, PI/20);
-                nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
-                imageManager.writePNG((char*)nameBuf.c_str(), idx);
-            }
-            for(int j = 0; j < 20; j++)
-            {
-                l.x += j * 2;
-                l.y += j * 2;
-                l.z += j * 1;
-                Screen.flipScreens();
-                Screen.specLight(&layer1, &vecMask, l, PI/20);
-                nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
-                imageManager.writePNG((char*)nameBuf.c_str(), idx);
-            }
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);*/
-        }
-        break;
-    }
-    case 's':
-    {
-        if(progState != REFLECTION)
-        {
-            progState = REFLECTION;
-            layer1.makeNormal(&vecMask);
-            image* img = layer1.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-            tCount = 0;
-            rCoeff = 1;
-            refrHeight = -1.0f;
-            reflHeight = 256.0f;
-            fresnel = 10.0f;
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-        break;
-    }
-    case '-':
-    {
-        if(progState == DIFFUSE)
-        {
-            lHeight -= 10.0f;
-        }
-        if(progState == REFLECTION)
-        {
-            rCoeff -= 1.0f;
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case '=':
-    {
-        if(progState == DIFFUSE)
-        {
-            lHeight += 10.0f;
-        }
-        if(progState == REFLECTION)
-        {
-            rCoeff += 1.0f;
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case '[':
-    {
-        if(progState == REFLECTION)
-        {
-            refrHeight -= 10.0f;
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case ']':
-    {
-        if(progState == REFLECTION)
-        {
-            refrHeight += 10.0f;
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case ';':
-    {
-        if(progState == REFLECTION)
-        {
-            reflHeight -= 10.0f;
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case '\'':
-    {
-        if(progState == REFLECTION)
-        {
-            reflHeight += 10.0f;
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case ',':
-    {
-        if(progState == REFLECTION)
-        {
-            fresnel -= 1.0f;
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case '.':
-    {
-        if(progState == REFLECTION)
-        {
-            fresnel += 1.0f;
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            Screen.reflection(&vecMask, &layer1, &outerMask, &innerMask, &alphaMask, glm::vec3(0.0f), rCoeff, fresnel, reflHeight, refrHeight);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-        }
-        break;
-    }
-    case 'q':
-    {
-        int idx = imageManager.addImage(*Screen.getPtr());
-        imageManager.writePNG("../filtered.png", idx);
-    }
-        break;
-    default:
-        break;
-    }
-}
-
-void KeyUpHandler(unsigned char key, int x, int y)
-{
-    switch(key)
-    {
-    case 'w':
-        kState = kState & (~FORWARD);
-
-        break;
-    case 'a':
-        kState = kState & (~SLEFT);
-
-        break;
-    case 's':
-        kState = kState & (~BACK);
-
-        break;
-    case 'd':
-        kState = kState & (~SRIGHT);
-
-        break;
-    case 'i':
-        kState = kState & (~LUP);
-        break;
-    case 'j':
-        kState = kState & (~LLEFT);
-        break;
-    case 'k':
-        kState = kState & (~LDOWN);
-        break;
-    case 'l':
-        kState = kState & (~LRIGHT);
-        break;
-    case 'r':
-    default:
-        break;
-    }
-}
-
-void MouseMoveHandler(int x, int y)
-{
-    if(progState == DIFFUSE)
-    {
-        if(tCount == 0)
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glm::vec3 l = glm::vec3(1.0f);
-            //l.x = rand() % Screen.getWidth();
-            //l.y = rand() % Screen.getHeight();
-            l.x = Screen.getWidth() - (float)x + 0.5;
-            l.y = (float)y + 0.5;
-            l.z = lHeight;
-
-            Screen.specLight(&layer1, &vecMask, l, PI/50);
-            image* img = Screen.getPtr();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-            tCount = 20;
-        }
-        else tCount--;
-    }
-}
-
-void MouseHandler(int button, int state, int x, int y)
-{
-    switch(button)
-    {
-    case GLUT_LEFT_BUTTON:
-    {
-        if(state == GLUT_DOWN)
-        {
-            mouseDown = !mouseDown;
-            if(mouseDown)
-            {
-                mDownPos = glm::vec2((float)x, (float)y);
-            }
-            else if(numFuncs < MAX_FUNCTIONS)
-            {
-                mUpPos = glm::vec2((float)x, (float)y);
-                glm::vec2 lineDir = mUpPos - mDownPos;
-                glm::vec2 normal = glm::vec2(0.0f, 0.0f);
-                switch(progState)
-                {
-                case CONVEX:
-                case STAR:
-                    lineDir = glm::normalize(lineDir);
-                    normal = glm::vec2(lineDir.y, lineDir.x);
-                    functions[numFuncs] = new LineFunction(normal, mDownPos);
-                    break;
-                case BLOBBY:
-                case SHADED:
-                case MODULUS:
-                    normal = -lineDir;
-                    functions[numFuncs] = new SphereFunction(normal, mDownPos);
-                    break;
-                case BLUR:
-                {
-                    lineDir = glm::normalize(lineDir);
-                    LineFunction l = LineFunction(lineDir, glm::vec2(0.0f, 0.0f));
-                    Screen.setKernelValuesEF(&l);
-                }
-                    break;
-                case COMPOSITE:
-                    break;
-                default:
-                    break;
-                }
-
-                if(progState == CONVEX || progState == STAR || progState == BLOBBY || progState == SHADED || progState == MODULUS)
-                {
-                    Screen.addFunction(functions[numFuncs]);
-                    numFuncs++;
-                }
-
-                switch(progState)
-                {
-                case CONVEX:
-                    Screen.clearScreen();
-                    Screen.drawConvexAA(3);
-                    break;
-                case STAR:
-                    Screen.clearScreen();
-                    Screen.drawStarAA(3);
-                    break;
-                case BLOBBY:
-                    Screen.clearScreen();
-                    Screen.drawBlobbyAA(3);
-                    break;
-                case SHADED:
-                    Screen.drawShaded();
-                    break;
-                case MODULUS:
-                    Screen.drawModAA(3, 2);
-                    break;
-                case COMPOSITE:
-                    break;
-                default:
-                    break;
-                }
-                image* img = Screen.getPtr();
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
-            }
-            else fprintf(stderr, "ERROR: MAX_FUNCTIONS reached\n");
-        }
-        break;
-    }
-    default:
-        break;
-    }
-}
-
