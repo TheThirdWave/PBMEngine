@@ -2,6 +2,7 @@
 #define FUNCTION3D_H
 
 #include "structpile.h"
+#include "algorithm"
 
 class Function3D
 {
@@ -25,7 +26,7 @@ public:
     void setQParams(int, int, int, int, int);
     void setQReals(float, float, float);
     virtual float getRelativePoint(glm::vec3) = 0;
-    virtual float getRelativeLine(glm::vec3) = 0;
+    virtual float getRelativeLine(glm::vec3, glm::vec3) = 0;
 };
 
 #endif // FUNCTION3D_H

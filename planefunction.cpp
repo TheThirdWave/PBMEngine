@@ -16,7 +16,15 @@ float PlaneFunction::getRelativePoint(glm::vec3 pt)
     return dist;
 }
 
-float PlaneFunction::getRelativeLine(glm::vec3 pt)
+float PlaneFunction::getRelativeLine(glm::vec3 pt, glm::vec3 nL)
 {
-
+    float denom = glm::dot(nL, normal);
+    if(denom == 0)
+    {
+        return -1;
+    }
+    else
+    {
+        return glm::dot(normal, (pt - origPoint)) / denom;
+    }
 }

@@ -9,7 +9,7 @@ public:
     PlaneFunction();
     PlaneFunction(glm::vec3, glm::vec3);
     float getRelativePoint(glm::vec3);
-    float getRelativeLine(glm::vec3);
+    float getRelativeLine(glm::vec3, glm::vec3);
 };
 
 #endif // PLANEFUNCTION_H

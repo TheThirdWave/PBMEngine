@@ -639,17 +639,21 @@ void Imagemanip::drawBlobbyAA(int resolution)
     }
 }
 
-void Imagemanip::draw3D(glm::vec3 translation, glm::vec3 upVec, glm::vec3 v2, float s1, int resolution)
+void Imagemanip::draw3D(glm::vec3 pE, float d, glm::vec3 upVec, glm::vec3 v2, float s1, int resolution)
 {
     if(func3DNum > 0)
     {
-        float s0 = (float)screen.height / (float)screen.width * s1;
+        float s0 = (float)screen.width / (float)screen.height * s1;
         glm::vec3 v0 = glm::cross(v2, upVec);
         glm::vec3 v1 = glm::cross(v0, v2);
         glm::vec3 n0 = glm::normalize(v0);
         glm::vec3 n1 = glm::normalize(v1);
         glm::vec3 n2 = glm::normalize(v2);
-
+        glm::vec3 pC = pE + n2 * d;
+        glm::vec3 p0 = pC - n0 * (s0 / 2) - n1 * (s1 / 2);
+        float t;
+        float tHold;
+        glm::vec4 cHold = glm::vec4(background * 100.0f, 100.0f);
         for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
         {
             for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
@@ -662,22 +666,31 @@ void Imagemanip::draw3D(glm::vec3 translation, glm::vec3 upVec, glm::vec3 v2, fl
                 {
                     for(int v = 0; v < resolution; v++)
                     {
+                        if(x / screen.unitbytes == screen.width / 2 && y / screen.unitbytes == screen.height / 2)
+                        {
+                            int x = 1 + 1;
+                        }
                         float uf = (float)x / screen.unitbytes + (float)u * (1.0f / resolution);
                         float vf = (float)y / screen.unitbytes + (float)v *(1.0f / resolution);
                         uf = uf + r1;
                         vf = vf + r2;
-                        uf = uf / screen.height;
-                        vf = vf / screen.width;
-                        glm::vec3 point = translation + n0*s0*uf + n1*s1*vf;
+                        uf = uf / screen.width;
+                        vf = vf / screen.height;
+                        glm::vec3 point = p0 + n0*s0*uf + n1*s1*vf;
+                        glm::vec3 nPe = glm::normalize(point - pE);
+                        t = -1;
                         for(int i = 0; i < func3DNum; i++)
                         {
-                            if(functions3D[i]->getRelativePoint(point) < 0)
+                            tHold = functions3D[i]->getRelativeLine(pC, nPe);
+                            if(tHold > 0 && (tHold < t || t < 0))
                             {
-                                color += functions3D[i]->color;
+                                cHold = functions3D[i]->color;
+                                t = tHold;
                             }
-                            else color += glm::vec4(background * 100.0f, 100.0f);
-                            count++;
                         }
+                        if(t == -1) cHold = glm::vec4(background * 100.0f, 100.0f);
+                        color += cHold;
+                        count++;
 
                     }
                 }

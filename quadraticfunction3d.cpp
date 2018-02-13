@@ -13,7 +13,7 @@ float QuadraticFunction3D::getRelativePoint(glm::vec3 pt)
     return first + second + third;
 }
 
-float QuadraticFunction3D::getRelativeLine(glm::vec3 pt)
+float QuadraticFunction3D::getRelativeLine(glm::vec3 pt, glm::vec3 nL)
 {
 
 }

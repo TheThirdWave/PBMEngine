@@ -62,7 +62,7 @@ public:
     void drawStarAA(int);
     void drawModAA(int, int);
     void drawBlobbyAA(int);
-    void draw3D(glm::vec3, glm::vec3, glm::vec3, float, int);
+    void draw3D(glm::vec3, float, glm::vec3, glm::vec3, float, int);
     void drawShaded();
     void simpleBlur();
     void motionBlur(Function2D*);
