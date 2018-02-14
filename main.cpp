@@ -17,6 +17,7 @@
 #include "shadermanager.h"
 #include "modelmanager.h"
 #include "imagemanip.h"
+#include "shaders.h"
 #include "function2d.h"
 #include "function3d.h"
 #include "lsegfunction.h"
@@ -450,16 +451,19 @@ void KeyHandler(unsigned char key, int x, int y)
             hold.setPoint(glm::vec3(0.0f, 0.0f, 0.0f));
             hold.setRadius(100.0f);
             hold.setColor(glm::vec4(100.0f, 0.0f, 0.0f, 100.0f));
+            hold.shader = &Shaders::flat;
             Screen.addFunction3D(&hold);
             SphereFunction3D hold2;
             hold2.setPoint(glm::vec3(100.0f, 0.0f, 0.0f));
             hold2.setRadius(100.0f);
             hold2.setColor(glm::vec4(0.0f, 100.0f, 0.0f, 100.0f));
+            hold2.shader = &Shaders::flat;
             Screen.addFunction3D(&hold2);
             PlaneFunction hold3;
-            hold3.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f + 300, (float)Screen.getHeight() / 2.0f, 0.0f));
-            hold3.setNormal(glm::vec3(0.5f, 0.0f, 0.5f));
+            hold3.setPoint(glm::vec3(0.0f, -100.0f, 0.0f));
+            hold3.setNormal(glm::vec3(0.0f, 1.0f, 0.0f));
             hold3.setColor(glm::vec4(0.0f, 0.0f, 100.0f, 100.0f));
+            hold3.shader = &Shaders::flat;
             Screen.addFunction3D(&hold3);
             /*QuadraticFunction3D hold4;
             hold4.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f - 300, (float)Screen.getHeight() / 2.0f, 0.0f));
@@ -475,11 +479,11 @@ void KeyHandler(unsigned char key, int x, int y)
             hold5.setQReals(100.0f, 50.0f, 100.0);
             hold5.setColor(glm::vec4(0.0f, 100.0f, 100.0f, 100.0f));
             Screen.addFunction3D(&hold5);*/
-            Screen.draw3D(glm::vec3(0.0f, 0.0f, 201.0f), 100.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 4);
-            int count = 0;
-            int idx = imageManager.addImage(*Screen.getPtr());
-            string nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
-            imageManager.writePNG((char*)nameBuf.c_str(), idx);
+            Screen.draw3D(glm::vec3(0.0f, 0.0f, 300.0f), 100.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 1);
+            //int count = 0;
+            //int idx = imageManager.addImage(*Screen.getPtr());
+            //string nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
+            //imageManager.writePNG((char*)nameBuf.c_str(), idx);
             /*for(int i = 0; i < 20; i++)
             {
                 Screen.draw3D(glm::vec3(0.0f + i * 20, 0.0f, 300.0f - i * 10), 100.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f - i * 10, 0.0f, -300.0f + i * 10)), (float)Screen.getHeight(), 4);

@@ -3,6 +3,9 @@
 
 #include "structpile.h"
 #include "algorithm"
+#include "shaders.h"
+
+typedef glm::vec4 (Shaders::*ShaderPtr)(glm::vec3, glm::vec3, glm::vec4, glm::vec4);
 
 class Function3D
 {
@@ -27,6 +30,7 @@ public:
     void setQReals(float, float, float);
     virtual float getRelativePoint(glm::vec3) = 0;
     virtual float getRelativeLine(glm::vec3, glm::vec3) = 0;
+    ShaderPtr shader;
 };
 
 #endif // FUNCTION3D_H

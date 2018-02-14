@@ -27,7 +27,8 @@ SOURCES += main.cpp \
     function3d.cpp \
     spherefunction3d.cpp \
     planefunction.cpp \
-    quadraticfunction3d.cpp
+    quadraticfunction3d.cpp \
+    shaders.cpp
 
 OTHER_FILES += \
     vertshade \
@@ -61,7 +62,8 @@ HEADERS += \
     function3d.h \
     spherefunction3d.h \
     planefunction.h \
-    quadraticfunction3d.h
+    quadraticfunction3d.h \
+    shaders.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt
 

@@ -653,6 +653,7 @@ void Imagemanip::draw3D(glm::vec3 pE, float d, glm::vec3 upVec, glm::vec3 v2, fl
         glm::vec3 p0 = pC - n0 * (s0 / 2) - n1 * (s1 / 2);
         float t;
         float tHold;
+        Shaders shades;
         glm::vec4 cHold = glm::vec4(background * 100.0f, 100.0f);
         for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
         {
@@ -684,7 +685,7 @@ void Imagemanip::draw3D(glm::vec3 pE, float d, glm::vec3 upVec, glm::vec3 v2, fl
                             tHold = functions3D[i]->getRelativeLine(pC, nPe);
                             if(tHold > 0 && (tHold < t || t < 0))
                             {
-                                cHold = functions3D[i]->color;
+                                cHold = (shades.*(functions3D[i]->shader))(nPe, point, functions3D[i]->color, functions3D[i]->color);
                                 t = tHold;
                             }
                         }
