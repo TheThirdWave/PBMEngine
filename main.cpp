@@ -447,22 +447,27 @@ void KeyHandler(unsigned char key, int x, int y)
         if(progState != FUNC3D) progState = FUNC3D;
         else
         {
+            geometry gTest;
+            gTest.depth = 1.0f;
             SphereFunction3D hold;
             hold.setPoint(glm::vec3(0.0f, 0.0f, 0.0f));
             hold.setRadius(100.0f);
             hold.setColor(glm::vec4(100.0f, 0.0f, 0.0f, 100.0f));
+            hold.setGeometry(gTest);
             hold.shader = &Shaders::flat;
             Screen.addFunction3D(&hold);
             SphereFunction3D hold2;
             hold2.setPoint(glm::vec3(100.0f, 0.0f, 0.0f));
             hold2.setRadius(100.0f);
             hold2.setColor(glm::vec4(0.0f, 100.0f, 0.0f, 100.0f));
+            hold2.setGeometry(gTest);
             hold2.shader = &Shaders::flat;
             Screen.addFunction3D(&hold2);
             PlaneFunction hold3;
             hold3.setPoint(glm::vec3(0.0f, -100.0f, 0.0f));
             hold3.setNormal(glm::vec3(0.0f, 1.0f, 0.0f));
             hold3.setColor(glm::vec4(0.0f, 0.0f, 100.0f, 100.0f));
+            hold3.setGeometry(gTest);
             hold3.shader = &Shaders::flat;
             Screen.addFunction3D(&hold3);
             /*QuadraticFunction3D hold4;

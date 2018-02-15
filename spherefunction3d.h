@@ -10,7 +10,8 @@ public:
     SphereFunction3D(glm::vec3, float);
     void setRadius(float);
     float getRelativePoint(glm::vec3);
-    float getRelativeLine(glm::vec3, glm::vec3);
+    int getRelativeLine(glm::vec3, glm::vec3, intercept*, int);
+    glm::vec3 getSurfaceNormal(glm::vec3);
 };
 
 #endif // SPHEREFUNCTION3D_H

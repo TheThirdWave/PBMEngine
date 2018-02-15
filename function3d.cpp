@@ -63,3 +63,8 @@ void Function3D::setQReals(float s, float ss, float sss)
     s1 = ss;
     s2 = sss;
 }
+
+void Function3D::setGeometry(geometry g)
+{
+    geo = g;
+}

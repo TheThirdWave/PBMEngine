@@ -17,3 +17,8 @@ float QuadraticFunction3D::getRelativeLine(glm::vec3 pt, glm::vec3 nL)
 {
 
 }
+
+glm::vec3 QuadraticFunction3D::getSurfaceNormal(glm::vec3 pt)
+{
+    return glm::vec3(0.0f);
+}

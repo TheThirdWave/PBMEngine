@@ -16,15 +16,22 @@ float PlaneFunction::getRelativePoint(glm::vec3 pt)
     return dist;
 }
 
-float PlaneFunction::getRelativeLine(glm::vec3 pt, glm::vec3 nL)
+int PlaneFunction::getRelativeLine(glm::vec3 pt, glm::vec3 nL, intercept* hits, int idx)
 {
     float denom = glm::dot(nL, normal);
-    if(denom == 0)
+    if(denom == 0) return idx;
+
+    float t = glm::dot(normal, (pt - origPoint)) / denom;
+    if(idx < MAX_LINE_INTERCEPTS && t >= 0)
     {
-        return -1;
+        hits[idx].t = t;
+        hits[idx++].obj = this;
     }
-    else
-    {
-        return glm::dot(normal, (pt - origPoint)) / denom;
-    }
+
+    return idx;
+}
+
+glm::vec3 PlaneFunction::getSurfaceNormal(glm::vec3 pt)
+{
+    return normal;
 }

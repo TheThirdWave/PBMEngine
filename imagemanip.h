@@ -14,11 +14,14 @@
 #include "function3d.h"
 #include "structpile.h"
 #include "kernel.h"
+#include "shaders.h"
 
 using namespace std;
 
 class Imagemanip
 {
+    friend class Shaders;
+
 private:
     image screen, filterScreen;
     Kernel kern;
@@ -26,6 +29,7 @@ private:
     Function2D* functions[MAX_FUNCTIONS];
     Function3D* functions3D[MAX_FUNCTIONS];
     int funcNum, func3DNum;
+    Shaders shades;
 public:
     Imagemanip();
     ~Imagemanip();

@@ -5,7 +5,7 @@
 #include "algorithm"
 #include "shaders.h"
 
-typedef glm::vec4 (Shaders::*ShaderPtr)(glm::vec3, glm::vec3, glm::vec4, glm::vec4);
+typedef glm::vec4 (Shaders::*ShaderPtr)(glm::vec3, glm::vec3, glm::vec4, glm::vec4, float);
 
 class Function3D
 {
@@ -17,6 +17,7 @@ protected:
     glm::vec4 color;
     int a02, a12, a22, a21, a00, pointIdx;
     float s0, s1, s2;
+    geometry geo;
 public:
     Function3D();
     Function3D(glm::vec3, glm::vec3);
@@ -28,8 +29,10 @@ public:
     void setColor(glm::vec4);
     void setQParams(int, int, int, int, int);
     void setQReals(float, float, float);
+    void setGeometry(geometry);
     virtual float getRelativePoint(glm::vec3) = 0;
-    virtual float getRelativeLine(glm::vec3, glm::vec3) = 0;
+    virtual int getRelativeLine(glm::vec3, glm::vec3, intercept*, int) = 0;
+    virtual glm::vec3 getSurfaceNormal(glm::vec3) = 0;
     ShaderPtr shader;
 };
 

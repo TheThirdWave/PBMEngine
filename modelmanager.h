@@ -9,7 +9,7 @@
 #include <GL/glew.h>
 #include <GL/glut.h>
 
-#include "structpile.h"
+#include "structpile.h"z
 
 class ModelManager
 {

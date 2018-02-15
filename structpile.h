@@ -17,10 +17,13 @@
 #define MAX_FUNCTIONS 100
 #define MAX_POINTS 1000
 #define MAX_GENERATORS 10
+#define MAX_LINE_INTERCEPTS 50
 
 #define NUM_PARTS 1000
 
 #include "../glm-0.9.8.5/glm/glm.hpp"
+
+class Function3D;
 
 struct image {
     unsigned char* data;
@@ -51,6 +54,11 @@ struct triangle {
     glm::vec3   a;
     glm::vec3   b;
     glm::vec3   c;
+};
+
+struct intercept{
+    Function3D* obj;
+    float t;
 };
 
 enum collideType{

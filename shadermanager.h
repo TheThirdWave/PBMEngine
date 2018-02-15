@@ -9,7 +9,7 @@
 #include <GL/glut.h>
 
 #include "structpile.h"
-#include "renderobject.h"
+#include "renderobject.h"z
 
 class ShaderManager
 {

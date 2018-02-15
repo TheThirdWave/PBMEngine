@@ -86,6 +86,7 @@ void Imagemanip::initScreen(int width, int height)
     background = glm::vec3(1.0f, 1.0f, 1.0f);
     funcNum = 0;
     func3DNum = 0;
+    shades.setRenderer(this);
 }
 
 void Imagemanip::initScreen(image* i)
@@ -106,6 +107,7 @@ void Imagemanip::initScreen(image* i)
     background = glm::vec3(1.0f, 1.0f, 1.0f);
     funcNum = 0;
     func3DNum = 0;
+    shades.setRenderer(this);
 }
 
 void Imagemanip::setBackground(char r, char g, char b)
@@ -653,8 +655,10 @@ void Imagemanip::draw3D(glm::vec3 pE, float d, glm::vec3 upVec, glm::vec3 v2, fl
         glm::vec3 p0 = pC - n0 * (s0 / 2) - n1 * (s1 / 2);
         float t;
         float tHold;
-        Shaders shades;
         glm::vec4 cHold = glm::vec4(background * 100.0f, 100.0f);
+        intercept hits[MAX_LINE_INTERCEPTS];
+        int numHits = 0;
+        int closestIdx = 0;
         for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
         {
             for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
@@ -671,25 +675,40 @@ void Imagemanip::draw3D(glm::vec3 pE, float d, glm::vec3 upVec, glm::vec3 v2, fl
                         {
                             int x = 1 + 1;
                         }
+                        numHits = 0;
                         float uf = (float)x / screen.unitbytes + (float)u * (1.0f / resolution);
                         float vf = (float)y / screen.unitbytes + (float)v *(1.0f / resolution);
                         uf = uf + r1;
                         vf = vf + r2;
                         uf = uf / screen.width;
                         vf = vf / screen.height;
-                        glm::vec3 point = p0 + n0*s0*uf + n1*s1*vf;
-                        glm::vec3 nPe = glm::normalize(point - pE);
+                        glm::vec3 scrPt = p0 + n0*s0*uf + n1*s1*vf;
+                        glm::vec3 nPe = glm::normalize(scrPt - pE);
                         t = -1;
-                        for(int i = 0; i < func3DNum; i++)
+                        numHits = shades.castRay(pE, nPe, hits, numHits);
+                        if(numHits != 0)
                         {
-                            tHold = functions3D[i]->getRelativeLine(pC, nPe);
-                            if(tHold > 0 && (tHold < t || t < 0))
+                            for(int i = 0; i < numHits; i++)
                             {
-                                cHold = (shades.*(functions3D[i]->shader))(nPe, point, functions3D[i]->color, functions3D[i]->color);
-                                t = tHold;
+                                if(t == -1)
+                                {
+                                    t = hits[i].t;
+                                    closestIdx = i;
+                                }
+                                else if(hits[i].t < t)
+                                {
+                                    t = hits[i].t;
+                                    closestIdx = i;
+                                }
                             }
+                            glm::vec3 pH = pE + nPe * t;
+                            cHold = (shades.*(hits[closestIdx].obj->shader))(nPe, pH, hits[closestIdx].obj->color, hits[closestIdx].obj->color, hits[closestIdx].obj->geo.depth);
                         }
-                        if(t == -1) cHold = glm::vec4(background * 100.0f, 100.0f);
+                        else
+                        {
+                            cHold = glm::vec4(background * 100.0f, 100.0f);
+                        }
+
                         color += cHold;
                         count++;
 

@@ -22,7 +22,7 @@ float SphereFunction3D::getRelativePoint(glm::vec3 pt)
     return dist - radius;
 }
 
-float SphereFunction3D::getRelativeLine(glm::vec3 pt, glm::vec3 nL)
+int SphereFunction3D::getRelativeLine(glm::vec3 pt, glm::vec3 nL, intercept* hits, int idx)
 {
     float t;
     float radius = glm::length(normal);
@@ -32,9 +32,25 @@ float SphereFunction3D::getRelativeLine(glm::vec3 pt, glm::vec3 nL)
     if(delta > 0 && b > 0)
     {
         float sqrt = std::sqrt(delta);
-        t = std::min(b + sqrt, b - sqrt);
-        return t;
+        t = b + sqrt;
+        if(idx < MAX_LINE_INTERCEPTS && t >= 0)
+        {
+            hits[idx].t = t;
+            hits[idx++].obj = this;
+        }
+        t = b - sqrt;
+        if(idx < MAX_LINE_INTERCEPTS && t >= 0)
+        {
+            hits[idx].t = t;
+            hits[idx++].obj = this;
+        }
+        return idx;
     }
     t = -1;
-    return t;
+    return idx;
+}
+
+glm::vec3 SphereFunction3D::getSurfaceNormal(glm::vec3 pt)
+{
+    return glm::normalize(origPoint - pt);
 }
