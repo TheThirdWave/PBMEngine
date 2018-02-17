@@ -15,6 +15,7 @@
 #include "structpile.h"
 #include "kernel.h"
 #include "shaders.h"
+#include "lightbase.h"
 
 using namespace std;
 
@@ -28,7 +29,8 @@ private:
     glm::vec3 background, foreground;
     Function2D* functions[MAX_FUNCTIONS];
     Function3D* functions3D[MAX_FUNCTIONS];
-    int funcNum, func3DNum;
+    LightBase* lights[MAX_LIGHTS];
+    int funcNum, func3DNum, lightNum;
     Shaders shades;
 public:
     Imagemanip();
@@ -49,6 +51,7 @@ public:
     void setForeground(char, char, char);
     void addFunction(Function2D*);
     void addFunction3D(Function3D*);
+    void addLight(LightBase*);
     void emptyFunctions();
     image getScreen();
     image* getPtr();

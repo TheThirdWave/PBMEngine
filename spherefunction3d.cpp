@@ -52,5 +52,5 @@ int SphereFunction3D::getRelativeLine(glm::vec3 pt, glm::vec3 nL, intercept* hit
 
 glm::vec3 SphereFunction3D::getSurfaceNormal(glm::vec3 pt)
 {
-    return glm::normalize(origPoint - pt);
+    return glm::normalize(pt - origPoint);
 }

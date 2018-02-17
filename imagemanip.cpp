@@ -16,6 +16,7 @@ Imagemanip::Imagemanip(image* i)
     background = glm::vec3(1.0f, 1.0f, 1.0f);
     funcNum = 0;
     func3DNum = 0;
+    lightNum = 0;
 }
 
 Imagemanip::Imagemanip(int width, int height)
@@ -30,6 +31,7 @@ Imagemanip::Imagemanip(int width, int height)
     background = glm::vec3(1.0f, 1.0f, 1.0f);
     funcNum = 0;
     func3DNum = 0;
+    lightNum = 0;
 }
 
 Imagemanip::~Imagemanip()
@@ -137,6 +139,11 @@ void Imagemanip::addFunction3D(Function3D* func)
 {
     functions3D[func3DNum] = func;
     func3DNum++;
+}
+
+void Imagemanip::addLight(LightBase* lt)
+{
+    lights[lightNum++] = lt;
 }
 
 int Imagemanip::getHeight()
@@ -702,7 +709,7 @@ void Imagemanip::draw3D(glm::vec3 pE, float d, glm::vec3 upVec, glm::vec3 v2, fl
                                 }
                             }
                             glm::vec3 pH = pE + nPe * t;
-                            cHold = (shades.*(hits[closestIdx].obj->shader))(nPe, pH, hits[closestIdx].obj->color, hits[closestIdx].obj->color, hits[closestIdx].obj->geo.depth);
+                            cHold = (shades.*(hits[closestIdx].obj->shader))(hits[closestIdx].obj->getSurfaceNormal(pH), -nPe, pH, pE, *hits[closestIdx].obj);
                         }
                         else
                         {

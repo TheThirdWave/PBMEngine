@@ -15,6 +15,7 @@
 #define MAX_PHYS_OBJECTS 100000
 #define MAX_FORCES 10
 #define MAX_FUNCTIONS 100
+#define MAX_LIGHTS 50
 #define MAX_POINTS 1000
 #define MAX_GENERATORS 10
 #define MAX_LINE_INTERCEPTS 50
@@ -59,6 +60,12 @@ struct triangle {
 struct intercept{
     Function3D* obj;
     float t;
+};
+
+enum lightType{
+    DIRECTIONAL = 0,
+    POINT = 1,
+    SPOTLIGHT = 2
 };
 
 enum collideType{

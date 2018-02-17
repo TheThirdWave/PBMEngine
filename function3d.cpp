@@ -43,9 +43,11 @@ void Function3D::setPoint(glm::vec3 p)
     origPoint = p;
 }
 
-void Function3D::setColor(glm::vec4 col)
+void Function3D::setColor(glm::vec4 cs, glm::vec4 cd, glm::vec4 ca)
 {
-    color = col;
+    cS = cs;
+    cD = cd;
+    cA = ca;
 }
 
 void Function3D::setQParams(int a1, int a2, int a3, int a4, int a5)
@@ -67,4 +69,24 @@ void Function3D::setQReals(float s, float ss, float sss)
 void Function3D::setGeometry(geometry g)
 {
     geo = g;
+}
+
+glm::vec4 Function3D::getCS()
+{
+    return cS;
+}
+
+glm::vec4 Function3D::getCD()
+{
+    return cD;
+}
+
+glm::vec4 Function3D::getCA()
+{
+    return cA;
+}
+
+geometry Function3D::getGeo()
+{
+    return geo;
 }
