@@ -713,7 +713,7 @@ void Imagemanip::draw3D(glm::vec3 pE, float d, glm::vec3 upVec, glm::vec3 v2, fl
                         }
                         else
                         {
-                            cHold = glm::vec4(background * 100.0f, 100.0f);
+                            cHold = glm::vec4(background * 10000.0f, 10000.0f);
                         }
 
                         color += cHold;

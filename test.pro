@@ -66,7 +66,6 @@ HEADERS += \
     quadraticfunction3d.h \
     shaders.h \
     lightbase.h \
-    Headers.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt
 

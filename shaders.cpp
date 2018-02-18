@@ -35,20 +35,50 @@ float Shaders::getTotalR(intercept *ret, int idx, Function3D& obj)
     intercept closest;
     closest.obj = &obj;
     closest.t = 0;
+    bool counted = false;
+    int* indicies = new int[MAX_LINE_INTERCEPTS];
     for(int i = 0; i < idx; i++)
     {
-        //assumes that all objects are convex (i.e. there will be a max of 2 intercepts per object)
-        if(ret[i].obj != closest.obj)
+        indicies[i] = -1;
+        for(int j = 0; j <= i; j++)
         {
-            closest.obj = ret[i].obj;
-            if(closest.t == -1) closest.t = ret[i].t;
-        }
-        else
-        {
-            r += closest.t + ret[i].t;
-            closest.t = -1;
+            if(ret[i].obj == ret[j].obj)
+            {
+                indicies[j] = i;
+                indicies[i] = j;
+                break;
+            }
+            else if(ret[i].obj == &obj)
+            {
+                indicies[i] = -1;
+                break;
+            }
         }
     }
+    counted = false;
+    for(int i = 0; i < idx; i++)
+    {
+        if(counted)
+        {
+            closest.obj = ret[i].obj;
+            closest.t = (float)i;
+            counted = false;
+        }
+        if(ret[i].obj == closest.obj)
+        {
+            if(closest.obj != &obj) r += ret[i].t - ret[(int)closest.t].t;
+            else r += ret[i].t;
+            counted = true;
+        }
+        else if(ret[i].obj != closest.obj && indicies[i + 1] > i)
+        {
+            r += (ret[indicies[(int)closest.t] + 1].t - ret[(int)closest.t + 1].t) - (ret[indicies[(int)closest.t + 1]].t - ret[i].t);
+            closest.obj = ret[i].obj;
+            closest.t = (float)i;
+        }
+    }
+
+    delete [] indicies;
     return r;
 }
 
@@ -93,12 +123,23 @@ glm::vec4 Shaders::diffuse(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 
         numHits = castRay(pDH, nL, hits, numHits);
         r = getTotalR(hits, numHits, obj);
         t = d / r;
+        if(t > 0.9)
+        {
+            int x = getTotalR(hits, numHits, obj);
+            numHits = 0;
+            numHits = castRay(pDH, nL, hits, numHits);
+        }
         glm::vec4 cDD = cD * cL;
         if(curLight->getType() != DIRECTIONAL)
         {
             cDD /= glm::dot(curLight->getPos() - pH, curLight->getPos() - pH);
         }
-        cPe += cDD * t;
+
+        cDD.r *= t;
+        cDD.g *= t;
+        cDD.b *= t;
+
+        cPe += cDD;
     }
 
     return cPe;

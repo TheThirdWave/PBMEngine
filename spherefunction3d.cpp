@@ -29,7 +29,7 @@ int SphereFunction3D::getRelativeLine(glm::vec3 pt, glm::vec3 nL, intercept* hit
     float b = glm::dot((origPoint - pt), nL);
     float c = glm::dot(origPoint - pt, origPoint - pt) - radius * radius;
     float delta = b * b - c;
-    if(delta > 0 && b > 0)
+    if(delta > 0)
     {
         float sqrt = std::sqrt(delta);
         t = b + sqrt;
