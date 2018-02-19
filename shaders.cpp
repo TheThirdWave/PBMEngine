@@ -42,17 +42,18 @@ float Shaders::getTotalR(intercept *ret, int idx, Function3D& obj)
         indicies[i] = -1;
         for(int j = 0; j <= i; j++)
         {
-            if(ret[i].obj == ret[j].obj)
+            if(ret[i].obj == &obj)
+            {
+                indicies[i] = -1;
+                break;
+            }
+            else if(ret[i].obj == ret[j].obj)
             {
                 indicies[j] = i;
                 indicies[i] = j;
                 break;
             }
-            else if(ret[i].obj == &obj)
-            {
-                indicies[i] = -1;
-                break;
-            }
+
         }
     }
     counted = false;
@@ -64,7 +65,7 @@ float Shaders::getTotalR(intercept *ret, int idx, Function3D& obj)
             closest.t = (float)i;
             counted = false;
         }
-        if(ret[i].obj == closest.obj)
+        else if(ret[i].obj == closest.obj)
         {
             if(closest.obj != &obj) r += ret[i].t - ret[(int)closest.t].t;
             else r += ret[i].t;
@@ -122,8 +123,9 @@ glm::vec4 Shaders::diffuse(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 
 
         numHits = castRay(pDH, nL, hits, numHits);
         r = getTotalR(hits, numHits, obj);
-        t = d / r;
-        if(t > 0.9)
+        if(r == 0) t = 0;
+        else t = d / r;
+        if(pH.x >= 97.0 && pH.x < 98 && pH.y == 100 && pH.z <= -16 && pH.z > -17)
         {
             int x = getTotalR(hits, numHits, obj);
             numHits = 0;

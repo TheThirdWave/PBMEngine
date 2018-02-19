@@ -21,7 +21,7 @@ int PlaneFunction::getRelativeLine(glm::vec3 pt, glm::vec3 nL, intercept* hits, 
     float denom = glm::dot(nL, normal);
     if(denom == 0) return idx;
 
-    float t = glm::dot(normal, (pt - origPoint)) / denom;
+    float t = glm::dot(normal, (origPoint - pt)) / denom;
     if(idx < MAX_LINE_INTERCEPTS && t >= 0)
     {
         hits[idx].t = t;
