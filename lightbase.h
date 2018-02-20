@@ -18,7 +18,7 @@ public:
     void setColor(glm::vec4 col);
     void setDirectional(glm::vec3 n);
     void setPoint(glm::vec3 pos);
-    void setSpotLight(glm::vec3 pos, glm::vec3 n, float rMax, float rMin);
+    void setSpotLight(glm::vec3 pos, glm::vec3 n, float rMin, float rMax);
     glm::vec3 getPos();
     geometry getGeo();
     lightType getType();

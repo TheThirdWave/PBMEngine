@@ -115,8 +115,6 @@ int main(int argc, char *argv[])
     int width = 1920;
     int height = 1080;
 
-
-
     image* img = flatImageRWStuff(argc, argv);
 
     glutInit(&argc, argv);
@@ -449,31 +447,38 @@ void KeyHandler(unsigned char key, int x, int y)
         else
         {
             geometry gTest;
-            gTest.depth = 50.0f;
+            gTest.depth = 10.0f;
+            gTest.radius = 1.0f;
+            gTest.width = 0.9f;
             SphereFunction3D hold;
             hold.setPoint(glm::vec3(0.0f, 0.0f, 0.0f));
             hold.setRadius(100.0f);
-            hold.setColor(glm::vec4(100.0f, 0.0f, 0.0f, 100.0f), glm::vec4(100.0f, 0.0f, 0.0f, 100.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
+            hold.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(100.0f, 0.0f, 0.0f, 100.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
             hold.setGeometry(gTest);
-            hold.shader = &Shaders::diffuse;
+            hold.shader = &Shaders::phong;
             Screen.addFunction3D(&hold);
             gTest.depth = 5.0f;
             SphereFunction3D hold2;
-            hold2.setPoint(glm::vec3(-50.0f, -200.0f, 0.0f));
+            hold2.setPoint(glm::vec3(-50.0f, -150.0f, 0.0f));
             hold2.setRadius(50.0f);
-            hold2.setColor(glm::vec4(0.0f, 100.0f, 0.0f, 100.0f), glm::vec4(0.0f, 100.0f, 0.0f, 100.0f), glm::vec4(0.0f, 10.0f, 0.0f, 10.0f));
+            hold2.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(0.0f, 100.0f, 0.0f, 100.0f), glm::vec4(100.0f, 0.0f, 100.0f, 100.0f));
             hold2.setGeometry(gTest);
-            hold2.shader = &Shaders::diffuse;
+            hold2.shader = &Shaders::phong;
             Screen.addFunction3D(&hold2);
+            gTest.depth = 50.0f;
+            gTest.radius = 1.0f;
+            gTest.width = 0.9;
             PlaneFunction hold3;
             hold3.setPoint(glm::vec3(0.0f, 100.0f, 0.0f));
             hold3.setNormal(glm::vec3(0.0f, -1.0f, 0.0f));
-            hold3.setColor(glm::vec4(0.0f, 0.0f, 100.0f, 100.0f), glm::vec4(0.0f, 0.0f, 100.0f, 100.0f), glm::vec4(0.0f, 0.0f, 1000.0f, 1000.0f));
+            hold3.setColor(glm::vec4(800.0f, 800.0f, 1000.0f, 1000.0f), glm::vec4(0.0f, 0.0f, 100.0f, 100.0f), glm::vec4(0.0f, 0.0f, 1000.0f, 1000.0f));
             hold3.setGeometry(gTest);
-            hold3.shader = &Shaders::diffuse;
+            hold3.shader = &Shaders::phong;
             Screen.addFunction3D(&hold3);
             LightBase light;
-            light.setDirectional(glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f)));
+            //light.setDirectional(glm::normalize(glm::vec3(0.5f, 0.5f, 0.0f)));
+            light.setSpotLight(glm::vec3(-150.0f, -250.0f, 0.0f), glm::normalize(glm::vec3(0.5f, 1.5f, 0.0f)), 0.7,  0.49);
+            //light.setPoint(glm::vec3(50.0f, -110.0f, 50.0f));
             light.setColor(glm::vec4(500.0f, 500.0f, 500.0f, 500.0f));
             Screen.addLight(&light);
             /*QuadraticFunction3D hold4;

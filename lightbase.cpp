@@ -36,12 +36,12 @@ void LightBase::setPoint(glm::vec3 pos)
     type = POINT;
 }
 
-void LightBase::setSpotLight(glm::vec3 pos, glm::vec3 n, float r, float pWidth)
+void LightBase::setSpotLight(glm::vec3 pos, glm::vec3 n, float  rMin, float rMax)
 {
     position = pos;
     geo.normal = n;
-    geo.radius = r;
-    geo.width = pWidth;
+    geo.radius = rMin;
+    geo.width = rMax;
     type = SPOTLIGHT;
 }
 
