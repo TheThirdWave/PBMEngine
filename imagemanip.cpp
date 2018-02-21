@@ -650,49 +650,79 @@ void Imagemanip::drawBlobbyAA(int resolution)
 
 void Imagemanip::draw3D(glm::vec3 pE, float d, glm::vec3 upVec, glm::vec3 v2, float s1, int resolution)
 {
+    //Function3D is the base class for all the objects in the scene, if there aren't any objects we don't need to do anything.
     if(func3DNum > 0)
     {
+        //This stuff sets up the viewport from pE upVec, v2, s1, and d
+        //s0 = The width of the screen.
         float s0 = (float)screen.width / (float)screen.height * s1;
+        //v0 = The x direction of the screen.
         glm::vec3 v0 = glm::cross(v2, upVec);
+        //v1 = The y direction of the screen.
         glm::vec3 v1 = glm::cross(v0, v2);
+        //n0 = v0 normalized.
         glm::vec3 n0 = glm::normalize(v0);
+        //n1 = v1 normalized.
         glm::vec3 n1 = glm::normalize(v1);
+        //n2 = v2 normalized;
         glm::vec3 n2 = glm::normalize(v2);
+        //pC = the centerpoint for the screen.
         glm::vec3 pC = pE + n2 * d;
+        //p0 = the bottom-left corner of the screen (I think)
         glm::vec3 p0 = pC - n0 * (s0 / 2) - n1 * (s1 / 2);
+        //t = the distance along a given vector given by any <pStart> + <nDirection> * t
         float t;
         float tHold;
+        //cHold holds the color for each subpixel for averaging.
         glm::vec4 cHold = glm::vec4(background * 100.0f, 100.0f);
+        //An array that the number hits counted by a ray cast.
         intercept hits[MAX_LINE_INTERCEPTS];
+        //the number of hits counted by a ray cast.
         int numHits = 0;
+        //the index of the closest intersection of a ray cast.
         int closestIdx = 0;
+        //we loop through all the pixels in the screen.
         for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
         {
             for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
             {
+                //we calculate some random offset for each subpixel in a pixel.
                 float r1 = ((1.0f/resolution) * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)));
                 float r2 = ((1.0f/resolution) * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)));
+                //the final color for each subpixel, we add cHold to this each loop and then divide by the number of subpixels.
                 glm::vec4 color = glm::vec4(0.0f);
+                //counts the number of times cHold is added to color so we know the number to divide by (probably don't need this).
                 int count = 0;
+                //we loop through each subpixel.
                 for(int u = 0; u < resolution; u++)
                 {
                     for(int v = 0; v < resolution; v++)
                     {
+                        //debug statement, ignore.
                         if(x / screen.unitbytes == screen.width / 2 && y / screen.unitbytes == screen.height / 2)
                         {
                             int x = 1 + 1;
                         }
+                        //reset the number of hits for the next raycast.
                         numHits = 0;
+                        //gets the coordinates of the subpixel we're casting into.
                         float uf = (float)x / screen.unitbytes + (float)u * (1.0f / resolution);
                         float vf = (float)y / screen.unitbytes + (float)v *(1.0f / resolution);
+                        //adds the random offset to the subpixel coordinates.
                         uf = uf + r1;
                         vf = vf + r2;
+                        //converts the subpixel coordinates to a 0-1 range.
                         uf = uf / screen.width;
                         vf = vf / screen.height;
+                        //converts the subpixel coordinates to points on the viewport screen defied by the nX, sX, and pX variables.
                         glm::vec3 scrPt = p0 + n0*s0*uf + n1*s1*vf;
+                        //gets the normal vector pointing from the eyepoint pE to the point on the viewport corresonding to the subpixel scrPt.
                         glm::vec3 nPe = glm::normalize(scrPt - pE);
+                        //reset t for the next ray cast.
                         t = -1;
+                        //actually cast the ray to check if it hits anything.
                         numHits = shades.castRay(pE, nPe, hits, numHits);
+                        //get the closest t value from the intercepts to get the actual point to shade.
                         if(numHits != 0)
                         {
                             for(int i = 0; i < numHits; i++)
@@ -708,20 +738,24 @@ void Imagemanip::draw3D(glm::vec3 pE, float d, glm::vec3 upVec, glm::vec3 v2, fl
                                     closestIdx = i;
                                 }
                             }
+                            //get the actual point of the closest intersection.
                             glm::vec3 pH = pE + nPe * t;
+                            //run the shader attached to the object hit by the closest intersection to get the color of the point. (see Shaders.cpp, the "Flat()" method is the simplest shader).
                             cHold = (shades.*(hits[closestIdx].obj->shader))(hits[closestIdx].obj->getSurfaceNormal(pH), -nPe, pH, pE, *hits[closestIdx].obj);
                         }
                         else
                         {
+                            //if there are no intersections, we set cHold to the background color.
                             cHold = glm::vec4(background * 10000.0f, 10000.0f);
                         }
-
+                        //we add cHold to color and implement the count variable.
                         color += cHold;
                         count++;
 
                     }
                 }
 
+                //we get the average of all the subpixel colors for the final pixel color.
                 color = color / (float)count;
                 screen.data[x + (y * screen.width)] = color.r / color.a * 255;
                 screen.data[(x + 1) + (y * screen.width)] = color.g / color.a * 255;

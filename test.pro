@@ -10,18 +10,13 @@ SOURCES += main.cpp \
     renderobject.cpp \
     modelmanager.cpp \
     physicsobject.cpp \
-    physicsmanager.cpp \
-    sphereobject.cpp \
     planeobject.cpp \
     function2d.cpp \
     linefunction.cpp \
     spherefunction.cpp \
     trigfunction.cpp \
     quadraticfunction.cpp \
-    camera.cpp \
     polygonobject.cpp \
-    particleobject.cpp \
-    particlegenerator.cpp \
     kernel.cpp \
     lsegfunction.cpp \
     function3d.cpp \
@@ -49,18 +44,13 @@ HEADERS += \
     renderobject.h \
     modelmanager.h \
     physicsobject.h \
-    physicsmanager.h \
-    sphereobject.h \
     planeobject.h \
     function2d.h \
     linefunction.h \
     spherefunction.h \
     trigfunction.h \
     quadraticfunction.h \
-    camera.h \
     polygonobject.h \
-    particleobject.h \
-    particlegenerator.h \
     kernel.h \
     kernel.h \
     lsegfunction.h \

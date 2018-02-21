@@ -35,11 +35,8 @@
 #include "structpile.h"
 #include "renderobject.h"
 #include "physicsobject.h"
-#include "physicsmanager.h"
-#include "sphereobject.h"
-#include "particleobject.h"
 #include "planeobject.h"
-#include "camera.h"
+#include "polygonobject.h"
 
 
 
@@ -71,17 +68,11 @@ unsigned long getTickCount();
 ShaderManager shaderManager;
 ReaderWriter imageManager;
 ModelManager modelManager;
-PhysicsManager physicsManager;
 Imagemanip Screen, vecMask, layer1, outerMask, innerMask, alphaMask;
 
-SphereObject sphere, sphere1;
-ParticleObject* part;
-ParticleGenerator pGen;
-PolygonObject plane1, plane2, plane3, plane4, plane5;
-PolygonObject plane;
+PolygonObject plane2;
 RenderObject sModel, pModel, poModel;
 
-Camera camera;
 unsigned int kState = 0;
 
 unsigned long prev_time, cur_time;
@@ -140,7 +131,6 @@ int main(int argc, char *argv[])
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     initTexture(img);
-    camera.setViewMatrix(&View);
     initMatricies(width, height);
 
     initShade();
@@ -171,7 +161,6 @@ int main(int argc, char *argv[])
     plane2.setRenderObject(&pModel);
     plane2.setPosition(glm::vec3(0.0f, 0.0f, -0.0f));
     plane2.setScale(glm::vec3(1.0f, 1.0f, 1.0f));
-    physicsManager.addPhysObj((PhysicsObject*)&plane2);
 
     glutDisplayFunc(testTexture);
     glutKeyboardFunc(KeyHandler);
@@ -248,10 +237,6 @@ void initShade()
 void initMatricies(int width, int height)
 {
     Proj = glm::mat4(1.0f);
-
-    camera.setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
-    camera.setRotation(glm::vec3(0.0f, 0, 0.0f));
-    camera.updateViewMatrix();
 
     Model = glm::mat4(1.0f);
     modelViewProj = Proj * View * Model;
@@ -350,53 +335,6 @@ void testTexture()
     display();
 }
 
-void testRender()
-{
-    prev_time = cur_time;
-    cur_time = getTickCount();
-    long delta_time = cur_time - prev_time;
-    if(delta_time >= timeStep)
-    {
-        double loops  = 0;
-        while(loops < delta_time)
-        {
-            update(timeStep);
-
-            loops += timeStep;
-        }
-        display();
-    }
-    //cur_time = getTickCount();
-}
-
-void update(float tStep)
-{
-    handleKeyStates(tStep);
-    physicsManager.runTimeStep(tStep);
-}
-
-void handleKeyStates(float ts)
-{
-    if(kState & FORWARD)
-    {
-        camera.addVelocity(glm::vec3(0.0f, 0.0f, 0.01f));
-    }
-    if(kState & SLEFT) camera.addVelocity(glm::vec3(0.01f, 0.0f, 0.0f));
-    if(kState & BACK) camera.addVelocity(glm::vec3(0.0f, 0.0f, -0.01f));
-    if(kState & SRIGHT) camera.addVelocity(glm::vec3(-0.01f, 0.0f, 0.0f));
-    if(kState & LUP)
-    {
-        camera.addRotation(glm::vec3(0.0f, -0.01f, 0.0f));
-    }
-    if(kState & LLEFT) camera.addRotation(glm::vec3(-0.01f, 0.0f, 0.0f));
-    if(kState & LDOWN) camera.addRotation(glm::vec3(0.0f, 0.01f, 0.0f));
-    if(kState & LRIGHT) camera.addRotation(glm::vec3(0.01f, 0.0f, 0.0f));
-
-    camera.getNextState(ts);
-    camera.updateState();
-    camera.setVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
-    camera.updateViewMatrix();
-}
 
 void display()
 {
@@ -513,7 +451,7 @@ void KeyHandler(unsigned char key, int x, int y)
             hold5.setQReals(100.0f, 50.0f, 100.0);
             hold5.setColor(glm::vec4(0.0f, 100.0f, 100.0f, 100.0f));
             Screen.addFunction3D(&hold5);*/
-            Screen.draw3D(glm::vec3(0.0f, 0.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 8);
+            Screen.draw3D(glm::vec3(0.0f, 0.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 1);
             //int count = 0;
             //int idx = imageManager.addImage(*Screen.getPtr());
             //string nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");

@@ -106,6 +106,8 @@ float Shaders::cullForPLight(intercept *ret, int idx, glm::vec3 pH, LightBase* L
     return idx;
 }
 
+//The second simplest shader, we get the cosign of the surface normal and the normal pointing from the point hit back to the camera.
+//If the cosign is less than some value, we set that pixel to white, getting the outline of the object hit (or something close to that).
 glm::vec4 Shaders::outline(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj)
 {
     glm::vec4 cPe(0.0f);
@@ -113,60 +115,97 @@ glm::vec4 Shaders::outline(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 
     return cPe;
 }
 
+//The simplest shader, we just return the color of the object hit.
 glm::vec4 Shaders::flat(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj)
 {
     return obj.getCD();
 }
 
+//This changes the color of the point hit based on whether or not that point is facing towards the light.
 glm::vec4 Shaders::diffuse(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj)
 {
+    //get the diffuse color of the object.
     glm::vec4 cD = obj.getCD();
+    //get the ambient light color of the object.
     glm::vec4 cA = obj.getCA();
+    //The color of the light being shined on theobject.
     glm::vec4 cL;
+    //the final color of the object, we set it to cA since that's always there.
     glm::vec4 cPe = cA;
+    //t takes on a different connotaton in this method, here it is a float from 0-1 that says how bright the diffuse light is
+    //at the point on the object being shaded, 0 means no diffuse light, 1 means the maximum amount of diffuse light.
     float t = 0;
+    //normally, the way you'd get t is by getting the cosign of the surface normal nH with the normal pointing towards the light
+    //nL.  However, here I implement Dr. Ackleman's variation on that idea by casting a ray from some point below the surface
+    //of the object being shaded to the light we're shading, and then dividing the distance underneath the surface of the point
+    //d, by the total length of the cast ray that passes through an occluding object r, to get a pseudo cosign that gets larger
+    //the greater the distance beneath the surface, d, is.  This gives a cheap, rough approximation of subsurface scattering.
     float d = obj.getGeo().depth;
     float r;
+    //pDH = the actual point beneath the surface of the object.
     glm::vec3 pDH = pH - nH * d;
+    //curLight = the current light we're shading for.
     LightBase* curLight;
+    //nL = the normal pointing from pDH to the light.
     glm::vec3 nL;
+    //The hits recorded by a cast ray.
     intercept hits[MAX_LINE_INTERCEPTS];
+    //the number of hits recorded by a cast ray.
     int numHits = 0;
+    //we loop through the lights in the scene to calcuate the final color.
     for(int i = 0; i < renderer->lightNum; i++)
     {
+        //reset the number of hits.
         numHits = 0;
+        //set the current light.
         curLight = renderer->lights[i];
+        //we get the current normal from the light.
         nL = -curLight->getRelativeNorm(pH);
+        //we get the color of thelight.
         cL = curLight->getColor();
 
+        //we actually cast the ray from pDH along nL.
         numHits = castRay(pDH, nL, hits, numHits);
+        //We sort the hits from closest to farthest.
         sortByT(hits, numHits);
+        //We get rid of any hits that are beyond the actual light (objects behind a light cannot cast shadows.)
         numHits = cullForPLight(hits, numHits, pH, curLight);
+        //the t value of the closest hit is also the distance from the point underneath the surface of the object pDH to
+        //the point on the surface of the object closest to the light along the ray.  If we're not doing shadows, this is
+        //all we need to do with r.
         r = hits[0].t;
+        //if r == 0  we set t to 0, otherwise we divide d by r to get the pseudo cosin.
         if(r == 0) t = 0;
         else t = d / r;
+        //a debug statement, ignore.
         if(pH.x >= 97.0 && pH.x < 98 && pH.y == 100 && pH.z <= -16 && pH.z > -17)
         {
             int x = getTotalR(hits, numHits, obj);
             numHits = 0;
             numHits = castRay(pDH, nL, hits, numHits);
         }
+        //get the diffuse value for this specific light.
         glm::vec4 cDD = cD * cL;
+        //does nothing, I should delete.
         if(curLight->getType() != DIRECTIONAL)
         {
             //float dnom = glm::dot(curLight->getPos() - pH, curLight->getPos() - pH);
             //t = t / dnom * 10000;
         }
+        //if the light is a spotlight, we don't cast any light outside of the cone defined by the light.
         if(curLight->getType() == SPOTLIGHT)
         {
             float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
             t *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
         }
+        //set t to somewhere between 0 and 1.
         t = clamp(t, 1.0, 0.0);
+        //multiply the temporary diffuse value by t
         cDD.r *= t;
         cDD.g *= t;
         cDD.b *= t;
 
+        //add the temporary diffuse value to the final color of the object.
         cPe += cDD;
     }
 
