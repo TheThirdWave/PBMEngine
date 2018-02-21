@@ -28,6 +28,10 @@
 #include "trigfunction.h"
 #include "quadraticfunction.h"
 #include "quadraticfunction3d.h"
+#include "directionallight.h"
+#include "pointlight.h"
+#include "spotlight.h"
+#include "arealight.h"
 #include "structpile.h"
 #include "renderobject.h"
 #include "physicsobject.h"
@@ -455,17 +459,17 @@ void KeyHandler(unsigned char key, int x, int y)
             hold.setRadius(100.0f);
             hold.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(100.0f, 0.0f, 0.0f, 100.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
             hold.setGeometry(gTest);
-            hold.shader = &Shaders::phong;
+            hold.shader = &Shaders::phongShadow;
             Screen.addFunction3D(&hold);
             gTest.depth = 5.0f;
             SphereFunction3D hold2;
-            hold2.setPoint(glm::vec3(-50.0f, -150.0f, 0.0f));
-            hold2.setRadius(50.0f);
-            hold2.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(0.0f, 100.0f, 0.0f, 100.0f), glm::vec4(100.0f, 0.0f, 100.0f, 100.0f));
+            hold2.setPoint(glm::vec3(-400.0f, -100.0f, 0.0f));
+            hold2.setRadius(40.0f);
+            hold2.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(0.0f, 100.0f, 0.0f, 100.0f), glm::vec4(5000.0f, 0.0f, 5000.0f, 5000.0f));
             hold2.setGeometry(gTest);
-            hold2.shader = &Shaders::phong;
+            hold2.shader = &Shaders::phongShadow;
             Screen.addFunction3D(&hold2);
-            gTest.depth = 50.0f;
+            gTest.depth = 40.0f;
             gTest.radius = 1.0f;
             gTest.width = 0.9;
             PlaneFunction hold3;
@@ -473,14 +477,28 @@ void KeyHandler(unsigned char key, int x, int y)
             hold3.setNormal(glm::vec3(0.0f, -1.0f, 0.0f));
             hold3.setColor(glm::vec4(800.0f, 800.0f, 1000.0f, 1000.0f), glm::vec4(0.0f, 0.0f, 100.0f, 100.0f), glm::vec4(0.0f, 0.0f, 1000.0f, 1000.0f));
             hold3.setGeometry(gTest);
-            hold3.shader = &Shaders::phong;
+            hold3.shader = &Shaders::diffuseShadow;
             Screen.addFunction3D(&hold3);
-            LightBase light;
-            //light.setDirectional(glm::normalize(glm::vec3(0.5f, 0.5f, 0.0f)));
-            light.setSpotLight(glm::vec3(-150.0f, -250.0f, 0.0f), glm::normalize(glm::vec3(0.5f, 1.5f, 0.0f)), 0.7,  0.49);
-            //light.setPoint(glm::vec3(50.0f, -110.0f, 50.0f));
-            light.setColor(glm::vec4(500.0f, 500.0f, 500.0f, 500.0f));
-            Screen.addLight(&light);
+            DirectionalLight light;
+            light.initialize(glm::normalize(glm::vec3(0.0f, 0.5f, -0.5f)));
+            light.setColor(glm::vec4(200.0f, 200.0f, 200.0f, 200.0f));
+            //Screen.addLight(&light);
+            PointLight light2;
+            light2.initialize(glm::vec3(-200.0, -100.0f, 0.0f));
+            light2.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f));
+            Screen.addLight(&light2);
+            SpotLight light3;
+            light3.initialize(glm::vec3(100.0f, -300.0f, 0.0f), glm::normalize(glm::vec3(-0.5f, 0.5f, 0.0f)), 0.6, 0.5);
+            light3.setColor(glm::vec4(500.0f, 500.0f, 500.0f, 500.0f));
+            //Screen.addLight(&light3);
+            SpotLight light5;
+            light5.initialize(glm::vec3(-100.0f, -300.0f, 0.0f), glm::normalize(glm::vec3(0.5f, 0.5f, 0.0f)), 0.6, 0.5);
+            light5.setColor(glm::vec4(500.0f, 500.0f, 500.0f, 500.0f));
+            Screen.addLight(&light5);
+            AreaLight light4;
+            light4.initialize(glm::vec3(100.0f, -300.0f, 0.0f), glm::normalize(glm::vec3(-0.5f, 0.5f, 0.0f)), glm::vec3(0.0f, 1.0f, 0.0f), 100, 100, 1);
+            light4.setColor(glm::vec4(500.0f, 500.0f, 500.0f, 500.0f));
+            //Screen.addLight(&light4);
             /*QuadraticFunction3D hold4;
             hold4.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f - 300, (float)Screen.getHeight() / 2.0f, 0.0f));
             hold4.setNormal(glm::vec3(0.5f, 0.0f, 0.5f), glm::vec3(0.5f, 0.0f, 0.5f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -495,7 +513,7 @@ void KeyHandler(unsigned char key, int x, int y)
             hold5.setQReals(100.0f, 50.0f, 100.0);
             hold5.setColor(glm::vec4(0.0f, 100.0f, 100.0f, 100.0f));
             Screen.addFunction3D(&hold5);*/
-            Screen.draw3D(glm::vec3(0.0f, 0.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 4);
+            Screen.draw3D(glm::vec3(0.0f, 0.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 8);
             //int count = 0;
             //int idx = imageManager.addImage(*Screen.getPtr());
             //string nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");

@@ -136,18 +136,7 @@ glm::vec4 Shaders::diffuse(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 
     {
         numHits = 0;
         curLight = renderer->lights[i];
-        if(curLight->getType() == DIRECTIONAL)
-        {
-            nL = -curLight->getGeo().normal;
-        }
-        else if(curLight->getType() == POINT)
-        {
-            nL = glm::normalize(curLight->getPos() - pH);
-        }
-        else if(curLight->getType() == SPOTLIGHT)
-        {
-            nL = glm::normalize(curLight->getPos() - pH);
-        }
+        nL = -curLight->getRelativeNorm(pH);
         cL = curLight->getColor();
 
         numHits = castRay(pDH, nL, hits, numHits);
@@ -204,18 +193,7 @@ glm::vec4 Shaders::phong(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE
     {
         numHits = 0;
         curLight = renderer->lights[i];
-        if(curLight->getType() == DIRECTIONAL)
-        {
-            nL = -curLight->getGeo().normal;
-        }
-        else if(curLight->getType() == POINT)
-        {
-            nL = glm::normalize(curLight->getPos() - pH);
-        }
-        else if(curLight->getType() == SPOTLIGHT)
-        {
-            nL = glm::normalize(curLight->getPos() - pH);
-        }
+        nL = -curLight->getRelativeNorm(pH);
         cL = curLight->getColor();
 
         //get angle for diffuse light, raycast can catch occluders as well.
@@ -282,23 +260,12 @@ glm::vec4 Shaders::diffuseShadow(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm:
     {
         numHits = 0;
         curLight = renderer->lights[i];
-        if(curLight->getType() == DIRECTIONAL)
-        {
-            nL = -curLight->getGeo().normal;
-        }
-        else if(curLight->getType() == POINT)
-        {
-            nL = glm::normalize(curLight->getPos() - pH);
-        }
-        else if(curLight->getType() == SPOTLIGHT)
-        {
-            nL = glm::normalize(curLight->getPos() - pH);
-        }
+        nL = -curLight->getRelativeNorm(pH);
         cL = curLight->getColor();
 
         numHits = castRay(pDH, nL, hits, numHits);
         sortByT(hits, numHits);
-        numHits = cullForPLight(hits, numHits, pH, curLight);
+        if(curLight->getType() != DIRECTIONAL) numHits = cullForPLight(hits, numHits, pH, curLight);
         r = getTotalR(hits, numHits, obj);
         if(r == 0) t = 0;
         else t = d / r;
@@ -330,3 +297,167 @@ glm::vec4 Shaders::diffuseShadow(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm:
     return cPe;
 
 }
+
+glm::vec4 Shaders::phongShadow(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj)
+{
+    glm::vec4 cD = obj.getCD();
+    glm::vec4 cA = obj.getCA();
+    glm::vec4 cS = obj.getCS();
+    glm::vec4 cL;
+    glm::vec4 cPe = cA;
+    float t = 0;
+    float d = obj.getGeo().depth;
+    float r;
+    glm::vec3 pDH = pH - nH * d;
+    LightBase* curLight;
+    glm::vec3 nL;
+    intercept hits[MAX_LINE_INTERCEPTS];
+    int numHits = 0;
+    for(int i = 0; i < renderer->lightNum; i++)
+    {
+        numHits = 0;
+        curLight = renderer->lights[i];
+        nL = -curLight->getRelativeNorm(pH);
+        cL = curLight->getColor();
+
+        //get angle for diffuse light, raycast can catch occluders as well.
+        numHits = castRay(pDH, nL, hits, numHits);
+        sortByT(hits, numHits);
+        if(curLight->getType() != DIRECTIONAL) numHits = cullForPLight(hits, numHits, pH, curLight);
+        r = getTotalR(hits, numHits, obj);
+        if(r == 0) t = 0;
+        else t = d / r;
+
+        glm::vec4 cDD = cD * cL;
+        if(curLight->getType() != DIRECTIONAL)
+        {
+            //float dnom = glm::dot(curLight->getPos() - pH, curLight->getPos() - pH);
+            //t = t / dnom * 10000;
+        }
+        if(curLight->getType() == SPOTLIGHT)
+        {
+            float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+            t *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+        }
+        t = clamp(t, 1.0, 0.0);
+        cDD.r *= t;
+        cDD.g *= t;
+        cDD.b *= t;
+
+        cPe += cDD;
+
+        //calculate angle for specular highlight
+        glm::vec3 ref = -nL + (2 * glm::dot(nH, nL) * nH);
+        float cos = glm::dot(nPe, ref);
+        float s = clamp(cos, obj.getGeo().radius, obj.getGeo().width);
+        if(curLight->getType() == SPOTLIGHT)
+        {
+            float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+            s *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+        }
+        //if(cos > 0.98) s = 1;
+        //else s = 0;
+        cPe += cS * cL * s;
+
+    }
+
+    return cPe;
+
+}
+
+glm::vec4 Shaders::aLight(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj)
+{
+    glm::vec4 cD = obj.getCD();
+    glm::vec4 cA = obj.getCA();
+    glm::vec4 cS = obj.getCS();
+    glm::vec4 cL;
+    glm::vec4 cPe = cA;
+    float t = 0;
+    float d = obj.getGeo().depth;
+    float r;
+    glm::vec3 pDH = pH - nH * d;
+    LightBase* curLight;
+    glm::vec3 nL;
+    intercept hits[MAX_LINE_INTERCEPTS];
+    int numHits = 0;
+    for(int i = 0; i < renderer->lightNum; i++)
+    {
+        numHits = 0;
+        curLight = renderer->lights[i];
+        nL = -curLight->getRelativeNorm(pH);
+        cL = curLight->getColor();
+
+        if(curLight->getType() != AREALIGHT)
+        {
+            //get angle for diffuse light, raycast can catch occluders as well.
+            numHits = castRay(pDH, nL, hits, numHits);
+            sortByT(hits, numHits);
+            numHits = cullForPLight(hits, numHits, pH, curLight);
+            r = getTotalR(hits, numHits, obj);
+            if(r == 0) t = 0;
+            else t = d / r;
+
+            glm::vec4 cDD = cD * cL;
+            if(curLight->getType() != DIRECTIONAL)
+            {
+                //float dnom = glm::dot(curLight->getPos() - pH, curLight->getPos() - pH);
+                //t = t / dnom * 10000;
+            }
+            if(curLight->getType() == SPOTLIGHT)
+            {
+                float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+                t *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+            }
+            t = clamp(t, 1.0, 0.0);
+            cDD.r *= t;
+            cDD.g *= t;
+            cDD.b *= t;
+
+            cPe += cDD;
+        }
+        else
+        {
+            for(int i = 0; i < (int)curLight->getGeo().depth; i++)
+            {
+                //get angle for diffuse light, raycast can catch occluders as well.
+                nL = -curLight->getRelativeNorm(pH);
+                numHits = castRay(pDH, nL, hits, numHits);
+                sortByT(hits, numHits);
+                numHits = cullForPLight(hits, numHits, pH, curLight);
+                r = getTotalR(hits, numHits, obj);
+                if(r != 0) t += d / r;
+
+
+                numHits = 0;
+            }
+            t /= curLight->getGeo().depth;
+            glm::vec4 cDD = cD * cL;
+            float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+            if(cos < 0) t = 0;
+            t = clamp(t, 1.0, 0.0);
+            cDD.r *= t;
+            cDD.g *= t;
+            cDD.b *= t;
+
+            cPe += cDD;
+        }
+
+        //calculate angle for specular highlight
+        glm::vec3 ref = -nL + (2 * glm::dot(nH, nL) * nH);
+        float cos = glm::dot(nPe, ref);
+        float s = clamp(cos, obj.getGeo().radius, obj.getGeo().width);
+        if(curLight->getType() == SPOTLIGHT)
+        {
+            float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+            s *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+        }
+        //if(cos > 0.98) s = 1;
+        //else s = 0;
+        cPe += cS * cL * s;
+
+    }
+
+    return cPe;
+
+}
+

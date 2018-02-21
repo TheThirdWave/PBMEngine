@@ -65,7 +65,8 @@ struct intercept{
 enum lightType{
     DIRECTIONAL = 0,
     POINT = 1,
-    SPOTLIGHT = 2
+    SPOTLIGHT = 2,
+    AREALIGHT = 3
 };
 
 enum collideType{

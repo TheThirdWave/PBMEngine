@@ -5,7 +5,7 @@
 
 class LightBase
 {
-private:
+protected:
     lightType type;
     glm::vec3 position;
     glm::vec4 cL;
@@ -16,9 +16,7 @@ public:
     void setPos(glm::vec3 pos);
     void setGeo(geometry g);
     void setColor(glm::vec4 col);
-    void setDirectional(glm::vec3 n);
-    void setPoint(glm::vec3 pos);
-    void setSpotLight(glm::vec3 pos, glm::vec3 n, float rMin, float rMax);
+    virtual glm::vec3 getRelativeNorm(glm::vec3 pH) = 0;
     glm::vec3 getPos();
     geometry getGeo();
     lightType getType();

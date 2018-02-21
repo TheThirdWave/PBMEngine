@@ -24,27 +24,6 @@ void LightBase::setColor(glm::vec4 col)
     cL = col;
 }
 
-void LightBase::setDirectional(glm::vec3 n)
-{
-    geo.normal = n;
-    type = DIRECTIONAL;
-}
-
-void LightBase::setPoint(glm::vec3 pos)
-{
-    position = pos;
-    type = POINT;
-}
-
-void LightBase::setSpotLight(glm::vec3 pos, glm::vec3 n, float  rMin, float rMax)
-{
-    position = pos;
-    geo.normal = n;
-    geo.radius = rMin;
-    geo.width = rMax;
-    type = SPOTLIGHT;
-}
-
 geometry LightBase::getGeo()
 {
     return geo;

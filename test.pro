@@ -29,7 +29,11 @@ SOURCES += main.cpp \
     planefunction.cpp \
     quadraticfunction3d.cpp \
     shaders.cpp \
-    lightbase.cpp
+    lightbase.cpp \
+    directionallight.cpp \
+    pointlight.cpp \
+    spotlight.cpp \
+    arealight.cpp
 
 OTHER_FILES += \
     vertshade \
@@ -66,6 +70,10 @@ HEADERS += \
     quadraticfunction3d.h \
     shaders.h \
     lightbase.h \
+    directionallight.h \
+    pointlight.h \
+    spotlight.h \
+    arealight.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt
 
