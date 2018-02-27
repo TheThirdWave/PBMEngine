@@ -7,9 +7,10 @@ FluidModel::FluidModel()
 
 FluidModel::FluidModel(Buffer2D *initBuf, Buffer2D* s)
 {
-    density.init(initBuf->getWidth(), initBuf->getHeight(), 1);
-    velocity.init(initBuf->getWidth(), initBuf->getHeight(), 2);
-    pressure.init(initBuf->getWidth(), initBuf->getHeight(), 1);
+    density.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
+    velocity.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
+    charMap.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
+    pressure.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
     source = s;
     color = initBuf;
     hasSource = false;
@@ -18,9 +19,10 @@ FluidModel::FluidModel(Buffer2D *initBuf, Buffer2D* s)
 
 void FluidModel::init(Buffer2D *initBuf, Buffer2D* s)
 {
-    density.init(initBuf->getWidth(), initBuf->getHeight(), 1);
-    velocity.init(initBuf->getWidth(), initBuf->getHeight(), 2);
-    pressure.init(initBuf->getWidth(), initBuf->getHeight(), 1);
+    density.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
+    velocity.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
+    charMap.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
+    pressure.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
     source = s;
     color = initBuf;
     hasSource = false;
@@ -29,6 +31,7 @@ void FluidModel::init(Buffer2D *initBuf, Buffer2D* s)
 
 void FluidModel::runSLTimeStep(double timeStep)
 {
+    cMapSLAdvect(timeStep);
     advection(timeStep);
     if(hasSource)
     {
@@ -46,35 +49,27 @@ void FluidModel::advection(double timeStep)
     float* velGrid = velocity.getBuf();
     float* denGrid = density.getBuf();
     float* colGrid = color->getBuf();
-    glm::vec2 iVec;
-    glm::vec2 vel;
-    glm::vec3 col;
-    for(int i = 0; i < width; i++)
+    float* cMap = charMap.getBuf();
+
+    for(int j = 0; j < height; j++)
     {
-        for(int j = 0; j < height; j++)
+    #pragma omp parallel for
+        for(int i = 0; i < width; i++)
         {
-            //make everything a vector because I want to.
-            iVec.x = (float)i;
-            iVec.y = (float)j;
+            glm::vec2 iVec;
+            glm::vec2 vel;
+            glm::vec3 col;
+            //Get the advected point from the characteristic map.
             int index = i + j * width;
-
-            //get the velocity at the point we're looping over so we know the point to advect from.
-            vel.x = velGrid[index * velocity.getNumChannels()];
-            vel.y = velGrid[index * velocity.getNumChannels() + 1];
-
-            //subtract the velocity from the position of the point to get the point to advect from.
-            iVec = iVec - vel;
-            if(glm::length(vel) != 0)
-            {
-                int x = 1;
-            }
+            iVec.x = cMap[index * charMap.getNumChannels()];
+            iVec.y = cMap[index * charMap.getNumChannels() + 1];
 
             //update the density and velocity from the point of advection.
-            denGrid[index * density.getNumChannels()] = interpolateF(&density, iVec);
-            vel = interpolate2Vec(&velocity, iVec);
+            denGrid[index * density.getNumChannels()] = interpolateF(&density, iVec / charMap.getCellSize());
+            vel = interpolate2Vec(&velocity, iVec / charMap.getCellSize());
             velGrid[index * velocity.getNumChannels()] = vel.x;
             velGrid[index * velocity.getNumChannels() + 1] = vel.y;
-            col = interpolate3Vec(color, iVec);
+            col = interpolate3Vec(color, iVec / charMap.getCellSize());
             colGrid[index * color->getNumChannels()] = col.r;
             colGrid[index * color->getNumChannels() + 1] = col.g;
             colGrid[index * color->getNumChannels() + 2] = col.b;
@@ -88,23 +83,21 @@ void FluidModel::forces(double timeStep)
     int height = velocity.getHeight();
     float* denGrid = density.getBuf();
     float* velGrid = velocity.getBuf();
-    glm::vec2 vel;
+
     glm::vec2 up = glm::vec2(0.0f, -1.0f);
-    for(int i = 0; i < width; i++)
+    for(int j = 0; j < height; j++)
     {
-        for(int j = 0; j < height; j++)
+    #pragma omp parallel for
+        for(int i = 0; i < width; i++)
         {
+            glm::vec2 vel;
             int index = i + j * width;
             vel.x = velGrid[index * velocity.getNumChannels()];
             vel.y = velGrid[index * velocity.getNumChannels() + 1];
-            if(denGrid[index * density.getNumChannels()] > 0.0f)
-            {
-                int x = 1;
-            }
+
             vel += (-denGrid[index * density.getNumChannels()] * up * gravity) * (float)timeStep;
             velGrid[index * velocity.getNumChannels()] = vel.x;
             velGrid[index * velocity.getNumChannels() + 1] = vel.y;
-            int x = 1;
         }
     }
 }
@@ -118,12 +111,45 @@ void FluidModel::sources(double timeStep)
     glm::vec2 iVec;
     glm::vec2 vel;
     glm::vec3 col;
-    for(int i = 0; i < width; i++)
+    for(int j = 0; j < height; j++)
     {
-        for(int j = 0; j < height; j++)
+    #pragma omp parallel for
+        for(int i = 0; i < width; i++)
         {
             int index = i + j * width;
             denGrid[index * density.getNumChannels()] += sGrid[index * source->getNumChannels()];
+        }
+    }
+}
+
+void FluidModel::cMapSLAdvect(double timeStep)
+{
+    int width = charMap.getWidth();
+    int height = charMap.getHeight();
+    float* cMap = charMap.getBuf();
+    float* velGrid = velocity.getBuf();
+
+    for(int j = 0; j < height; j++)
+    {
+    #pragma omp parallel for
+        for(int i = 0; i < width; i++)
+        {
+            glm::vec2 iVec;
+            glm::vec2 vel;
+            //Get the point in space represented by the index.ZZZ
+            iVec.x = (float)i;
+            iVec.y = (float)j;
+            iVec = iVec * charMap.getCellSize();
+            int index = i + j * width;
+
+            //get the velocity at the point we're looping over so we know the point to advect from.
+            vel.x = velGrid[index * velocity.getNumChannels()];
+            vel.y = velGrid[index * velocity.getNumChannels() + 1];
+
+            //subtract the velocity from the position of the point to get the point to advect from.
+            iVec = iVec - vel * (float)timeStep;
+            cMap[index * charMap.getNumChannels()] = iVec.x;
+            cMap[index * charMap.getNumChannels() + 1] = iVec.y;
         }
     }
 }

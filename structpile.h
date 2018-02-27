@@ -25,7 +25,7 @@
 #define NUM_PARTS 10000
 #define NUM_DERIV_STATES 4
 
-#include <../GLM/glm/glm.hpp>
+#include <../glm-0.9.8.5/glm/glm.hpp>
 
 struct image {
     unsigned char* data;

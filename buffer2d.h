@@ -11,15 +11,17 @@ class Buffer2D
 private:
     float* buffer;
     int width, height, channels;
+    float cellSize;
 public:
     Buffer2D();
-    Buffer2D(int, int, int);
+    Buffer2D(int, int, int, float);
     ~Buffer2D();
     float* getBuf();
     int getWidth();
     int getHeight();
     int getNumChannels();
-    void init(int, int, int);
+    float getCellSize();
+    void init(int, int, int, float);
     void setDataFloat(float);
     void setDataBuffer(Buffer2D&);
     void readImage(const char*);

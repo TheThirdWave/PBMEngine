@@ -10,8 +10,8 @@
 #include <GLFW/glfw3.h>
 
 //glm includes
-#include <../GLM/glm/glm.hpp>
-#include <../GLM/glm/gtc/matrix_transform.hpp>
+#include <../glm-0.9.8.5/glm/glm.hpp>
+#include <../glm-0.9.8.5/glm/gtc/matrix_transform.hpp>
 
 //image buffer stuff
 #include "buffer2d.h"
@@ -52,7 +52,8 @@ int paint_mode;
 
 int prog_state;
 double prev_time, cur_time, delta_time, d_delta_time, d_prev_time, d_cur_time;
-double timeStep = 1.0 / (60.0);
+double timeStep = 1.0 / (60.0 * 1.0);
+double simTime = 0.0f;
 double displayTime = 1.0f / (60.0f);
 
 int main(int argc, char* argv[])
@@ -60,7 +61,7 @@ int main(int argc, char* argv[])
     //load initial images;
     loadedImg.readImage("../GWbackground.png");
     displayBuf.readImage("../GWbackground.png");
-    sourceBuf.init(displayBuf.getWidth(), displayBuf.getHeight(), 1);
+    sourceBuf.init(displayBuf.getWidth(), displayBuf.getHeight(), 1, 1.0);
 
     //init brushes.
     initializeBrushes();
@@ -225,12 +226,13 @@ int main(int argc, char* argv[])
             }
         }
 */
+        update(timeStep);
+        simTime += timeStep;
         d_cur_time = glfwGetTime();
         d_delta_time = d_cur_time - d_prev_time;
         if(d_delta_time >= displayTime)
         {
             d_prev_time = d_cur_time;
-            update(timeStep);
             display(window, MatrixID, programID, vertexbuffer, mvp);
         }
 		glfwPollEvents();

@@ -8,11 +8,12 @@ Buffer2D::Buffer2D()
     channels = 0;
 }
 
-Buffer2D::Buffer2D(int w, int h, int ch)
+Buffer2D::Buffer2D(int w, int h, int ch, float cs)
 {
     width = w;
     height = h;
     channels = ch;
+    cellSize = cs;
     buffer = new float[width * height * channels];
     memset(buffer, 0.0f, sizeof(float)*width*height*channels);
 }
@@ -42,11 +43,17 @@ int Buffer2D::getNumChannels()
     return channels;
 }
 
-void Buffer2D::init(int w, int h, int ch)
+float Buffer2D::getCellSize()
+{
+    return cellSize;
+}
+
+void Buffer2D::init(int w, int h, int ch, float cs)
 {
     width = w;
     height = h;
     channels = ch;
+    cellSize = cs;
     buffer = new float[width * height * channels];
     memset(buffer, 0, sizeof(float)*width*height*channels);
 }
