@@ -2,6 +2,7 @@
 #define BUFFER2D_H
 
 #include <OpenImageIO/imageio.h>
+#include <../glm-0.9.8.5/glm/glm.hpp>
 
 using namespace std;
 OIIO_NAMESPACE_USING
@@ -24,8 +25,12 @@ public:
     void init(int, int, int, float);
     void setDataFloat(float);
     void setDataBuffer(Buffer2D&);
+    void zeroOut();
     void readImage(const char*);
     void writeImage(const char*);
+
+    glm::vec2 makeVec2(int index);
+    glm::vec3 makeVec3(int index);
 
 };
 

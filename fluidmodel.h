@@ -11,9 +11,11 @@ private:
     Buffer2D velocity;
     Buffer2D charMap;
     Buffer2D pressure;
+    Buffer2D obstruction;
     Buffer2D* source;
     Buffer2D* color;
     bool hasSource;
+    int pLoops;
     float gravity;
 
 public:
@@ -24,8 +26,12 @@ public:
     void advection(double timeStep);
     void forces(double timeStep);
     void sources(double timeStep);
+    void calcPressure();
+    void applyPressure();
 
     void cMapSLAdvect(double timeStep);
+
+    float calcDivergence(int i, int j);
 
     float interpolateF(Buffer2D* buf, glm::vec2 vec);
     glm::vec2 interpolate2Vec(Buffer2D* buf, glm::vec2 vec);

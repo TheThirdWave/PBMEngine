@@ -394,9 +394,10 @@ void dabSomePaint(Buffer2D* scr, int x, int y )
          for( int iy=ystart;iy<=yend; iy++)
          {
             int index = ix + iwidth*(iheight-iy-1);
-            baseimage[nBytes*index] *= obstruction_brush[ix-xstart][iy-ystart];
-            baseimage[nBytes*index+1] *= obstruction_brush[ix-xstart][iy-ystart];
-            baseimage[nBytes*index+2] *= obstruction_brush[ix-xstart][iy-ystart];
+            for(int w = 0; w < nBytes; w++)
+            {
+                baseimage[nBytes*index + w] *= obstruction_brush[ix-xstart][iy-ystart];
+            }
         }
       }
    }
