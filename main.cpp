@@ -26,6 +26,7 @@
 #include "fluidmodel.h"
 
 //headers
+void printControls();
 void keyHandler(GLFWwindow* win, int key, int scancode, int action, int mods);
 void mouseMoveHandler(GLFWwindow* window, double xpos, double ypos);
 void mouseButtonHandler(GLFWwindow* window, int button, int action, int mods);
@@ -58,6 +59,13 @@ double displayTime = 1.0f / (60.0f);
 
 int main(int argc, char* argv[])
 {
+    //set up Dr. Tessendorf's command line reader stuff
+    lux::CmdLineFind clf(argc, argv);
+    printControls();
+
+    int pLoops = clf.find("-gs", 5, "Number of Gauss-Seidel iterations.");
+    int iopLoops = clf.find("-iop", 5, "Number of Iterated Orthogonal Projection loops.");
+
     //load initial images;
     loadedImg.readImage("../GWbackground.png");
     displayBuf.readImage("../GWbackground.png");
@@ -71,6 +79,8 @@ int main(int argc, char* argv[])
 
     //initialize Fluid Model.
     fluidModel.init(&displayBuf, &sourceBuf);
+    fluidModel.setPLoops(pLoops);
+    fluidModel.setIOPLoops(iopLoops);
 
     //set static variables.
     WIDTH = displayBuf.getWidth();
@@ -244,6 +254,14 @@ int main(int argc, char* argv[])
 
 }
 
+void printControls()
+{
+    printf("r       Reset the simulation (buoyancy and timesteps will not reset)\n");
+    printf("p       Pause the simulation\n");
+    printf("-, +    Change the buoyancy of the fluid (no shift)\n");
+    printf("<, >    Change the timestep size of the simulation (no shift)\n");
+}
+
 void display(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, glm::mat4 &mvp)
 {
     //update the texture from the display buffer.
@@ -342,6 +360,40 @@ void keyHandler(GLFWwindow* win, int key, int scancode, int action, int mods)
             {
                 printf("Prog State: PAUSED\n");
             }
+        }
+        break;
+    case GLFW_KEY_MINUS:
+        if(action == GLFW_PRESS)
+        {
+            float add = 1.0f;
+            float grav = fluidModel.getGravity();
+            fluidModel.setGravity(grav - add);
+            printf("Buoyancy force: %f\n", grav);
+        }
+        break;
+    case GLFW_KEY_EQUAL:
+        if(action == GLFW_PRESS)
+        {
+            float add = 1.0f;
+            float grav = fluidModel.getGravity() + add;
+            fluidModel.setGravity(grav);
+            printf("Buoyancy force: %f\n", grav);
+        }
+        break;
+    case GLFW_KEY_COMMA:
+        if(action == GLFW_PRESS)
+        {
+            float add = 1.0 / (60.0 * 10);
+            timeStep -= add;
+            printf("TimeStep: %f\n", timeStep);
+        }
+        break;
+    case GLFW_KEY_PERIOD:
+        if(action == GLFW_PRESS)
+        {
+            float add = 1.0 / (60.0 * 10);
+            timeStep += add;
+            printf("TimeStep: %f\n", timeStep);
         }
         break;
     default:

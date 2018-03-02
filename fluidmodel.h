@@ -15,7 +15,7 @@ private:
     Buffer2D* source;
     Buffer2D* color;
     bool hasSource;
-    int pLoops;
+    int pLoops, iopLoops;
     float gravity;
 
 public:
@@ -28,6 +28,7 @@ public:
     void sources(double timeStep);
     void calcPressure();
     void applyPressure();
+    void enforceBounds();
 
     void cMapSLAdvect(double timeStep);
 
@@ -37,8 +38,14 @@ public:
     glm::vec2 interpolate2Vec(Buffer2D* buf, glm::vec2 vec);
     glm::vec3 interpolate3Vec(Buffer2D* buf, glm::vec2 vec);
 
+    float getGravity();
+    int getPLoops();
+    int getIOPLoops();
+
     void setHasSource(bool);
     void setGravity(float);
+    void setPLoops(int);
+    void setIOPLoops(int);
     void reset();
     Buffer2D* getSource();
     Buffer2D* getObstruction();

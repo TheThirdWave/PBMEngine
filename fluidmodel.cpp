@@ -18,6 +18,7 @@ FluidModel::FluidModel(Buffer2D *initBuf, Buffer2D* s)
     hasSource = false;
     gravity = 30.0;
     pLoops = 5;
+    iopLoops = 5;
 }
 
 void FluidModel::init(Buffer2D *initBuf, Buffer2D* s)
@@ -33,6 +34,7 @@ void FluidModel::init(Buffer2D *initBuf, Buffer2D* s)
     hasSource = false;
     gravity = 30.0;
     pLoops = 5;
+    iopLoops = 5;
 }
 
 void FluidModel::runSLTimeStep(double timeStep)
@@ -46,11 +48,15 @@ void FluidModel::runSLTimeStep(double timeStep)
         hasSource = false;
     }
     forces(timeStep);
-    for(int i = 0; i < pLoops; i++)
+    for(int j = 0; j < iopLoops; j++)
     {
-        calcPressure();
+        for(int i = 0; i < pLoops; i++)
+        {
+            calcPressure();
+        }
+        applyPressure();
+        enforceBounds();
     }
-    applyPressure();
 }
 
 void FluidModel::advection(double timeStep)
@@ -203,6 +209,29 @@ void FluidModel::applyPressure()
 
             //calculate new velocity.
             curVel = curVel - curP;
+            velGrid[index * velocity.getNumChannels()] = curVel.x;
+            velGrid[index * velocity.getNumChannels() + 1] = curVel.y;
+        }
+    }
+}
+
+void FluidModel::enforceBounds()
+{
+    int width = velocity.getWidth();
+    int height = velocity.getHeight();
+    int size = width * height * velocity.getNumChannels();
+    float* obsGrid = obstruction.getBuf();
+    float* velGrid = velocity.getBuf();
+    for(int j = 0; j < height; j++)
+    {
+     #pragma omp parallel for
+        for(int i = 0; i < width; i++)
+        {
+            int index = i + j * width;
+            glm::vec2 curVel;
+            curVel.x = velGrid[index * velocity.getNumChannels()];
+            curVel.y = velGrid[index * velocity.getNumChannels() + 1];
+            curVel = curVel * obsGrid[index * obstruction.getNumChannels()];
             velGrid[index * velocity.getNumChannels()] = curVel.x;
             velGrid[index * velocity.getNumChannels() + 1] = curVel.y;
         }
@@ -373,6 +402,21 @@ glm::vec3 FluidModel::interpolate3Vec(Buffer2D* buf, glm::vec2 vec)
     return fF;
 }
 
+float FluidModel::getGravity()
+{
+    return gravity;
+}
+
+int FluidModel::getPLoops()
+{
+    return pLoops;
+}
+
+int FluidModel::getIOPLoops()
+{
+    return iopLoops;
+}
+
 void FluidModel::setGravity(float f)
 {
     gravity = f;
@@ -381,6 +425,16 @@ void FluidModel::setGravity(float f)
 void FluidModel::setHasSource(bool t)
 {
     hasSource = t;
+}
+
+void FluidModel::setPLoops(int l)
+{
+    pLoops = l;
+}
+
+void FluidModel::setIOPLoops(int l)
+{
+    iopLoops = l;
 }
 
 void FluidModel::reset()
