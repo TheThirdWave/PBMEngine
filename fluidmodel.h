@@ -39,7 +39,9 @@ public:
 
     void setHasSource(bool);
     void setGravity(float);
+    void reset();
     Buffer2D* getSource();
+    Buffer2D* getObstruction();
 };
 
 #endif // FLUIDMODEL_H

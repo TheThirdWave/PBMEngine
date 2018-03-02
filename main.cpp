@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
     initializeBrushes();
 
     //set program state;
-    prog_state = IDLE;
+    prog_state = prog_state | RUNNING;
 
     //initialize Fluid Model.
     fluidModel.init(&displayBuf, &sourceBuf);
@@ -226,8 +226,11 @@ int main(int argc, char* argv[])
             }
         }
 */
-        update(timeStep);
-        simTime += timeStep;
+        if(prog_state & RUNNING)
+        {
+            update(timeStep);
+            simTime += timeStep;
+        }
         d_cur_time = glfwGetTime();
         d_delta_time = d_cur_time - d_prev_time;
         if(d_delta_time >= displayTime)
@@ -307,6 +310,38 @@ void keyHandler(GLFWwindow* win, int key, int scancode, int action, int mods)
         if(action == GLFW_PRESS)
         {
             displayBuf.setDataBuffer(loadedImg);
+            sourceBuf.zeroOut();
+            fluidModel.reset();
+            printf("SIMULATION RESET!\n");
+        }
+        break;
+    case GLFW_KEY_O:
+        if(action == GLFW_PRESS)
+        {
+            if(paint_mode == PAINT_SOURCE)
+            {
+                paint_mode = PAINT_OBSTRUCTION;
+                printf("Paint mode: Obstruction\n");
+            }
+            else
+            {
+                paint_mode = PAINT_SOURCE;
+                printf("Paint mode: Source\n");
+            }
+        }
+        break;
+    case GLFW_KEY_P:
+        if(action == GLFW_PRESS)
+        {
+            prog_state = prog_state ^ RUNNING;
+            if(prog_state & RUNNING)
+            {
+                printf("Prog State: RUNNING\n");
+            }
+            else
+            {
+                printf("Prog State: PAUSED\n");
+            }
         }
         break;
     default:
@@ -327,11 +362,11 @@ void mouseButtonHandler(GLFWwindow* window, int button, int action, int mods)
              dabSomePaint(&displayBuf, xpos, ypos);
              dabSomePaint(&sourceBuf, xpos, ypos);
              fluidModel.setHasSource(true);
-             prog_state = DRAW;
+             prog_state = prog_state | DRAW;
         }
         else if(action == GLFW_RELEASE)
         {
-            prog_state = IDLE;
+            prog_state = prog_state & ~DRAW;
         }
         break;
         default:
@@ -341,7 +376,7 @@ void mouseButtonHandler(GLFWwindow* window, int button, int action, int mods)
 
 void mouseMoveHandler(GLFWwindow* window, double xpos, double ypos)
 {
-    if(prog_state == DRAW)
+    if(prog_state & DRAW)
     {
         dabSomePaint(&displayBuf, xpos, ypos);
         dabSomePaint(&sourceBuf, xpos, ypos);
@@ -389,6 +424,9 @@ void dabSomePaint(Buffer2D* scr, int x, int y )
 
    if( paint_mode == PAINT_OBSTRUCTION )
    {
+      Buffer2D* obs = fluidModel.getObstruction();
+      float* obsBuf = obs->getBuf();
+      int obsChannel = obs->getNumChannels();
       for(int ix=xstart;ix <= xend; ix++)
       {
          for( int iy=ystart;iy<=yend; iy++)
@@ -398,6 +436,9 @@ void dabSomePaint(Buffer2D* scr, int x, int y )
             {
                 baseimage[nBytes*index + w] *= obstruction_brush[ix-xstart][iy-ystart];
             }
+
+            obsBuf[obsChannel*index] = 0.0f;
+
         }
       }
    }

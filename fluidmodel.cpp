@@ -163,10 +163,6 @@ void FluidModel::calcPressure()
 
             //add divergence to current pressure.
             index = i + j * width;
-            if(velGrid[index * velocity.getNumChannels()] != 0 || velGrid[index * velocity.getNumChannels() + 1] != 0)
-            {
-                int x = 2;
-            }
             float divergence = calcDivergence(i, j);
             pGrid[index * pressure.getNumChannels()] = (curPressure / 4.0) - (divergence * (pressure.getCellSize() * pressure.getCellSize()) / 4.0);
         }
@@ -275,10 +271,6 @@ float FluidModel::calcDivergence(int i, int j)
     if(index < 0 || index > size) vertprev = 0.0f;
     else vertprev = velGrid[index + 1];
     vert = (vertnext - vertprev) / (2 * velocity.getCellSize());
-    if(vertnext != 0 || vertprev != 0 || vert != 0)
-    {
-        int x = 1;
-    }
 
     return horz + vert;
 }
@@ -391,6 +383,16 @@ void FluidModel::setHasSource(bool t)
     hasSource = t;
 }
 
+void FluidModel::reset()
+{
+    density.zeroOut();
+    velocity.zeroOut();
+    pressure.zeroOut();
+    charMap.zeroOut();
+    obstruction.setDataFloat(1.0);
+    hasSource = false;
+}
+
 float FluidModel::interpolateF(Buffer2D* buf, glm::vec2 vec)
 {
     //it's a binlinear interpolation.
@@ -425,6 +427,11 @@ float FluidModel::interpolateF(Buffer2D* buf, glm::vec2 vec)
 Buffer2D* FluidModel::getSource()
 {
     return source;
+}
+
+Buffer2D* FluidModel::getObstruction()
+{
+    return &obstruction;
 }
 
 

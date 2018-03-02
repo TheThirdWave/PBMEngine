@@ -102,8 +102,9 @@ enum keyState{
 };
 
 enum progState{
-    IDLE = 0,
-    DRAW = 1,
+    RUNNING = 1,
+    DRAW = 1 << 1,
+    PAUSED = 1 << 2,
 };
 
 #endif // STRUCTPILE_H
