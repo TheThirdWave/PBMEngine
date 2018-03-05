@@ -15,6 +15,39 @@ void SphereFunction3D::setRadius(float r)
     normal.x = r;
 }
 
+void SphereFunction3D::setTexNorms(glm::vec3 upVec, glm::vec3 polVec)
+{
+    normal2 = glm::normalize(upVec);
+    normal3 = glm::normalize(polVec);
+}
+
+glm::vec4 SphereFunction3D::getTexCol(glm::vec3 pt)
+{
+    glm::vec3 p0 = origPoint;
+    glm::vec3 up = normal2;
+    glm::vec3 forward = normal3;
+    if(glm::length(glm::cross(up, forward)) == 0)
+    {
+        up = glm::vec3(0.0f, -1.0f, 0.0f);
+        forward = glm::vec3(0.0f, 0.0f, 1.0f);
+    }
+    glm::vec3 n0, n1, n2;
+    n0 = glm::normalize(glm::cross(up, forward));
+    n1 = glm::normalize(glm::cross(p, n0));
+    n2 = up;
+    int texWidth = texture->getWidth();
+    int texHeight = texture->getHeight();
+    int ptx = glm::dot((pt - p0), n0);
+    int pty = glm::dot((pt - p0), n1);
+    int buf[4];
+    ptx = ptx % texWidth;
+    if(ptx < 0) ptx += texWidth;
+    pty = pty % texHeight;
+    if(pty < 0) pty += texHeight;
+    texture->getDataAt(ptx, pty, buf);
+    return glm::vec4((buf[0] / 255.0f) * cD.a, (buf[1] / 255.0f) * cD.a, (buf[2] / 255.0f) * cD.a, cD.a);
+}
+
 float SphereFunction3D::getRelativePoint(glm::vec3 pt)
 {
     float radius = glm::length(normal);

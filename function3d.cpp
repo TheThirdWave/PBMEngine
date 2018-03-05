@@ -71,6 +71,11 @@ void Function3D::setGeometry(geometry g)
     geo = g;
 }
 
+void Function3D::setTexture(Imagemanip* tex)
+{
+    texture = tex;
+}
+
 glm::vec4 Function3D::getCS()
 {
     return cS;

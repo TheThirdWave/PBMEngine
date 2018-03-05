@@ -156,6 +156,19 @@ int Imagemanip::getWidth()
     return screen.width;
 }
 
+int Imagemanip::getNumChannels()
+{
+    return screen.unitbytes;
+}
+
+void Imagemanip::getDataAt(int x, int y, int* buf)
+{
+    for(int i = 0; i < screen.unitbytes; i++)
+    {
+        buf[i] = screen.data[(x + (y * screen.width)) * screen.unitbytes + i];
+    }
+}
+
 image Imagemanip::getScreen()
 {
     image img;
@@ -757,6 +770,7 @@ void Imagemanip::draw3D(glm::vec3 pE, float d, glm::vec3 upVec, glm::vec3 v2, fl
 
                 //we get the average of all the subpixel colors for the final pixel color.
                 color = color / (float)count;
+
                 screen.data[x + (y * screen.width)] = color.r / color.a * 255;
                 screen.data[(x + 1) + (y * screen.width)] = color.g / color.a * 255;
                 screen.data[(x + 2) + (y * screen.width)] = color.b / color.a * 255;

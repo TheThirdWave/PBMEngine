@@ -411,11 +411,12 @@ void KeyHandler(unsigned char key, int x, int y)
             gTest.radius = 1.0f;
             gTest.width = 0.9;
             PlaneFunction hold3;
-            hold3.setPoint(glm::vec3(0.0f, 100.0f, 0.0f));
-            hold3.setNormal(glm::vec3(0.0f, -1.0f, 0.0f));
+            hold3.setPoint(glm::vec3(0.0f, 0.0f, -100.0f));
+            hold3.setNormal(glm::normalize(glm::vec3(0.0f, -0.0f, 0.5f)));
             hold3.setColor(glm::vec4(800.0f, 800.0f, 1000.0f, 1000.0f), glm::vec4(0.0f, 0.0f, 100.0f, 100.0f), glm::vec4(0.0f, 0.0f, 1000.0f, 1000.0f));
             hold3.setGeometry(gTest);
-            hold3.shader = &Shaders::diffuseShadow;
+            hold3.setTexture(&outerMask);
+            hold3.shader = &Shaders::texMap;
             Screen.addFunction3D(&hold3);
             DirectionalLight light;
             light.initialize(glm::normalize(glm::vec3(0.0f, 0.5f, -0.5f)));

@@ -39,6 +39,8 @@ public:
     Imagemanip(image*);
     int getWidth();
     int getHeight();
+    int getNumChannels();
+    void getDataAt(int, int, int*);
     void setScreen(image*);
     void setKernel(int, int);
     void setKernelValues(float);

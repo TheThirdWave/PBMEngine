@@ -18,6 +18,8 @@ protected:
     int a02, a12, a22, a21, a00, pointIdx;
     float s0, s1, s2;
     geometry geo;
+    Imagemanip* texture;
+
 public:
     Function3D();
     Function3D(glm::vec3, glm::vec3);
@@ -30,10 +32,12 @@ public:
     void setQParams(int, int, int, int, int);
     void setQReals(float, float, float);
     void setGeometry(geometry);
+    void setTexture(Imagemanip*);
     geometry getGeo();
     glm::vec4 getCS();
     glm::vec4 getCD();
     glm::vec4 getCA();
+    virtual glm::vec4 getTexCol(glm::vec3) = 0;
     virtual float getRelativePoint(glm::vec3) = 0;
     virtual int getRelativeLine(glm::vec3, glm::vec3, intercept*, int) = 0;
     virtual glm::vec3 getSurfaceNormal(glm::vec3) = 0;
