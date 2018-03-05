@@ -1,4 +1,5 @@
 #include "spherefunction3d.h"
+#include "imagemanip.h"
 
 SphereFunction3D::SphereFunction3D()
 {
@@ -33,18 +34,18 @@ glm::vec4 SphereFunction3D::getTexCol(glm::vec3 pt)
     }
     glm::vec3 n0, n1, n2;
     n0 = glm::normalize(glm::cross(up, forward));
-    n1 = glm::normalize(glm::cross(p, n0));
+    n1 = glm::normalize(glm::cross(up, n0));
     n2 = up;
     int texWidth = texture->getWidth();
     int texHeight = texture->getHeight();
-    int ptx = glm::dot((pt - p0), n0);
-    int pty = glm::dot((pt - p0), n1);
+    float z = glm::dot((pt - p0), -n2) / (normal.x);
+    float phi = std::acos(z);
+    float x = glm::dot((pt - p0), n0) / (normal.x);
+    float y = glm::dot((pt - p0), n1) / (normal.x);
+    float cos = std::acos((y / std::sin(phi)));
+    if(x < 0) cos = (2 * PI) - cos;
     int buf[4];
-    ptx = ptx % texWidth;
-    if(ptx < 0) ptx += texWidth;
-    pty = pty % texHeight;
-    if(pty < 0) pty += texHeight;
-    texture->getDataAt(ptx, pty, buf);
+    texture->getDataAt((cos / (2*PI) * texWidth), (phi / PI * texHeight), buf);
     return glm::vec4((buf[0] / 255.0f) * cD.a, (buf[1] / 255.0f) * cD.a, (buf[2] / 255.0f) * cD.a, cD.a);
 }
 

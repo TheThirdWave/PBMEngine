@@ -567,3 +567,7 @@ glm::vec4 Shaders::texMap(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 p
 
 }
 
+glm::vec4 Shaders::skySphere(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj)
+{
+    return obj.getTexCol(pH);
+}

@@ -28,6 +28,7 @@
 #include "trigfunction.h"
 #include "quadraticfunction.h"
 #include "quadraticfunction3d.h"
+#include "infinitysphere.h"
 #include "directionallight.h"
 #include "pointlight.h"
 #include "spotlight.h"
@@ -397,7 +398,9 @@ void KeyHandler(unsigned char key, int x, int y)
             hold.setRadius(100.0f);
             hold.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(100.0f, 0.0f, 0.0f, 100.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
             hold.setGeometry(gTest);
-            hold.shader = &Shaders::phongShadow;
+            hold.setTexNorms(glm::normalize(glm::vec3(0.0f, -1.0f, 0.0f)), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)));
+            hold.setTexture(&outerMask);
+            hold.shader = &Shaders::texMap;
             Screen.addFunction3D(&hold);
             gTest.depth = 5.0f;
             SphereFunction3D hold2;
@@ -411,13 +414,20 @@ void KeyHandler(unsigned char key, int x, int y)
             gTest.radius = 1.0f;
             gTest.width = 0.9;
             PlaneFunction hold3;
-            hold3.setPoint(glm::vec3(0.0f, 0.0f, -100.0f));
-            hold3.setNormal(glm::normalize(glm::vec3(0.0f, -0.0f, 0.5f)));
+            hold3.setPoint(glm::vec3(0.0f, 100.0f, -100.0f));
+            hold3.setNormal(glm::normalize(glm::vec3(0.0f, -1.0f, 0.0f)));
             hold3.setColor(glm::vec4(800.0f, 800.0f, 1000.0f, 1000.0f), glm::vec4(0.0f, 0.0f, 100.0f, 100.0f), glm::vec4(0.0f, 0.0f, 1000.0f, 1000.0f));
             hold3.setGeometry(gTest);
             hold3.setTexture(&outerMask);
-            hold3.shader = &Shaders::texMap;
+            hold3.shader = &Shaders::diffuseShadow;
             Screen.addFunction3D(&hold3);
+            InfinitySphere hold4;
+            hold4.setRadius(10.0f);
+            hold4.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(100.0f, 0.0f, 0.0f, 100.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
+            hold4.setTexture(&outerMask);
+            hold4.setTexNorms(glm::normalize(glm::vec3(0.0f, -1.0f, 0.0f)), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)));
+            hold4.shader = &Shaders::skySphere;
+            Screen.addFunction3D(&hold4);
             DirectionalLight light;
             light.initialize(glm::normalize(glm::vec3(0.0f, 0.5f, -0.5f)));
             light.setColor(glm::vec4(200.0f, 200.0f, 200.0f, 200.0f));

@@ -28,7 +28,8 @@ SOURCES += main.cpp \
     directionallight.cpp \
     pointlight.cpp \
     spotlight.cpp \
-    arealight.cpp
+    arealight.cpp \
+    infinitysphere.cpp
 
 OTHER_FILES += \
     vertshade \
@@ -63,7 +64,8 @@ HEADERS += \
     directionallight.h \
     pointlight.h \
     spotlight.h \
-    arealight.h
+    arealight.h \
+    infinitysphere.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt
 
