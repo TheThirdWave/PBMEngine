@@ -35,14 +35,14 @@ glm::vec4 InfinitySphere::getTexCol(glm::vec3 pt)
     n2 = up;
     int texWidth = texture->getWidth();
     int texHeight = texture->getHeight();
-    float z = glm::dot(pt, -n2);
+    float z = glm::dot(npt, -n2);
     float phi = std::acos(z);
-    float x = glm::dot(pt, n0);
-    float y = glm::dot(pt, n1);
+    float x = glm::dot(npt, n0);
+    float y = glm::dot(npt, n1);
     float cos = std::acos((y / std::sin(phi)));
     if(x < 0) cos = (2 * PI) - cos;
     int buf[4];
-    texture->getDataAt((cos / (2*PI) * texWidth), (phi / PI * texHeight), buf);
+    texture->getDataAt((cos/(2*PI) * texWidth), ((PI - phi)/PI * texHeight), buf);
     return glm::vec4((buf[0] / 255.0f) * cD.a, (buf[1] / 255.0f) * cD.a, (buf[2] / 255.0f) * cD.a, cD.a);
 }
 

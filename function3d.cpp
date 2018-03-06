@@ -66,6 +66,11 @@ void Function3D::setQReals(float s, float ss, float sss)
     s2 = sss;
 }
 
+void Function3D::setDisp(float d)
+{
+    disp = d;
+}
+
 void Function3D::setGeometry(geometry g)
 {
     geo = g;
@@ -89,6 +94,11 @@ glm::vec4 Function3D::getCD()
 glm::vec4 Function3D::getCA()
 {
     return cA;
+}
+
+float Function3D::getDisp()
+{
+    return disp;
 }
 
 geometry Function3D::getGeo()

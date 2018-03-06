@@ -45,7 +45,10 @@ glm::vec4 SphereFunction3D::getTexCol(glm::vec3 pt)
     float cos = std::acos((y / std::sin(phi)));
     if(x < 0) cos = (2 * PI) - cos;
     int buf[4];
-    texture->getDataAt((cos / (2*PI) * texWidth), (phi / PI * texHeight), buf);
+    float hold = cos/(2*PI);
+    float hold2 = (PI-phi)/PI;
+
+    texture->getDataAt((cos / (2*PI) * texWidth), ((PI - phi) / PI * texHeight), buf);
     return glm::vec4((buf[0] / 255.0f) * cD.a, (buf[1] / 255.0f) * cD.a, (buf[2] / 255.0f) * cD.a, cD.a);
 }
 
