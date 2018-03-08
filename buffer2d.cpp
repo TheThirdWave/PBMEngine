@@ -97,6 +97,7 @@ void Buffer2D::readImage(const char * fName)
     width = spec.width;
     height = spec.height;
     channels = spec.nchannels;
+    cellSize = 1;
     float* pixels = new float[width*height*channels];
     buffer = new float[width*height*channels];
     in->read_image (TypeDesc::FLOAT, pixels);

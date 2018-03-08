@@ -10,9 +10,12 @@ FluidModel::FluidModel(Buffer2D *initBuf, Buffer2D* s)
     density.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
     velocity.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
     charMap.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
+    charMap2.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
+    err.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
     pressure.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
     obstruction.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
     obstruction.setDataFloat(1);
+    setObsBoundary();
     source = s;
     color = initBuf;
     hasSource = false;
@@ -26,9 +29,12 @@ void FluidModel::init(Buffer2D *initBuf, Buffer2D* s)
     density.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
     velocity.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
     charMap.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
+    charMap2.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
+    err.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
     pressure.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
     obstruction.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
     obstruction.setDataFloat(1);
+    setObsBoundary();
     source = s;
     color = initBuf;
     hasSource = false;
@@ -39,7 +45,8 @@ void FluidModel::init(Buffer2D *initBuf, Buffer2D* s)
 
 void FluidModel::runSLTimeStep(double timeStep)
 {
-    cMapSLAdvect(timeStep);
+    //cMapSLAdvect(timeStep);
+    cMapMCAdvect(timeStep);
     advection(timeStep);
     if(hasSource)
     {
@@ -50,6 +57,7 @@ void FluidModel::runSLTimeStep(double timeStep)
     forces(timeStep);
     for(int j = 0; j < iopLoops; j++)
     {
+        pressure.zeroOut();
         for(int i = 0; i < pLoops; i++)
         {
             calcPressure();
@@ -80,13 +88,17 @@ void FluidModel::advection(double timeStep)
             int index = i + j * width;
             iVec.x = cMap[index * charMap.getNumChannels()];
             iVec.y = cMap[index * charMap.getNumChannels() + 1];
+            if(iVec.y >= height || iVec.y < 0)
+            {
+                int x = x + 1;
+            }
 
             //update the density and velocity from the point of advection.
-            denGrid[index * density.getNumChannels()] = interpolateF(&density, iVec / charMap.getCellSize());
-            vel = interpolate2Vec(&velocity, iVec / charMap.getCellSize());
+            denGrid[index * density.getNumChannels()] = interpolateF(&density, iVec / density.getCellSize());
+            vel = interpolate2Vec(&velocity, iVec / velocity.getCellSize());
             velGrid[index * velocity.getNumChannels()] = vel.x;
             velGrid[index * velocity.getNumChannels() + 1] = vel.y;
-            col = interpolate3Vec(color, iVec / charMap.getCellSize());
+            col = interpolate3Vec(color, iVec / color->getCellSize());
             colGrid[index * color->getNumChannels()] = col.r;
             colGrid[index * color->getNumChannels() + 1] = col.g;
             colGrid[index * color->getNumChannels() + 2] = col.b;
@@ -148,7 +160,6 @@ void FluidModel::calcPressure()
     float* velGrid = velocity.getBuf();
     for(int j = 0; j < height; j++)
     {
-    #pragma omp parallel for
         for(int i = 0; i < width; i++)
         {
             int index = i + j * width;
@@ -196,14 +207,14 @@ void FluidModel::applyPressure()
             //get pressure differential along the x-axis.
             int index1 = (i + 1) + j * width;
             int index2 = (i - 1) + j * width;
-            if(index1 * pressure.getNumChannels() >= size) curP.x = pGrid[index2 * pressure.getNumChannels()] / (2.0 * pressure.getCellSize());
+            if(index1 * pressure.getNumChannels() >= size) curP.x = -pGrid[index2 * pressure.getNumChannels()] / (2.0 * pressure.getCellSize());
             else if(index2 * pressure.getNumChannels() < 0) curP.x = pGrid[index1 * pressure.getNumChannels()] / (2.0 * pressure.getCellSize());
             else curP.x = (pGrid[index1 * pressure.getNumChannels()] - pGrid[index2 * pressure.getNumChannels()]) / (2.0 * pressure.getCellSize());
 
             //get pressure differential along the y-axis.
             index1 = i + (j + 1) * width;
             index2 = i + (j - 1) * width;
-            if(index1 * pressure.getNumChannels() >= size) curP.y = pGrid[index2 * pressure.getNumChannels()] / (2.0 * pressure.getCellSize());
+            if(index1 * pressure.getNumChannels() >= size) curP.y = -pGrid[index2 * pressure.getNumChannels()] / (2.0 * pressure.getCellSize());
             else if(index2 * pressure.getNumChannels() < 0) curP.y = pGrid[index1 * pressure.getNumChannels()] / (2.0 * pressure.getCellSize());
             else curP.y = (pGrid[index1 * pressure.getNumChannels()] - pGrid[index2 * pressure.getNumChannels()]) / (2.0 * pressure.getCellSize());
 
@@ -270,6 +281,153 @@ void FluidModel::cMapSLAdvect(double timeStep)
     }
 }
 
+void FluidModel::cMapMCAdvect(double timeStep)
+{
+    int width = charMap.getWidth();
+    int height = charMap.getHeight();
+    float* cMap = charMap.getBuf();
+    float* cMap2 = charMap2.getBuf();
+    float* error = err.getBuf();
+    float* velGrid = velocity.getBuf();
+
+    //first we advect forwards using semi-lagrangian, we store the forwards map in charMap2
+    for(int j = 0; j < height; j++)
+    {
+    #pragma omp parallel for
+        for(int i = 0; i < width; i++)
+        {
+            glm::vec2 iVec;
+            glm::vec2 vel;
+            //Get the point in space represented by the index.
+            iVec.x = (float)i;
+            iVec.y = (float)j;
+            iVec = iVec * charMap.getCellSize();
+            int index = i + j * width;
+
+            //get the velocity at the point we're looping over so we know the point to advect from.
+            vel.x = velGrid[index * velocity.getNumChannels()];
+            vel.y = velGrid[index * velocity.getNumChannels() + 1];
+
+            //subtract the velocity from the position of the point to get the point to advect from.
+            iVec = iVec - vel * (float)timeStep;
+            cMap[index * charMap.getNumChannels()] = iVec.x;
+            cMap[index * charMap.getNumChannels() + 1] = iVec.y;
+        }
+    }
+    //now we advect backwards using semi-lagrangian, we store the backwards map in charMap
+    for(int j = 0; j < height; j++)
+    {
+    #pragma omp parallel for
+        for(int i = 0; i < width; i++)
+        {
+            glm::vec2 iVec;
+            glm::vec2 vel;
+            //Get the point in space represented by the index.
+            iVec.x = (float)i;
+            iVec.y = (float)j;
+            iVec = iVec * charMap2.getCellSize();
+            int index = i + j * width;
+
+            //get the velocity at the point we're looping over so we know the point to advect from.
+            vel.x = velGrid[index * velocity.getNumChannels()];
+            vel.y = velGrid[index * velocity.getNumChannels() + 1];
+
+            //add the velocity to the point in space and pass that into charMap2. If we weren't using grids
+            //(and thus interpolation) this would just return our original point.  As it is, however, the
+            //point we get back is slightly off.
+            iVec = iVec + vel * (float)timeStep;
+            iVec = interpolate2Vec(&charMap, iVec / charMap.getCellSize());
+            cMap2[index * charMap2.getNumChannels()] = iVec.x;
+            cMap2[index * charMap2.getNumChannels() + 1] = iVec.y;
+        }
+    }
+    //now we get the error between our backwards advection and the actual point we're advecting.
+    for(int j = 0; j < height; j++)
+    {
+    #pragma omp parallel for
+        for(int i = 0; i < width; i++)
+        {
+            glm::vec2 iVec;
+            glm::vec2 vel;
+            //Get the point in space represented by the index.
+            iVec.x = (float)i;
+            iVec.y = (float)j;
+            iVec = iVec * err.getCellSize();
+            int index = i + j * width;
+
+            //get the velocity at the point we're looping over so we know the point to advect from.
+            vel.x = velGrid[index * velocity.getNumChannels()];
+            vel.y = velGrid[index * velocity.getNumChannels() + 1];
+
+            //subtract the forward advection from the actual point to get the error.
+            iVec = (iVec - interpolate2Vec(&charMap2, iVec / err.getCellSize())) / 2.0f;
+            error[index * err.getNumChannels()] = iVec.x;
+            error[index * err.getNumChannels() + 1] = iVec.y;
+        }
+    }
+    //Now we add the error to the forward map to get a better approximate advection.
+    for(int j = 0; j < height; j++)
+    {
+    #pragma omp parallel for
+        for(int i = 0; i < width; i++)
+        {
+            glm::vec2 iVec;
+            glm::vec2 vel;
+            //Get the point in space represented by the index.
+            iVec.x = (float)i;
+            iVec.y = (float)j;
+            iVec = iVec * charMap.getCellSize();
+            int index = i + j * width;
+
+            //get the velocity at the point we're looping over so we know the point to advect from.
+            vel.x = velGrid[index * velocity.getNumChannels()];
+            vel.y = velGrid[index * velocity.getNumChannels() + 1];
+
+            //subtract the velocity from the position of the point to get the point to advect from.
+            iVec = interpolate2Vec(&charMap, iVec / charMap.getCellSize()) + interpolate2Vec(&err, iVec / err.getCellSize());
+            cMap[index * charMap.getNumChannels()] = iVec.x;
+            cMap[index * charMap.getNumChannels() + 1] = iVec.y;
+        }
+    }
+}
+
+void FluidModel::setObsBoundary()
+{
+    int width = obstruction.getWidth();
+    int height = obstruction.getHeight();
+    int size = width * height * obstruction.getNumChannels();
+    float* obsGrid = obstruction.getBuf();
+
+ #pragma omp parallel for
+    for(int i = 0; i < width; i++)
+    {
+        int j = 0;
+        int index = i + j * width;
+        obsGrid[index * obstruction.getNumChannels()] = 0;
+    }
+#pragma omp parallel for
+   for(int i = 0; i < width; i++)
+   {
+       int j = height - 1;
+       int index = i + j * width;
+       obsGrid[index * obstruction.getNumChannels()] = 0;
+   }
+#pragma omp parallel for
+   for(int j = 0; j < height; j++)
+   {
+       int i = 0;
+       int index = i + j * width;
+       obsGrid[index * obstruction.getNumChannels()] = 0;
+   }
+#pragma omp parallel for
+   for(int j = 0; j < height; j++)
+   {
+       int i = width - 1;
+       int index = i + j * width;
+       obsGrid[index * obstruction.getNumChannels()] = 0;
+   }
+}
+
 float FluidModel::calcDivergence(int i, int j)
 {
     int index;
@@ -279,29 +437,56 @@ float FluidModel::calcDivergence(int i, int j)
     float vert, vertprev, vertnext;
 
     index = ((i + 1) + j * velocity.getWidth()) * velocity.getNumChannels();
-    if(index < 0 || index > size)
+    if(index < 0 || index >= size)
     {
         horznext = 0.0f;
     }
     else horznext = velGrid[index];
     index = ((i - 1) + j * velocity.getWidth()) * velocity.getNumChannels();
-    if(index < 0 || index > size) horzprev = 0.0f;
+    if(index < 0 || index >= size) horzprev = 0.0f;
     else horzprev = velGrid[index];
     horz = (horznext - horzprev) / (2 * velocity.getCellSize());
-    if(horznext != 0 || horzprev != 0 || horz != 0)
-    {
-        int x = 0;
-    }
 
     index = (i + (j + 1) * velocity.getWidth()) * velocity.getNumChannels();
-    if(index < 0 || index > size) vertnext = 0.0f;
+    if(index < 0 || index >= size) vertnext = 0.0f;
     else vertnext = velGrid[index + 1];
     index = (i + (j - 1) * velocity.getWidth()) * velocity.getNumChannels();
-    if(index < 0 || index > size) vertprev = 0.0f;
+    if(index < 0 || index >= size) vertprev = 0.0f;
     else vertprev = velGrid[index + 1];
     vert = (vertnext - vertprev) / (2 * velocity.getCellSize());
 
     return horz + vert;
+}
+
+float FluidModel::interpolateF(Buffer2D* buf, glm::vec2 vec)
+{
+    //it's a binlinear interpolation.
+    float* rawBuf = buf->getBuf();
+    int size = buf->getWidth() * buf->getHeight() * buf->getNumChannels();
+    int x1 = (int)vec.x;
+    int y1 = (int)vec.y;
+    int x2 = x1 + 1;
+    int y2 = y1 + 1;
+    int idx = (x1 + y1 * buf->getWidth()) * buf->getNumChannels();
+    float d0;
+    if(idx < 0 || idx >= size) d0 = 0;
+    else d0 = rawBuf[idx];
+    idx = (x1 + y2 * buf->getWidth()) * buf->getNumChannels();
+    float d1;
+    if(idx < 0 || idx >= size) d1 = 0;
+    else d1 = rawBuf[idx];
+    idx = (x2 + y1 * buf->getWidth()) * buf->getNumChannels();
+    float d2;
+    if(idx < 0 || idx >= size) d2 = 0;
+    else d2 = rawBuf[idx];
+    idx = (x2 + y2 * buf->getWidth()) * buf->getNumChannels();
+    float d3;
+    if(idx < 0 || idx >= size) d3 = 0;
+    else d3 = rawBuf[idx];
+    float fx1 = (((float)x2 - vec.x)/((float)x2 - (float)x1)) * d0 + ((vec.x - (float)x1)/((float)x2 - (float)x1)) * d2;
+    float fx2 = (((float)x2 - vec.x)/((float)x2 - (float)x1)) * d1 + ((vec.x - (float)x1)/((float)x2 - (float)x1)) * d3;
+    float fF = (((float)y2 - vec.y)/((float)y2 - (float)y1)) * fx1 + ((vec.y - (float)y1)/((float)y2 - (float)y1)) * fx2;
+    return fF;
 }
 
 glm::vec2 FluidModel::interpolate2Vec(Buffer2D* buf, glm::vec2 vec)
@@ -447,36 +632,6 @@ void FluidModel::reset()
     hasSource = false;
 }
 
-float FluidModel::interpolateF(Buffer2D* buf, glm::vec2 vec)
-{
-    //it's a binlinear interpolation.
-    float* rawBuf = buf->getBuf();
-    int size = buf->getWidth() * buf->getHeight() * buf->getNumChannels();
-    int x1 = (int)vec.x;
-    int y1 = (int)vec.y;
-    int x2 = x1 + 1;
-    int y2 = y1 + 1;
-    int idx = x1 + y1 * buf->getWidth() * buf->getNumChannels();
-    float d0;
-    if(idx < 0 || idx >= size) d0 = 0;
-    else d0 = rawBuf[idx];
-    idx = x1 + y2 * buf->getWidth() * buf->getNumChannels();
-    float d1;
-    if(idx < 0 || idx >= size) d1 = 0;
-    else d1 = rawBuf[idx];
-    idx = x2 + y1 * buf->getWidth() * buf->getNumChannels();
-    float d2;
-    if(idx < 0 || idx >= size) d2 = 0;
-    else d2 = rawBuf[idx];
-    idx = x2 + y2 * buf->getWidth() * buf->getNumChannels();
-    float d3;
-    if(idx < 0 || idx >= size) d3 = 0;
-    else d3 = rawBuf[idx];
-    float fx1 = (((float)x2 - vec.x)/((float)x2 - (float)x1)) * d0 + ((vec.x - (float)x1)/((float)x2 - (float)x1)) * d2;
-    float fx2 = (((float)x2 - vec.x)/((float)x2 - (float)x1)) * d1 + ((vec.x - (float)x1)/((float)x2 - (float)x1)) * d3;
-    float fF = (((float)y2 - vec.y)/((float)y2 - (float)y1)) * fx1 + ((vec.y - (float)y1)/((float)y2 - (float)y1)) * fx2;
-    return fF;
-}
 
 Buffer2D* FluidModel::getSource()
 {

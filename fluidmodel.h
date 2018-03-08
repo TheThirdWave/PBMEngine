@@ -10,6 +10,8 @@ private:
     Buffer2D density;
     Buffer2D velocity;
     Buffer2D charMap;
+    Buffer2D charMap2;
+    Buffer2D err;
     Buffer2D pressure;
     Buffer2D obstruction;
     Buffer2D* source;
@@ -31,6 +33,8 @@ public:
     void enforceBounds();
 
     void cMapSLAdvect(double timeStep);
+    void cMapMCAdvect(double timeStep);
+    void setObsBoundary();
 
     float calcDivergence(int i, int j);
 

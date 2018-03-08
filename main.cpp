@@ -33,6 +33,7 @@ void mouseButtonHandler(GLFWwindow* window, int button, int action, int mods);
 GLuint LoadShaders(const char * vertex_file_path, const char * fragment_file_path);
 void initializeBrushes();
 void dabSomePaint(Buffer2D *scr, int x, int y);
+void convertSourceIn();
 void display(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, glm::mat4 &mvp);
 void update(double ts);
 
@@ -42,6 +43,7 @@ static float WIDTH, HEIGHT;
 //globals (because I am lazy)
 Buffer2D loadedImg;
 Buffer2D displayBuf;
+Buffer2D sourceInBuf;
 Buffer2D sourceBuf;
 GLuint uvbuffer, textureID;
 FluidModel fluidModel;
@@ -51,7 +53,8 @@ float obstruction_brush[BRUSH_SIZE][BRUSH_SIZE];
 float source_brush[BRUSH_SIZE][BRUSH_SIZE];
 int paint_mode;
 
-int prog_state;
+int prog_state = 0;
+int capturedFrames = 0;
 double prev_time, cur_time, delta_time, d_delta_time, d_prev_time, d_cur_time;
 double timeStep = 1.0 / (60.0 * 1.0);
 double simTime = 0.0f;
@@ -65,10 +68,19 @@ int main(int argc, char* argv[])
 
     int pLoops = clf.find("-gs", 5, "Number of Gauss-Seidel iterations.");
     int iopLoops = clf.find("-iop", 5, "Number of Iterated Orthogonal Projection loops.");
+    float timeToCapture = clf.find("-ttc", 0, "How long to run the non-interactive simulation.");
+    std::string sourceIn = clf.find("-source", "", "File name for source input");
+    if(sourceIn != "")
+    {
+        prog_state = prog_state | SOURCEIN;
+        sourceInBuf.readImage(sourceIn.c_str());
+    }
+    timeStep = clf.find("-ts", (1.0f / (60.0f)), "Starting timestep size.");
 
     //load initial images;
-    loadedImg.readImage("../GWbackground.png");
-    displayBuf.readImage("../GWbackground.png");
+    loadedImg.readImage("../black.png");
+    displayBuf.readImage("../black.png");
+    
     sourceBuf.init(displayBuf.getWidth(), displayBuf.getHeight(), 1, 1.0);
 
     //init brushes.
@@ -216,37 +228,32 @@ int main(int argc, char* argv[])
     d_prev_time = d_cur_time;
 
     do {
-/*
-        cur_time = glfwGetTime();
-        delta_time = cur_time - prev_time;
-        /*if(delta_time2 > delta_time)
+
+        if(prog_state & SOURCEIN) convertSourceIn();
+        if(timeToCapture <= 0)
         {
-            delta_time2 = timeStep;
-            delta_time = timeStep;
-        }
-        if(delta_time >= timeStep)
-        {
-            prev_time = cur_time;
-            double loops  = 0;
-            while(loops < delta_time)
+            if(prog_state & RUNNING)
             {
                 update(timeStep);
-
-                loops += timeStep;
+                simTime += timeStep;
+            }
+            d_cur_time = glfwGetTime();
+            d_delta_time = d_cur_time - d_prev_time;
+            if(d_delta_time >= displayTime)
+            {
+                d_prev_time = d_cur_time;
+                display(window, MatrixID, programID, vertexbuffer, mvp);
             }
         }
-*/
-        if(prog_state & RUNNING)
+        else
         {
-            update(timeStep);
-            simTime += timeStep;
-        }
-        d_cur_time = glfwGetTime();
-        d_delta_time = d_cur_time - d_prev_time;
-        if(d_delta_time >= displayTime)
-        {
-            d_prev_time = d_cur_time;
-            display(window, MatrixID, programID, vertexbuffer, mvp);
+            while(simTime < timeToCapture)
+            {
+                update(timeStep);
+                simTime += timeStep;
+                displayBuf.writeImage(("../Mov/frame" + std::to_string(capturedFrames++) + ".png").c_str());
+                display(window, MatrixID, programID, vertexbuffer, mvp);
+            }
         }
 		glfwPollEvents();
 
@@ -486,10 +493,10 @@ void dabSomePaint(Buffer2D* scr, int x, int y )
             int index = ix + iwidth*(iheight-iy-1);
             for(int w = 0; w < nBytes; w++)
             {
-                baseimage[nBytes*index + w] *= obstruction_brush[ix-xstart][iy-ystart];
+                if(nBytes * index + w < nBytes * iwidth * iheight) baseimage[nBytes*index + w] *= obstruction_brush[ix-xstart][iy-ystart];
             }
 
-            obsBuf[obsChannel*index] = 0.0f;
+            if(obsChannel*index < obs->getHeight() * obs->getWidth() * obsChannel) obsBuf[obsChannel*index] = 0.0f;
 
         }
       }
@@ -503,7 +510,7 @@ void dabSomePaint(Buffer2D* scr, int x, int y )
              int index = ix + iwidth*(iheight-iy-1);
              for(int w = 0; w < nBytes; w++)
              {
-                baseimage[nBytes*index + w] += source_brush[ix-xstart][iy-ystart];
+                if(nBytes * index + w < nBytes * iwidth * iheight) baseimage[nBytes*index + w] += source_brush[ix-xstart][iy-ystart];
              }
          }
       }
@@ -511,6 +518,26 @@ void dabSomePaint(Buffer2D* scr, int x, int y )
 
 
    return;
+}
+
+void convertSourceIn()
+{
+    Buffer2D* source = fluidModel.getSource();
+    float* sourceGrid = source->getBuf();
+    float* inGrid = sourceInBuf.getBuf();
+    int width = source->getWidth();
+    int height = source->getHeight();
+
+    for(int j = 0; j < height; j++)
+    {
+    #pragma omp parallel for
+        for(int i = 0; i < width; i++)
+        {
+            int index = i + j * width;
+            sourceGrid[index * source->getNumChannels()] += inGrid[index * sourceInBuf.getNumChannels()];
+        }
+    }
+    fluidModel.setHasSource(true);
 }
 
 

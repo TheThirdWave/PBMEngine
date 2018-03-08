@@ -105,6 +105,7 @@ enum progState{
     RUNNING = 1,
     DRAW = 1 << 1,
     PAUSED = 1 << 2,
+    SOURCEIN = 1 << 3,
 };
 
 #endif // STRUCTPILE_H
