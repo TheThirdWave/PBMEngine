@@ -735,6 +735,7 @@ void Imagemanip::draw3D(glm::vec3 pE, float d, glm::vec3 upVec, glm::vec3 v2, fl
                         t = -1;
                         //actually cast the ray to check if it hits anything.
                         numHits = shades.castRay(pE, nPe, hits, numHits);
+
                         //get the closest t value from the intercepts to get the actual point to shade.
                         if(numHits != 0)
                         {

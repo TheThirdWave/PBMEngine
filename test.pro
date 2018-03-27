@@ -29,7 +29,9 @@ SOURCES += main.cpp \
     pointlight.cpp \
     spotlight.cpp \
     arealight.cpp \
-    infinitysphere.cpp
+    infinitysphere.cpp \
+    trianglefunction.cpp \
+    trianglemesh.cpp
 
 OTHER_FILES += \
     vertshade \
@@ -65,7 +67,9 @@ HEADERS += \
     pointlight.h \
     spotlight.h \
     arealight.h \
-    infinitysphere.h
+    infinitysphere.h \
+    trianglefunction.h \
+    trianglemesh.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt
 

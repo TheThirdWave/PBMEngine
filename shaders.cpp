@@ -81,9 +81,12 @@ float Shaders::getTotalR(intercept *ret, int idx, Function3D& obj)
         }
         else if(ret[i].obj != closest.obj && indicies[i + 1] > i)
         {
-            r += (ret[indicies[(int)closest.t] + 1].t - ret[(int)closest.t + 1].t) - (ret[indicies[(int)closest.t + 1]].t - ret[i].t);
-            closest.obj = ret[i].obj;
-            closest.t = (float)i;
+            if(indicies[(int)closest.t + 1] < idx)
+            {
+                r += (ret[indicies[(int)closest.t] + 1].t - ret[(int)closest.t + 1].t) - (ret[indicies[(int)closest.t + 1]].t - ret[i].t);
+                closest.obj = ret[i].obj;
+                closest.t = (float)i;
+            }
         }
     }
 

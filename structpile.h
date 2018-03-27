@@ -57,6 +57,12 @@ struct triangle {
     glm::vec3   c;
 };
 
+struct triangle2d {
+    glm::vec2   a;
+    glm::vec2   b;
+    glm::vec2   c;
+};
+
 struct intercept{
     Function3D* obj;
     float t;

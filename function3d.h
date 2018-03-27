@@ -15,10 +15,13 @@ protected:
     glm::vec3 origPoint, point2;
     glm::vec3* points[MAX_POINTS];
     glm::vec4 cS, cD, cA;
-    int a02, a12, a22, a21, a00, pointIdx;
+    int a02, a12, a22, a21, a00, pointIdx, numChildren;
     float s0, s1, s2, disp;
     geometry geo;
     Imagemanip* texture;
+    Function3D* children;
+    triangle tri, nTri;
+    triangle2d uvs;
 
 public:
     Function3D();
@@ -34,6 +37,10 @@ public:
     void setDisp(float);
     void setGeometry(geometry);
     void setTexture(Imagemanip*);
+    void setTriangle(glm::vec3, glm::vec3, glm::vec3);
+    void setTriNorms(glm::vec3, glm::vec3, glm::vec3);
+    void setUVTriangle(glm::vec2, glm::vec2, glm::vec2);
+    void setChildren(Function3D* ch, int num);
     geometry getGeo();
     glm::vec4 getCS();
     glm::vec4 getCD();

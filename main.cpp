@@ -28,6 +28,8 @@
 #include "trigfunction.h"
 #include "quadraticfunction.h"
 #include "quadraticfunction3d.h"
+#include "trianglefunction.h"
+#include "trianglemesh.h"
 #include "infinitysphere.h"
 #include "directionallight.h"
 #include "pointlight.h"
@@ -402,7 +404,22 @@ void KeyHandler(unsigned char key, int x, int y)
             hold.setTexture(&vecMask);
             hold.setDisp(15);
             hold.shader = &Shaders::texMap;
-            Screen.addFunction3D(&hold);
+            //Screen.addFunction3D(&hold);
+            TriangleMesh hold6;
+            hold6.setPoint(glm::vec3(0.0f, 0.0f, 0.0f));
+            hold6.setNormal(glm::vec3(0.0f, -1.0f, 0.0f), glm::normalize(glm::vec3(1.0f, 0.0f, 0.0f)), glm::vec3(0.0f));
+            hold6.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(100.0f, 0.0f, 0.0f, 100.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
+            hold6.setGeometry(gTest);
+            hold6.setTexture(&innerMask);
+            hold6.shader = &Shaders::phong;
+            hold6.createTetrahedron(200);
+            Screen.addFunction3D(&hold6);
+            //TriangleFunction hold5(glm::vec3(100.0f, 50.0f, -200.0f), glm::vec3(150.0f, -150.0f, 0.0f), glm::vec3(0.0f, 50.0f, 200.0f));
+            //hold5.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(100.0f, 0.0f, 0.0f, 100.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
+            //hold5.setGeometry(gTest);
+            //hold5.setTexture(&innerMask);
+            //hold5.shader = &Shaders::phongShadow;
+            //Screen.addFunction3D(&hold5);
             gTest.depth = 5.0f;
             SphereFunction3D hold2;
             hold2.setPoint(glm::vec3(-400.0f, -100.0f, 0.0f));
@@ -420,17 +437,18 @@ void KeyHandler(unsigned char key, int x, int y)
             hold3.setColor(glm::vec4(800.0f, 800.0f, 1000.0f, 1000.0f), glm::vec4(0.0f, 0.0f, 100.0f, 100.0f), glm::vec4(0.0f, 0.0f, 1000.0f, 1000.0f));
             hold3.setGeometry(gTest);
             hold3.setTexture(&innerMask);
-            hold3.shader = &Shaders::texMap;
-            Screen.addFunction3D(&hold3);
+            hold3.shader = &Shaders::diffuseShadow;
+            //Screen.addFunction3D(&hold3);
             InfinitySphere hold4;
             hold4.setRadius(1000000.0f);
             hold4.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(100.0f, 0.0f, 0.0f, 100.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
             hold4.setTexture(&outerMask);
             hold4.setTexNorms(glm::normalize(glm::vec3(0.0f, -1.0f, 0.0f)), glm::normalize(glm::vec3(0.5f, 0.0f, -1.0f)));
             hold4.shader = &Shaders::skySphere;
-            Screen.addFunction3D(&hold4);
+            //Screen.addFunction3D(&hold4);
+
             DirectionalLight light;
-            light.initialize(glm::normalize(glm::vec3(0.0f, 0.5f, -0.5f)));
+            light.initialize(glm::normalize(glm::vec3(0.0f, 0.5f, 0.5f)));
             light.setColor(glm::vec4(200.0f, 200.0f, 200.0f, 200.0f));
             Screen.addLight(&light);
             PointLight light2;
@@ -444,7 +462,7 @@ void KeyHandler(unsigned char key, int x, int y)
             SpotLight light5;
             light5.initialize(glm::vec3(-100.0f, -300.0f, 0.0f), glm::normalize(glm::vec3(0.5f, 0.5f, 0.0f)), 0.6, 0.5);
             light5.setColor(glm::vec4(500.0f, 500.0f, 500.0f, 500.0f));
-            Screen.addLight(&light5);
+            //Screen.addLight(&light5);
             AreaLight light4;
             light4.initialize(glm::vec3(100.0f, -300.0f, 0.0f), glm::normalize(glm::vec3(-0.5f, 0.5f, 0.0f)), glm::vec3(0.0f, 1.0f, 0.0f), 100, 100, 1);
             light4.setColor(glm::vec4(500.0f, 500.0f, 500.0f, 500.0f));

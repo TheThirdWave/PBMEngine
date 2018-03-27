@@ -81,6 +81,33 @@ void Function3D::setTexture(Imagemanip* tex)
     texture = tex;
 }
 
+void Function3D::setTriangle(glm::vec3 A, glm::vec3 B, glm::vec3 C)
+{
+    tri.a = A;
+    tri.b = B;
+    tri.c = C;
+}
+
+void Function3D::setTriNorms(glm::vec3 A, glm::vec3 B, glm::vec3 C)
+{
+    nTri.a = glm::normalize(A);
+    nTri.b = glm::normalize(B);
+    nTri.c = glm::normalize(C);
+}
+
+void Function3D::setUVTriangle(glm::vec2 A, glm::vec2 B, glm::vec2 C)
+{
+    uvs.a = A;
+    uvs.b = B;
+    uvs.c = C;
+}
+
+void Function3D::setChildren(Function3D *ch, int num)
+{
+    children = ch;
+    numChildren = num;
+}
+
 glm::vec4 Function3D::getCS()
 {
     return cS;
