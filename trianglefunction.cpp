@@ -46,11 +46,12 @@ float TriangleFunction::getRelativePoint(glm::vec3 pt)
 
 int TriangleFunction::getRelativeLine(glm::vec3 pt, glm::vec3 nL, intercept* hits, int idx)
 {
-    float denom = glm::dot(nL, normal);
+    glm::vec3 intNorm = glm::normalize(glm::cross(tri.b - tri.a, tri.c - tri.a));
+    float denom = glm::dot(nL, intNorm);
     if(denom == 0) return idx;
 
     //first get the point where the line intercepts the plane.
-    float t = glm::dot(normal, (origPoint - pt)) / denom;
+    float t = glm::dot(intNorm, (origPoint - pt)) / denom;
     glm::vec3 hitPoint = pt + nL * t;
 
     //if t is positive test if the plane intercept is within the triangle.
@@ -65,9 +66,9 @@ int TriangleFunction::getRelativeLine(glm::vec3 pt, glm::vec3 nL, intercept* hit
     glm::vec3 Vn = glm::cross(e01, e12);
     float area2 = glm::length(Vn);
     glm::vec3 n2 = Vn/area2;
-    float u = glm::dot(glm::cross(e12, p1x), n2) / area2;
-    float v = glm::dot(glm::cross(e20, p2x), n2) / area2;
-    float w = 1 - u - v;
+    float w = glm::dot(glm::cross(e12, p1x), n2) / area2;
+    float u = glm::dot(glm::cross(e20, p2x), n2) / area2;
+    float v = 1 - u - w;
 
     //If the barycentric coordinates are all between 0 and 1, the collision point is inside the triangle, otherwise it's a miss.
     if(u < 0 || v < 0 || w < 0)
