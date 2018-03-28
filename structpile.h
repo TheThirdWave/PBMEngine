@@ -38,8 +38,10 @@ struct image {
 struct model {
     float*          vertices;
     float*            colors;
+    float*           texture;
+    float*           normals;
     unsigned int*   indicies;
-    int             vertLen, idxLen, colorLen;
+    int             vertLen, idxLen, colorLen, texLen, normLen;
 };
 
 struct geometry {

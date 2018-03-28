@@ -407,13 +407,14 @@ void KeyHandler(unsigned char key, int x, int y)
             //Screen.addFunction3D(&hold);
             gTest.depth = 1.0f;
             TriangleMesh hold6;
-            hold6.setPoint(glm::vec3(150.0f, 100.0f, 0.0f));
+            hold6.setPoint(glm::vec3(150.0f, 00.0f, 0.0f));
             hold6.setNormal(glm::vec3(0.0f, -1.0f, 0.0f), glm::normalize(glm::vec3(1.0f, 0.0f, 0.0f)), glm::vec3(0.0f));
             hold6.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(100.0f, 0.0f, 0.0f, 100.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
             hold6.setGeometry(gTest);
             hold6.setTexture(&innerMask);
             hold6.shader = &Shaders::phongShadow;
-            hold6.createTetrahedron(100);
+            //hold6.createTetrahedron(100);
+            hold6.createCube(100);
             Screen.addFunction3D(&hold6);
             //TriangleFunction hold5(glm::vec3(100.0f, 50.0f, -200.0f), glm::vec3(150.0f, -150.0f, 0.0f), glm::vec3(0.0f, 50.0f, 200.0f));
             //hold5.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(100.0f, 0.0f, 0.0f, 100.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
@@ -453,7 +454,7 @@ void KeyHandler(unsigned char key, int x, int y)
             light.setColor(glm::vec4(200.0f, 200.0f, 200.0f, 200.0f));
             Screen.addLight(&light);
             PointLight light2;
-            light2.initialize(glm::vec3(-300.0, -200.0f, 0.0f));hold6.createTetrahedron(200);
+            light2.initialize(glm::vec3(-300.0, -200.0f, 0.0f));
             light2.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f));
             //Screen.addLight(&light2);
             SpotLight light3;
@@ -483,7 +484,7 @@ void KeyHandler(unsigned char key, int x, int y)
             hold5.setColor(glm::vec4(0.0f, 100.0f, 100.0f, 100.0f));
             Screen.addFunction3D(&hold5);*/
             Screen.draw3D(glm::vec3(0.0f, 0.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 1);
-            /*int count = 0;
+            int count = 0;
             int idx = imageManager.addImage(*Screen.getPtr());
             string nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
             imageManager.writePNG((char*)nameBuf.c_str(), idx);
@@ -493,11 +494,11 @@ void KeyHandler(unsigned char key, int x, int y)
                 else if(i < 20) hold6.setNormal(glm::vec3(0.0f, -1.0f, 0.0f), glm::normalize(glm::vec3(-((float)(i - 10)/10.0f), 0.0f, (1.0f - (float)(i - 10)/10.0f))), glm::vec3(0.0f));
                 else if(i < 30) hold6.setNormal(glm::vec3(0.0f, -1.0f, 0.0f), glm::normalize(glm::vec3(-1.0f + ((float)(i - 20)/10.0f), 0.0f, ( - (float)(i - 20)/10.0f))), glm::vec3(0.0f));
                 else hold6.setNormal(glm::vec3(0.0f, -1.0f, 0.0f), glm::normalize(glm::vec3(((float)(i - 30)/10.0f), 0.0f, (-1.0f + (float)(i - 30)/10.0f))), glm::vec3(0.0f));
-                hold6.createTetrahedron(200);
+                hold6.createCube(100);
                 Screen.draw3D(glm::vec3(0.0f, 0.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 1);
                 nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
                 imageManager.writePNG((char*)nameBuf.c_str(), idx);
-            }*/
+            }
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
         }

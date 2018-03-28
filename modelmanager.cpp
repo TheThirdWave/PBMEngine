@@ -47,12 +47,15 @@ int ModelManager::readObj(char* filename)
         models[modelIndex].idxLen = indexCount * 3;
         models[modelIndex].colors = new float[vertCount * 3];
         models[modelIndex].colorLen = vertCount * 3;
+        models[modelIndex].texture = new float[texCount * 3];
+        models[modelIndex].texLen = texCount * 3;
 
 
         reader.clear();
         reader.seekg(0, ios::beg);
         int vertIdx = 0;
         int idxIdx = 0;
+        int texIdx = 0;
         while(!reader.eof())
         {
             reader.getline(buf, 99);
@@ -71,6 +74,10 @@ int ModelManager::readObj(char* filename)
                         models[modelIndex].vertices[vertIdx++] = stof(strtok(NULL, " "), NULL);
                         break;
                     case 't':
+                        strtok(buf, " ");
+                        models[modelIndex].texture[texIdx++] = stof(strtok(NULL, " "), NULL);
+                        models[modelIndex].texture[texIdx++] = stof(strtok(NULL, " "), NULL);
+                        models[modelIndex].texture[texIdx++] = stof(strtok(NULL, " "), NULL);
 
                         break;
                     default:
@@ -100,6 +107,11 @@ int ModelManager::readObj(char* filename)
 
     reader.close();
     return modelIndex++;
+}
+
+void ModelManager::readObjLoader(char* filename)
+{
+    loader.LoadFile(filename);
 }
 
 model* ModelManager::getModel(int idx)
