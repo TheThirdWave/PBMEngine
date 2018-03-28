@@ -306,6 +306,10 @@ glm::vec4 Shaders::diffuseShadow(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm:
         cL = curLight->getColor();
 
         numHits = castRay(pDH, nL, hits, numHits);
+        if(numHits > 1)
+        {
+            int x = 0;
+        }
         sortByT(hits, numHits);
         if(curLight->getType() != DIRECTIONAL) numHits = cullForPLight(hits, numHits, pH, curLight);
         r = getTotalR(hits, numHits, obj);

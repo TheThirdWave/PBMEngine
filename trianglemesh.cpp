@@ -6,28 +6,65 @@ TriangleMesh::TriangleMesh()
 {
 }
 
-glm::vec4 TriangleMesh::getTexCol(glm::vec3)
+glm::vec4 TriangleMesh::getTexCol(glm::vec3 pH)
 {
-
+    intercept closest = getClosest(pH);
+    return closest.obj->getTexCol(pH);
 }
 
-float TriangleMesh::getRelativePoint(glm::vec3)
+float TriangleMesh::getRelativePoint(glm::vec3 pH)
 {
-
+    float dist;
+    for(int i = 0; i < numChildren; i++)
+    {
+        if(i == 0) dist = children[i].getRelativePoint(pH);
+        else
+        {
+            dist = std::min(children[i].getRelativePoint(pH), dist);
+        }
+    }
+    return dist;
 }
 
 int TriangleMesh::getRelativeLine(glm::vec3 pt, glm::vec3 nL, intercept* hits, int idx)
 {
+    int holdIdx = idx;
     for(int i = 0; i < numChildren; i++)
     {
         idx = children[i].getRelativeLine(pt, nL, hits, idx);
+        //if(idx > holdIdx)
+        //{
+            //hits[holdIdx++].obj = this;
+        //}
     }
     return idx;
 }
 
-glm::vec3 TriangleMesh::getSurfaceNormal(glm::vec3)
+glm::vec3 TriangleMesh::getSurfaceNormal(glm::vec3 pH)
 {
+    intercept closest = getClosest(pH);
+    return closest.obj->getSurfaceNormal(pH);
+}
 
+intercept TriangleMesh::getClosest(glm::vec3 pH)
+{
+    intercept closest;
+    float hold;
+    for(int i = 0; i < 3; i++)
+    {
+        hold = children[i].getRelativePoint(pH);
+        if(i == 0)
+        {
+            closest.t = hold;
+            closest.obj = &children[i];
+        }
+        else if(hold < closest.t)
+        {
+            closest.t = hold;
+            closest.obj = &children[i];
+        }
+    }
+    return closest;
 }
 
 void TriangleMesh::createTetrahedron(float radius)
@@ -73,4 +110,13 @@ void TriangleMesh::createTetrahedron(float radius)
     triangles[3].getGroupPos();
 
     setChildren(triangles, 4);
+}
+
+void TriangleMesh::createCube(float radius)
+{
+    glm::vec3 upVec = normal;
+    glm::vec3 n0 = glm::normalize(glm::cross(normal, normal2));
+    glm::vec3 points[6];
+    glm::vec3 norms[6];
+    TriangleFunction* triangles = new TriangleFunction[4];
 }
