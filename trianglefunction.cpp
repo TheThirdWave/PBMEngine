@@ -55,7 +55,7 @@ int TriangleFunction::getRelativeLine(glm::vec3 pt, glm::vec3 nL, intercept* hit
     glm::vec3 hitPoint = pt + nL * t;
 
     //if t is positive test if the plane intercept is within the triangle.
-    if(idx < MAX_LINE_INTERCEPTS && t >= 0)
+    if(idx < MAX_LINE_INTERCEPTS && t > 0)
     {
     //Get the barycentric coordinates of the point of collision on the plane. (We're assuming that the "polygon" is a triangle here)
     glm::vec3 e01 = tri.b - tri.a;

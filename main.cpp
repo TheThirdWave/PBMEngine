@@ -405,6 +405,7 @@ void KeyHandler(unsigned char key, int x, int y)
             hold.setDisp(15);
             hold.shader = &Shaders::texMap;
             //Screen.addFunction3D(&hold);
+            gTest.depth = 1.0f;
             TriangleMesh hold6;
             hold6.setPoint(glm::vec3(50.0f, 100.0f, 0.0f));
             hold6.setNormal(glm::vec3(0.0f, -1.0f, 0.0f), glm::normalize(glm::vec3(1.0f, 0.0f, 0.0f)), glm::vec3(0.0f));
@@ -481,7 +482,7 @@ void KeyHandler(unsigned char key, int x, int y)
             hold5.setQReals(100.0f, 50.0f, 100.0);
             hold5.setColor(glm::vec4(0.0f, 100.0f, 100.0f, 100.0f));
             Screen.addFunction3D(&hold5);*/
-            Screen.draw3D(glm::vec3(0.0f, 0.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 1);
+            Screen.draw3D(glm::vec3(0.0f, 0.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 4);
             int count = 0;
             int idx = imageManager.addImage(*Screen.getPtr());
             string nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
