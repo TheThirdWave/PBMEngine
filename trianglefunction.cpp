@@ -16,24 +16,24 @@ TriangleFunction::TriangleFunction(glm::vec3 A, glm::vec3 B, glm::vec3 C)
 
 glm::vec4 TriangleFunction::getTexCol(glm::vec3 pt)
 {
-    glm::vec3 p0 = origPoint;
-    glm::vec3 up;
-    if(normal != glm::vec3(0.0f, 1.0f, 0.0f) && normal != glm::vec3(0.0f, -1.0f, 0.0f)) up = glm::vec3(0.0f, -1.0f, 0.0f);
-    else up = glm::vec3(0.0f, 0.0f, -1.0f);
-    glm::vec3 n0, n1, n2;
-    n0 = glm::normalize(glm::cross(normal, up));
-    n1 = glm::normalize(glm::cross(normal, n0));
-    n2 = normal;
+    glm::vec3 hitPoint = pt;
+    glm::vec3 e01 = tri.b - tri.a;
+    glm::vec3 e12 = tri.c - tri.b;
+    glm::vec3 e20 = tri.a - tri.c;
+    glm::vec3 p1x = hitPoint - tri.b;
+    glm::vec3 p2x = hitPoint - tri.c;
+    glm::vec3 Vn = glm::cross(e01, e12);
+    float area2 = glm::length(Vn);
+    glm::vec3 normal = Vn/area2;
+    float w = glm::dot(glm::cross(e12, p1x), normal) / area2;
+    float u = glm::dot(glm::cross(e20, p2x), normal) / area2;
+    float v = 1 - u - w;
+    glm::vec2 texCoord = w * uvs.a + u * uvs.b + v * uvs.c;
+
     int texWidth = texture->getWidth();
     int texHeight = texture->getHeight();
-    int ptx = glm::dot((pt - p0), n0);
-    int pty = glm::dot((pt - p0), n1);
     int buf[4];
-    ptx = ptx % texWidth;
-    if(ptx < 0) ptx += texWidth;
-    pty = pty % texHeight;
-    if(pty < 0) pty += texHeight;
-    texture->getDataAt(ptx, pty, buf);
+    texture->getDataAt(texCoord.x * texWidth, texCoord.y * texHeight, buf);
     return glm::vec4((buf[0] / 255.0f) * cD.a, (buf[1] / 255.0f) * cD.a, (buf[2] / 255.0f) * cD.a, cD.a);
 
 }
@@ -107,7 +107,7 @@ int TriangleFunction::getRelativeLine(glm::vec3 pt, glm::vec3 nL, intercept* hit
 
 glm::vec3 TriangleFunction::getSurfaceNormal(glm::vec3 pt)
 {
-    glm::vec3 hitPoint = pt;
+    /*glm::vec3 hitPoint = pt;
     glm::vec3 e01 = tri.b - tri.a;
     glm::vec3 e12 = tri.c - tri.b;
     glm::vec3 e20 = tri.a - tri.c;
@@ -119,7 +119,8 @@ glm::vec3 TriangleFunction::getSurfaceNormal(glm::vec3 pt)
     float w = glm::dot(glm::cross(e12, p1x), normal) / area2;
     float u = glm::dot(glm::cross(e20, p2x), normal) / area2;
     float v = 1 - u - w;
-    normal = w * nTri.a + u * nTri.b + v * nTri.c;
+    normal = u * nTri.a + w * nTri.b + v * nTri.c;*/
+    //return glm::normalize(glm::cross(tri.b - tri.a, tri.c - tri.a));
     return normal;
 }
 

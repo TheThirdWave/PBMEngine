@@ -2,6 +2,7 @@
 #define TRIANGLEMESH_H
 
 #include "function3d.h"
+#include "structpile.h"
 
 class TriangleMesh:public Function3D
 {
@@ -15,6 +16,7 @@ public:
     intercept getClosest(glm::vec3 pH);
     void createTetrahedron(float);
     void createCube(float);
+    void loadFromModel(model *, float);
 };
 
 #endif // TRIANGLEMESH_H

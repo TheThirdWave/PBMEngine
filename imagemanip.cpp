@@ -755,7 +755,7 @@ void Imagemanip::draw3D(glm::vec3 pE, float d, glm::vec3 upVec, glm::vec3 v2, fl
                             //get the actual point of the closest intersection.
                             glm::vec3 pH = pE + nPe * t;
                             //run the shader attached to the object hit by the closest intersection to get the color of the point. (see Shaders.cpp, the "Flat()" method is the simplest shader).
-                            cHold = (shades.*(hits[closestIdx].obj->shader))(hits[closestIdx].obj->getSurfaceNormal(pH), -nPe, pH, pE, *hits[closestIdx].obj);
+                            cHold = (shades.*(hits[closestIdx].obj->shader))(hits[closestIdx].obj->getSurfaceNormal(pH), -nPe, pH, pE, *hits[closestIdx].obj, 0);
                         }
                         else
                         {

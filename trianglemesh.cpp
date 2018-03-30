@@ -82,7 +82,7 @@ void TriangleMesh::createTetrahedron(float radius)
     glm::vec3 norms[4];
     for(int i = 0; i < 4; i++)
     {
-        norms[i] = points[i] - center;
+        norms[i] = glm::normalize(points[i] - center);
     }
     TriangleFunction* triangles = new TriangleFunction[4];
     for(int i = 0; i < 4; i ++)
@@ -197,4 +197,43 @@ void TriangleMesh::createCube(float radius)
     triangles[11].getGroupPos();
 
     setChildren(triangles, 12);
+}
+
+void TriangleMesh::loadFromModel(model* mod, float scale)
+{
+    glm::vec3 upVec = normal;
+    glm::vec3 n0 = glm::normalize(glm::cross(normal, normal2));
+    glm::vec3 n1 = glm::normalize(glm::cross(upVec, n0));
+    TriangleFunction* triangles = new TriangleFunction[mod->idxLen / 3];
+    for(int i = 0; i < mod->idxLen / 3; i++)
+    {
+        triangle vTri, nTri;
+        triangle2d tTri;
+        vTri.a = glm::vec3(mod->vertices[mod->vertIdx[i * 3] * 3], -mod->vertices[mod->vertIdx[i * 3] * 3 + 1], mod->vertices[mod->vertIdx[i * 3] * 3 + 2]);
+        vTri.b = glm::vec3(mod->vertices[mod->vertIdx[i * 3 + 1] * 3], -mod->vertices[mod->vertIdx[i * 3 + 1] * 3 + 1], mod->vertices[mod->vertIdx[i * 3 + 1] * 3 + 2]);
+        vTri.c = glm::vec3(mod->vertices[mod->vertIdx[i * 3 + 2] * 3], -mod->vertices[mod->vertIdx[i * 3 + 2] * 3 + 1], mod->vertices[mod->vertIdx[i * 3 + 2] * 3 + 2]);
+        nTri.a = glm::vec3(mod->normals[mod->normIdx[i * 3] * 3], -mod->normals[mod->normIdx[i * 3] * 3 + 1], mod->normals[mod->normIdx[i * 3] * 3 + 2]);
+        nTri.b = glm::vec3(mod->normals[mod->normIdx[i * 3 + 1] * 3], -mod->normals[mod->normIdx[i * 3 + 1] * 3 + 1], mod->normals[mod->normIdx[i * 3 + 1] * 3 + 2]);
+        nTri.b = glm::vec3(mod->normals[mod->normIdx[i * 3 + 2] * 3], -mod->normals[mod->normIdx[i * 3 + 2] * 3 + 1], mod->normals[mod->normIdx[i * 3 + 2] * 3 + 2]);
+        tTri.a = glm::vec2(mod->texture[mod->texIdx[i * 3] * 2], mod->texture[mod->texIdx[i * 3] * 2 + 1]);
+        tTri.b = glm::vec2(mod->texture[mod->texIdx[i * 3 + 1] * 2], mod->texture[mod->texIdx[i * 3 + 1] * 2 + 1]);
+        tTri.c = glm::vec2(mod->texture[mod->texIdx[i * 3 + 2] * 2], mod->texture[mod->texIdx[i * 3 + 2] * 2 + 1]);
+        vTri.a *= scale;
+        vTri.b *= scale;
+        vTri.c *= scale;
+        vTri.a += this->origPoint;
+        vTri.b += this->origPoint;
+        vTri.c += this->origPoint;
+        triangles[i].setTriangle(vTri);
+        triangles[i].setTriNorms(nTri);
+        triangles[i].setUVTriangle(tTri);
+        triangles[i].setColor(cS, cD, cA);
+        triangles[i].setGeometry(geo);
+        triangles[i].shader = shader;
+        triangles[i].setTexture(texture);
+        triangles[i].getGroupNormal();
+        triangles[i].getGroupPos();
+    }
+
+    setChildren(triangles, mod->idxLen / 3);
 }

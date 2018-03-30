@@ -19,6 +19,7 @@
 #define MAX_POINTS 1000
 #define MAX_GENERATORS 10
 #define MAX_LINE_INTERCEPTS 50
+#define MAX_REFLECTIONS 10
 
 #define NUM_PARTS 1000
 
@@ -40,8 +41,11 @@ struct model {
     float*            colors;
     float*           texture;
     float*           normals;
-    unsigned int*   indicies;
-    int             vertLen, idxLen, colorLen, texLen, normLen;
+    unsigned int*    vertIdx;
+    unsigned int*     colIdx;
+    unsigned int*     texIdx;
+    unsigned int*    normIdx;
+    int             vertLen, colorLen, texLen, normLen, idxLen, cIdxLen, tIdxLen, nIdxLen;
 };
 
 struct geometry {

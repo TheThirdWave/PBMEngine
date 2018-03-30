@@ -11,17 +11,17 @@ void RenderObject::setModel(model* inData)
     data = inData;
     setVertexBuffer(data->vertices, data->vertLen);
     setColorBuffer(data->colors, data->colorLen);
-    setIndexBuffer(data->indicies, data->idxLen);
+    setIndexBuffer(data->vertIdx, data->idxLen);
 }
 
 void RenderObject::setIndexBuffer(unsigned int* ptr, int size)
 {
-    data->indicies = ptr;
+    data->vertIdx = ptr;
     data->idxLen = size;
 
     glGenBuffers(1, &glIdxName);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glIdxName);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * data->idxLen, data->indicies, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * data->idxLen, data->vertIdx, GL_STATIC_DRAW);
 }
 
 void RenderObject::setVertexBuffer(float* ptr, int size)
@@ -53,7 +53,7 @@ void RenderObject::setPosMatrix(glm::mat4 mat)
 
 unsigned int* RenderObject::getIndexBuffer()
 {
-    return data->indicies;
+    return data->vertIdx;
 }
 
 float* RenderObject::getColorBuffer()

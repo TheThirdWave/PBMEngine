@@ -88,6 +88,11 @@ void Function3D::setTriangle(glm::vec3 A, glm::vec3 B, glm::vec3 C)
     tri.c = C;
 }
 
+void Function3D::setTriangle(triangle t)
+{
+    tri = t;
+}
+
 void Function3D::setTriNorms(glm::vec3 A, glm::vec3 B, glm::vec3 C)
 {
     nTri.a = glm::normalize(A);
@@ -95,11 +100,21 @@ void Function3D::setTriNorms(glm::vec3 A, glm::vec3 B, glm::vec3 C)
     nTri.c = glm::normalize(C);
 }
 
+void Function3D::setTriNorms(triangle t)
+{
+    nTri = t;
+}
+
 void Function3D::setUVTriangle(glm::vec2 A, glm::vec2 B, glm::vec2 C)
 {
     uvs.a = A;
     uvs.b = B;
     uvs.c = C;
+}
+
+void Function3D::setUVTriangle(triangle2d t)
+{
+    uvs = t;
 }
 
 void Function3D::setChildren(Function3D *ch, int num)

@@ -5,7 +5,7 @@
 #include "algorithm"
 #include "shaders.h"
 
-typedef glm::vec4 (Shaders::*ShaderPtr)(glm::vec3, glm::vec3, glm::vec3, glm::vec3, Function3D&obj);
+typedef glm::vec4 (Shaders::*ShaderPtr)(glm::vec3, glm::vec3, glm::vec3, glm::vec3, Function3D&obj, int numDeep);
 
 class Function3D
 {
@@ -38,8 +38,11 @@ public:
     void setGeometry(geometry);
     void setTexture(Imagemanip*);
     void setTriangle(glm::vec3, glm::vec3, glm::vec3);
+    void setTriangle(triangle);
     void setTriNorms(glm::vec3, glm::vec3, glm::vec3);
+    void setTriNorms(triangle);
     void setUVTriangle(glm::vec2, glm::vec2, glm::vec2);
+    void setUVTriangle(triangle2d);
     void setChildren(Function3D* ch, int num);
     geometry getGeo();
     glm::vec4 getCS();

@@ -111,7 +111,7 @@ float Shaders::cullForPLight(intercept *ret, int idx, glm::vec3 pH, LightBase* L
 
 //The second simplest shader, we get the cosign of the surface normal and the normal pointing from the point hit back to the camera.
 //If the cosign is less than some value, we set that pixel to white, getting the outline of the object hit (or something close to that).
-glm::vec4 Shaders::outline(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj)
+glm::vec4 Shaders::outline(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
 {
     glm::vec4 cPe(0.0f);
     if(glm::dot(nH, nPe) < obj.getGeo().width)cPe = (glm::vec4(100.0f, 100.0f, 100.0f, 100.0f));
@@ -119,13 +119,13 @@ glm::vec4 Shaders::outline(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 
 }
 
 //The simplest shader, we just return the color of the object hit.
-glm::vec4 Shaders::flat(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj)
+glm::vec4 Shaders::flat(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
 {
     return obj.getCD();
 }
 
 //This changes the color of the point hit based on whether or not that point is facing towards the light.
-glm::vec4 Shaders::diffuse(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj)
+glm::vec4 Shaders::diffuse(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
 {
     //get the diffuse color of the object.
     glm::vec4 cD = obj.getCD();
@@ -216,7 +216,7 @@ glm::vec4 Shaders::diffuse(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 
 
 }
 
-glm::vec4 Shaders::phong(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj)
+glm::vec4 Shaders::phong(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
 {
     glm::vec4 cD = obj.getCD();
     glm::vec4 cA = obj.getCA();
@@ -284,7 +284,7 @@ glm::vec4 Shaders::phong(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE
 }
 
 
-glm::vec4 Shaders::diffuseShadow(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj)
+glm::vec4 Shaders::diffuseShadow(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
 {
     glm::vec4 cD = obj.getCD();
     glm::vec4 cA = obj.getCA();
@@ -344,7 +344,7 @@ glm::vec4 Shaders::diffuseShadow(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm:
 
 }
 
-glm::vec4 Shaders::phongShadow(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj)
+glm::vec4 Shaders::phongShadow(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
 {
     glm::vec4 cD = obj.getCD();
     glm::vec4 cA = obj.getCA();
@@ -411,7 +411,201 @@ glm::vec4 Shaders::phongShadow(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::v
 
 }
 
-glm::vec4 Shaders::phongShadowClassic(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj)
+glm::vec4 Shaders::mirror(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
+{
+    if(numDeep < MAX_REFLECTIONS)
+    {
+        glm::vec4 cD = obj.getCD();
+        glm::vec4 cA = obj.getCA();
+        glm::vec4 cS = obj.getCS();
+        glm::vec4 cL;
+        glm::vec4 cPe = cA;
+        float t = 0;
+        float d = obj.getGeo().depth;
+        float r;
+        glm::vec3 pDH = pH - nH * d;
+        LightBase* curLight;
+        glm::vec3 nL;
+        intercept hits[MAX_LINE_INTERCEPTS];
+        int numHits = 0;
+        for(int i = 0; i < renderer->lightNum; i++)
+        {
+            numHits = 0;
+            curLight = renderer->lights[i];
+            nL = -curLight->getRelativeNorm(pH);
+            cL = curLight->getColor();
+
+            //get angle for diffuse light, raycast can catch occluders as well.
+            numHits = castRay(pDH, nL, hits, numHits);
+            sortByT(hits, numHits);
+            if(curLight->getType() != DIRECTIONAL) numHits = cullForPLight(hits, numHits, pH, curLight);
+            r = getTotalR(hits, numHits, obj);
+            if(r == 0) t = 0;
+            else t = d / r;
+
+            glm::vec4 cDD = cD * cL;
+            if(curLight->getType() != DIRECTIONAL)
+            {
+                //float dnom = glm::dot(curLight->getPos() - pH, curLight->getPos() - pH);
+                //t = t / dnom * 10000;
+            }
+            if(curLight->getType() == SPOTLIGHT)
+            {
+                float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+                t *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+            }
+            t = clamp(t, 1.0, 0.0);
+            cDD.r *= t;
+            cDD.g *= t;
+            cDD.b *= t;
+
+            cPe += cDD;
+
+            //calculate angle for reflecton
+            glm::vec3 ref1 = -nPe + (2 *glm::dot(nH, nPe) * nH);
+            numHits = 0;
+            //cast ray along the reflection angle.
+            numHits = castRay(pH, ref1, hits, numHits);
+            sortByT(hits, numHits);
+            float s = 0;
+            for(int i = 0; i < numHits; i++)
+            {
+                if(hits[i].obj != &obj)
+                {
+                    //get the color of the closest object hit by the reflection ray.
+                    glm::vec3 hitPoint = pH + ref1 * hits[i].t;
+                    cS = (*this.*(hits[i].obj->shader))(hits[i].obj->getSurfaceNormal(hitPoint), -ref1, hitPoint, pE, *hits[i].obj, numDeep + 1);
+                    s = 1;
+                    break;
+                }
+            }
+            if(s == 0)
+            {
+                cS = glm::vec4(renderer->background * 1000.0f, 1000.0f);
+                s = 1;
+            }
+            //calculate angle for specular highlight
+            /*glm::vec3 ref = -nL + (2 * glm::dot(nH, nL) * nH);
+            float cos = glm::dot(nPe, ref);
+            s = clamp(cos, obj.getGeo().radius, obj.getGeo().width);
+            if(curLight->getType() == SPOTLIGHT)
+            {
+                float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+                s *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+            }*/
+            //if(cos > 0.98) s = 1;
+            //else s = 0;
+            cPe += cS * cL * s;
+
+        }
+
+        return cPe;
+    }
+    return glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+
+}
+
+glm::vec4 Shaders::nMapMirror(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
+{
+    if(numDeep < MAX_REFLECTIONS)
+    {
+        glm::vec4 cD = obj.getCD();
+        glm::vec4 cA = obj.getCA();
+        glm::vec4 cS = obj.getCS();
+        glm::vec4 cL;
+        glm::vec4 cPe = cA;
+        float t = 0;
+        float d = obj.getGeo().depth;
+        float r;
+        glm::vec3 pDH = pH - nH * d;
+        LightBase* curLight;
+        glm::vec3 nL;
+        intercept hits[MAX_LINE_INTERCEPTS];
+        int numHits = 0;
+        for(int i = 0; i < renderer->lightNum; i++)
+        {
+            numHits = 0;
+            curLight = renderer->lights[i];
+            nL = -curLight->getRelativeNorm(pH);
+            cL = curLight->getColor();
+
+            //get angle for diffuse light, raycast can catch occluders as well.
+            numHits = castRay(pDH, nL, hits, numHits);
+            sortByT(hits, numHits);
+            if(curLight->getType() != DIRECTIONAL) numHits = cullForPLight(hits, numHits, pH, curLight);
+            r = getTotalR(hits, numHits, obj);
+            if(r == 0) t = 0;
+            else t = d / r;
+
+            glm::vec4 cDD = cD * cL;
+            if(curLight->getType() != DIRECTIONAL)
+            {
+                //float dnom = glm::dot(curLight->getPos() - pH, curLight->getPos() - pH);
+                //t = t / dnom * 10000;
+            }
+            if(curLight->getType() == SPOTLIGHT)
+            {
+                float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+                t *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+            }
+            t = clamp(t, 1.0, 0.0);
+            cDD.r *= t;
+            cDD.g *= t;
+            cDD.b *= t;
+
+            cPe += cDD;
+
+            //get normal from normal map.
+            glm::vec4 mapNorm = obj.getTexCol(pH);
+            //combine mapNorm with the natural normal of the object
+            glm::vec3 combinedNorm = glm::normalize(glm::vec3(mapNorm.x, mapNorm.y, mapNorm.z));
+            combinedNorm -= 0.5f;
+            combinedNorm += nH;
+            //calculate angle for reflecton
+            glm::vec3 ref1 = -nPe + (2 *glm::dot(combinedNorm, nPe) * nH);
+            numHits = 0;
+            //cast ray along the reflection angle.
+            numHits = castRay(pH, ref1, hits, numHits);
+            sortByT(hits, numHits);
+            float s = 0;
+            for(int i = 0; i < numHits; i++)
+            {
+                if(hits[i].obj != &obj)
+                {
+                    //get the color of the closest object hit by the reflection ray.
+                    glm::vec3 hitPoint = pH + ref1 * hits[i].t;
+                    cS = (*this.*(hits[i].obj->shader))(hits[i].obj->getSurfaceNormal(hitPoint), -ref1, hitPoint, pE, *hits[i].obj, numDeep + 1);
+                    s = 1;
+                    break;
+                }
+            }
+            if(s == 0)
+            {
+                cS = glm::vec4(renderer->background * 1000.0f, 1000.0f);
+                s = 1;
+            }
+            //calculate angle for specular highlight
+            /*glm::vec3 ref = -nL + (2 * glm::dot(nH, nL) * nH);
+            float cos = glm::dot(nPe, ref);
+            s = clamp(cos, obj.getGeo().radius, obj.getGeo().width);
+            if(curLight->getType() == SPOTLIGHT)
+            {
+                float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+                s *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+            }*/
+            //if(cos > 0.98) s = 1;
+            //else s = 0;
+            cPe += cS * cL * s;
+
+        }
+
+        return cPe;
+    }
+    return glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+
+}
+
+glm::vec4 Shaders::phongShadowClassic(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
 {
     glm::vec4 cD = obj.getCD();
     glm::vec4 cA = obj.getCA();
@@ -480,7 +674,7 @@ glm::vec4 Shaders::phongShadowClassic(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH,
 
 }
 
-glm::vec4 Shaders::aLight(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj)
+glm::vec4 Shaders::aLight(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
 {
     glm::vec4 cD = obj.getCD();
     glm::vec4 cA = obj.getCA();
@@ -576,7 +770,7 @@ glm::vec4 Shaders::aLight(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 p
 
 }
 
-glm::vec4 Shaders::texMap(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj)
+glm::vec4 Shaders::texMap(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
 {
     glm::vec4 cD = obj.getTexCol(pH);
     glm::vec4 cA = obj.getCA();
@@ -643,7 +837,7 @@ glm::vec4 Shaders::texMap(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 p
 
 }
 
-glm::vec4 Shaders::displacementMap(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj)
+glm::vec4 Shaders::displacementMap(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep)
 {
     glm::vec4 cD = obj.getCD();
     glm::vec4 cA = obj.getCA();
@@ -713,7 +907,7 @@ glm::vec4 Shaders::displacementMap(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, gl
 
 }
 
-glm::vec4 Shaders::skySphere(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj)
+glm::vec4 Shaders::skySphere(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
 {
     return obj.getTexCol(pH);
 }

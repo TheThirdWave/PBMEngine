@@ -1,4 +1,6 @@
+#define TINYOBJLOADER_IMPLEMENTATION
 #include "modelmanager.h"
+#include "../tinyobjloader-master/tiny_obj_loader.h"
 
 using namespace std;
 
@@ -43,7 +45,7 @@ int ModelManager::readObj(char* filename)
         }
         models[modelIndex].vertices = new float[vertCount * 3];
         models[modelIndex].vertLen = vertCount * 3;
-        models[modelIndex].indicies = new unsigned int[indexCount * 3];
+        models[modelIndex].vertIdx = new unsigned int[indexCount * 3];
         models[modelIndex].idxLen = indexCount * 3;
         models[modelIndex].colors = new float[vertCount * 3];
         models[modelIndex].colorLen = vertCount * 3;
@@ -86,11 +88,11 @@ int ModelManager::readObj(char* filename)
                     break;
                 case 'f':
                     strtok(buf, " ");
-                    models[modelIndex].indicies[idxIdx++] = (stoi(strtok(NULL, " /"), NULL) - 1);
+                    models[modelIndex].vertIdx[idxIdx++] = (stoi(strtok(NULL, " /"), NULL) - 1);
                     strtok(NULL, " /");
-                    models[modelIndex].indicies[idxIdx++] = (stoi(strtok(NULL, " /"), NULL) - 1);
+                    models[modelIndex].vertIdx[idxIdx++] = (stoi(strtok(NULL, " /"), NULL) - 1);
                     strtok(NULL, " /");
-                    models[modelIndex].indicies[idxIdx++] = (stoi(strtok(NULL, " /"), NULL) - 1);
+                    models[modelIndex].vertIdx[idxIdx++] = (stoi(strtok(NULL, " /"), NULL) - 1);
                     strtok(NULL, " /");
                     break;
                 case '#':
@@ -109,9 +111,60 @@ int ModelManager::readObj(char* filename)
     return modelIndex++;
 }
 
-void ModelManager::readObjLoader(char* filename)
+int ModelManager::readObjLoader(char* filename)
 {
-    loader.LoadFile(filename);
+    tinyobj::attrib_t modelHold;
+    std::vector<tinyobj::shape_t> shapeHold;
+    std::vector<tinyobj::material_t> materialHold;
+    std::string err;
+
+    bool ret = tinyobj::LoadObj(&modelHold, &shapeHold, &materialHold, &err, filename, NULL, true);
+    if(!err.empty())
+    {
+        fprintf(stderr, err.c_str());
+    }
+    if(!ret) return -1;
+    models[modelIndex].vertLen = modelHold.vertices.size();
+    models[modelIndex].colorLen = modelHold.colors.size();
+    models[modelIndex].normLen = modelHold.normals.size();
+    models[modelIndex].texLen = modelHold.texcoords.size();
+    models[modelIndex].vertices = new float[models[modelIndex].vertLen];
+    models[modelIndex].colors = new float[models[modelIndex].colorLen];
+    models[modelIndex].normals = new float[models[modelIndex].normLen];
+    models[modelIndex].texture = new float[models[modelIndex].texLen];
+    models[modelIndex].idxLen = shapeHold[0].mesh.indices.size();
+    models[modelIndex].vertIdx = new unsigned int[models[modelIndex].idxLen];
+    models[modelIndex].cIdxLen = shapeHold[0].mesh.indices.size();
+    models[modelIndex].colIdx = new unsigned int[models[modelIndex].idxLen];
+    models[modelIndex].nIdxLen = shapeHold[0].mesh.indices.size();
+    models[modelIndex].normIdx = new unsigned int[models[modelIndex].idxLen];
+    models[modelIndex].tIdxLen = shapeHold[0].mesh.indices.size();
+    models[modelIndex].texIdx = new unsigned int[models[modelIndex].idxLen];
+    for(int i = 0; i < modelHold.vertices.size(); i++)
+    {
+        models[modelIndex].vertices[i] = modelHold.vertices[i];
+    }
+    for(int i = 0; i < modelHold.colors.size(); i++)
+    {
+        models[modelIndex].colors[i] = modelHold.colors[i];
+    }
+    for(int i = 0; i < modelHold.normals.size(); i++)
+    {
+        models[modelIndex].normals[i] = modelHold.normals[i];
+    }
+    for(int i = 0; i < modelHold.texcoords.size(); i++)
+    {
+        models[modelIndex].texture[i] = modelHold.texcoords[i];
+    }
+    for(int i = 0; i < shapeHold[0].mesh.indices.size(); i++)
+    {
+        models[modelIndex].vertIdx[i] = shapeHold[0].mesh.indices[i].vertex_index;
+        models[modelIndex].normIdx[i] = shapeHold[0].mesh.indices[i].normal_index;
+        models[modelIndex].texIdx[i] = shapeHold[0].mesh.indices[i].texcoord_index;
+        if(models[modelIndex].cIdxLen == models[modelIndex].idxLen) models[modelIndex].colIdx[i] = shapeHold[0].mesh.indices[i].vertex_index;
+    }
+
+    return modelIndex++;
 }
 
 model* ModelManager::getModel(int idx)
