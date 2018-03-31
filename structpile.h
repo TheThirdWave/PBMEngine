@@ -71,7 +71,7 @@ struct attributes
     geometry geo;
 };
 
-enum{ PAINT_OBSTRUCTION, PAINT_SOURCE, PAINT_DIVERGENCE, PAINT_COLOR };
+enum{ PAINT_OBSTRUCTION, PAINT_SOURCE, PAINT_DIVERGENCE, PAINT_COLOR, PAINT_TARGET };
 
 struct triangle {
     glm::vec3   a;
@@ -106,6 +106,12 @@ enum progState{
     DRAW = 1 << 1,
     PAUSED = 1 << 2,
     SOURCEIN = 1 << 3,
+};
+
+enum displayType{
+    IMAGE = 0,
+    DENSITY = 1,
+    PRESSURE = 2,
 };
 
 #endif // STRUCTPILE_H

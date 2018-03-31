@@ -76,6 +76,24 @@ void Buffer2D::setDataBuffer(Buffer2D& buf)
     memcpy(buffer, hold, sizeof(float) * width * height * channels);
 }
 
+void Buffer2D::setToIndicies()
+{
+    for(int j = 0; j < height; j++)
+    {
+    #pragma omp parallel for
+        for(int i = 0; i < width; i++)
+        {
+            glm::vec2 iVec;
+            iVec.x = (float)i;
+            iVec.y = (float)j;
+            iVec = iVec * cellSize;
+            int index = i + j * width;
+            buffer[index * channels] = iVec.x;
+            buffer[index * channels + 1] = iVec.y;
+        }
+    }
+}
+
 void Buffer2D::zeroOut()
 {
     memset(buffer, 0, sizeof(float)*width*height*channels);

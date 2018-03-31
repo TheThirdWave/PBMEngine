@@ -8,6 +8,9 @@ FluidModel::FluidModel()
 FluidModel::FluidModel(Buffer2D *initBuf, Buffer2D* s)
 {
     density.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
+    sDensity.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
+    tDensity.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
+    stDensity.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
     velocity.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
     charMap.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
     charMap2.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
@@ -19,6 +22,8 @@ FluidModel::FluidModel(Buffer2D *initBuf, Buffer2D* s)
     source = s;
     color = initBuf;
     hasSource = false;
+    hasTSource = false;
+    macCormack = false;
     gravity = 30.0;
     pLoops = 5;
     iopLoops = 5;
@@ -27,6 +32,9 @@ FluidModel::FluidModel(Buffer2D *initBuf, Buffer2D* s)
 void FluidModel::init(Buffer2D *initBuf, Buffer2D* s)
 {
     density.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
+    sDensity.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
+    tDensity.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
+    stDensity.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
     velocity.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
     charMap.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
     charMap2.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
@@ -38,23 +46,50 @@ void FluidModel::init(Buffer2D *initBuf, Buffer2D* s)
     source = s;
     color = initBuf;
     hasSource = false;
+    hasTSource = false;
+    macCormack = false;
     gravity = 30.0;
     pLoops = 5;
     iopLoops = 5;
 }
 
-void FluidModel::runSLTimeStep(double timeStep)
+void FluidModel::runTimeStep(double timeStep)
 {
-    //cMapSLAdvect(timeStep);
-    cMapMCAdvect(timeStep);
+    charMap.setToIndicies();
+
+    //if we're doing log advection we need to get the fractions of a timestep that we're using.
+    double dt = timeStep / pow(2, logLoops);
+
+    //if macCormack set to true we run macCormack advection, if not Semi-Lagrangian.
+    //we run the character map advection once no matter what.
+    if(!macCormack) cMapSLAdvect(dt);
+    else cMapMCAdvect(dt);
+
+    //if the number of logLoops is > 0, we run log advection.
+    int loops = 0;
+    while(dt < timeStep)
+    {
+        if(!macCormack) cMapSLAdvect(dt);
+        else cMapMCAdvect(dt);
+        loops++;
+        dt = dt * pow(2, loops);
+    }
+
+    //now we actually apply the advected characteristic map to the velocity and color maps.
     advection(timeStep);
+
+    //if source has been inserted this frame we add it to the density.
     if(hasSource)
     {
         sources(timeStep);
         source->setDataFloat(0.0f);
         hasSource = false;
     }
+
+    //calculate all forces.
     forces(timeStep);
+
+    //work out the pressure stuff to make it actually look like a fluid.
     for(int j = 0; j < iopLoops; j++)
     {
         pressure.zeroOut();
@@ -63,6 +98,8 @@ void FluidModel::runSLTimeStep(double timeStep)
             calcPressure();
         }
         applyPressure();
+
+        //enforce bounds last so density can't get by obstructions. (theoretically)
         enforceBounds();
     }
 }
@@ -137,9 +174,23 @@ void FluidModel::sources(double timeStep)
     int height = source->getHeight();
     float* denGrid = density.getBuf();
     float* sGrid = source->getBuf();
-    glm::vec2 iVec;
-    glm::vec2 vel;
-    glm::vec3 col;
+    for(int j = 0; j < height; j++)
+    {
+    #pragma omp parallel for
+        for(int i = 0; i < width; i++)
+        {
+            int index = i + j * width;
+            denGrid[index * density.getNumChannels()] += sGrid[index * source->getNumChannels()];
+        }
+    }
+}
+
+void FluidModel::targetSource()
+{
+    int width = source->getWidth();
+    int height = source->getHeight();
+    float* denGrid = density.getBuf();
+    float* sGrid = source->getBuf();
     for(int j = 0; j < height; j++)
     {
     #pragma omp parallel for
@@ -263,11 +314,10 @@ void FluidModel::cMapSLAdvect(double timeStep)
         {
             glm::vec2 iVec;
             glm::vec2 vel;
-            //Get the point in space represented by the index.ZZZ
-            iVec.x = (float)i;
-            iVec.y = (float)j;
-            iVec = iVec * charMap.getCellSize();
             int index = i + j * width;
+            //Get the point in space represented by the index.ZZZ
+            iVec.x = cMap[index * charMap.getNumChannels()];
+            iVec.y = cMap[index * charMap.getNumChannels() + 1];
 
             //get the velocity at the point we're looping over so we know the point to advect from.
             vel.x = velGrid[index * velocity.getNumChannels()];
@@ -298,11 +348,10 @@ void FluidModel::cMapMCAdvect(double timeStep)
         {
             glm::vec2 iVec;
             glm::vec2 vel;
-            //Get the point in space represented by the index.
-            iVec.x = (float)i;
-            iVec.y = (float)j;
-            iVec = iVec * charMap.getCellSize();
             int index = i + j * width;
+            //Get the point in space represented by the index.
+            iVec.x = cMap[index * charMap.getNumChannels()];
+            iVec.y = cMap[index * charMap.getNumChannels() + 1];
 
             //get the velocity at the point we're looping over so we know the point to advect from.
             vel.x = velGrid[index * velocity.getNumChannels()];
@@ -426,6 +475,11 @@ void FluidModel::setObsBoundary()
        int index = i + j * width;
        obsGrid[index * obstruction.getNumChannels()] = 0;
    }
+}
+
+void FluidModel::fastBlur(Buffer2D *in, Buffer2D *out)
+{
+
 }
 
 float FluidModel::calcDivergence(int i, int j)
@@ -602,6 +656,16 @@ int FluidModel::getIOPLoops()
     return iopLoops;
 }
 
+int FluidModel::getLogLoops()
+{
+    return logLoops;
+}
+
+bool FluidModel::usingMacCormack()
+{
+    return macCormack;
+}
+
 void FluidModel::setGravity(float f)
 {
     gravity = f;
@@ -622,13 +686,29 @@ void FluidModel::setIOPLoops(int l)
     iopLoops = l;
 }
 
+void FluidModel::setLogLoops(int l)
+{
+    logLoops = l;
+}
+
+void FluidModel::setUsingMacCormack(bool t)
+{
+    macCormack = t;
+}
+
 void FluidModel::reset()
 {
     density.zeroOut();
     velocity.zeroOut();
     pressure.zeroOut();
     charMap.zeroOut();
+    charMap2.zeroOut();
+    sDensity.zeroOut();
+    tDensity.zeroOut();
+    stDensity.zeroOut();
+    err.zeroOut();
     obstruction.setDataFloat(1.0);
+    setObsBoundary();
     hasSource = false;
 }
 
@@ -636,6 +716,16 @@ void FluidModel::reset()
 Buffer2D* FluidModel::getSource()
 {
     return source;
+}
+
+Buffer2D* FluidModel::getDensity()
+{
+    return &density;
+}
+
+Buffer2D* FluidModel::getPressure()
+{
+    return &pressure;
 }
 
 Buffer2D* FluidModel::getObstruction()

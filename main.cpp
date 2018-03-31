@@ -55,6 +55,7 @@ int paint_mode;
 
 int prog_state = 0;
 int capturedFrames = 0;
+int display_state = IMAGE;
 double prev_time, cur_time, delta_time, d_delta_time, d_prev_time, d_cur_time;
 double timeStep = 1.0 / (60.0 * 1.0);
 double simTime = 0.0f;
@@ -66,8 +67,10 @@ int main(int argc, char* argv[])
     lux::CmdLineFind clf(argc, argv);
     printControls();
 
-    int pLoops = clf.find("-gs", 5, "Number of Gauss-Seidel iterations.");
+    int pLoops = clf.find("-gs", 30, "Number of Gauss-Seidel iterations.");
     int iopLoops = clf.find("-iop", 5, "Number of Iterated Orthogonal Projection loops.");
+    int logLoops = clf.find("-log", 0, "Number of Log Advection loops.");
+    int macCormack = clf.find("-MC", 0, "Non-zero input sets macCormack advection. 0 sets Semi-Lagrangian advection.");
     float timeToCapture = clf.find("-ttc", 0, "How long to run the non-interactive simulation.");
     std::string sourceIn = clf.find("-source", "", "File name for source input");
     if(sourceIn != "")
@@ -93,6 +96,9 @@ int main(int argc, char* argv[])
     fluidModel.init(&displayBuf, &sourceBuf);
     fluidModel.setPLoops(pLoops);
     fluidModel.setIOPLoops(iopLoops);
+    fluidModel.setLogLoops(logLoops);
+    if(macCormack > 0)fluidModel.setUsingMacCormack(true);
+    else fluidModel.setUsingMacCormack(false);
 
     //set static variables.
     WIDTH = displayBuf.getWidth();
@@ -229,7 +235,7 @@ int main(int argc, char* argv[])
 
     do {
 
-        if(prog_state & SOURCEIN) convertSourceIn();
+        if(prog_state & SOURCEIN && prog_state & RUNNING) convertSourceIn();
         if(timeToCapture <= 0)
         {
             if(prog_state & RUNNING)
@@ -254,6 +260,7 @@ int main(int argc, char* argv[])
                 displayBuf.writeImage(("../Mov/frame" + std::to_string(capturedFrames++) + ".png").c_str());
                 display(window, MatrixID, programID, vertexbuffer, mvp);
             }
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
 		glfwPollEvents();
 
@@ -265,6 +272,8 @@ void printControls()
 {
     printf("r       Reset the simulation (buoyancy and timesteps will not reset)\n");
     printf("p       Pause the simulation\n");
+    printf("d       Toggle density display\n");
+    printf("f       Toggle pressure display\n");
     printf("-, +    Change the buoyancy of the fluid (no shift)\n");
     printf("<, >    Change the timestep size of the simulation (no shift)\n");
 }
@@ -273,8 +282,18 @@ void display(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, gl
 {
     //update the texture from the display buffer.
     glBindTexture(GL_TEXTURE_2D, textureID);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, displayBuf.getWidth(), displayBuf.getHeight(), GL_RGB, GL_FLOAT, displayBuf.getBuf());
-    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, sourceBuf.getWidth(), sourceBuf.getHeight(), GL_R, GL_FLOAT, sourceBuf.getBuf());
+    if(display_state == IMAGE) glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, displayBuf.getWidth(), displayBuf.getHeight(), GL_RGB, GL_FLOAT, displayBuf.getBuf());
+    //if(display_state == IMAGE) glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, sourceBuf.getWidth(), sourceBuf.getHeight(), GL_RED, GL_FLOAT, sourceBuf.getBuf());
+    else if(display_state == DENSITY)
+    {
+        Buffer2D* h = fluidModel.getDensity();
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, h->getWidth(), h->getHeight(), GL_RED, GL_FLOAT, h->getBuf());
+    }
+    else if(display_state == PRESSURE)
+    {
+        Buffer2D* h = fluidModel.getPressure();
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, h->getWidth(), h->getHeight(), GL_RED, GL_FLOAT, h->getBuf());
+    }
 
     //draw stuff.
     //clear the screen.
@@ -324,7 +343,7 @@ void display(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, gl
 
 void update(double ts)
 {
-    fluidModel.runSLTimeStep(ts);
+    fluidModel.runTimeStep(ts);
 }
 
 void keyHandler(GLFWwindow* win, int key, int scancode, int action, int mods)
@@ -355,6 +374,21 @@ void keyHandler(GLFWwindow* win, int key, int scancode, int action, int mods)
             }
         }
         break;
+    case GLFW_KEY_I:
+        if(action == GLFW_PRESS)
+        {
+            if(paint_mode == PAINT_SOURCE)
+            {
+                paint_mode = PAINT_TARGET;
+                printf("Paint mode: Target\n");
+            }
+            else
+            {
+                paint_mode = PAINT_SOURCE;
+                printf("Paint mode: Source\n");
+            }
+        }
+        break;
     case GLFW_KEY_P:
         if(action == GLFW_PRESS)
         {
@@ -369,13 +403,43 @@ void keyHandler(GLFWwindow* win, int key, int scancode, int action, int mods)
             }
         }
         break;
+    case GLFW_KEY_D:
+        if(action == GLFW_PRESS)
+        {
+            if(display_state != DENSITY)
+            {
+                display_state = DENSITY;
+                printf("Display: DENSITY\n");
+            }
+            else if(display_state == DENSITY)
+            {
+                display_state = IMAGE;
+                printf("Display: IMAGE\n");
+            }
+        }
+        break;
+    case GLFW_KEY_F:
+        if(action == GLFW_PRESS)
+        {
+            if(display_state != PRESSURE)
+            {
+                display_state = PRESSURE;
+                printf("Display: PRESSURE\n");
+            }
+            else if(display_state == PRESSURE)
+            {
+                display_state = IMAGE;
+                printf("Display: IMAGE\n");
+            }
+        }
+        break;
     case GLFW_KEY_MINUS:
         if(action == GLFW_PRESS)
         {
             float add = 1.0f;
             float grav = fluidModel.getGravity();
             fluidModel.setGravity(grav - add);
-            printf("Buoyancy force: %f\n", grav);
+            printf("Buoyancy force: %f\n", grav - add);
         }
         break;
     case GLFW_KEY_EQUAL:
@@ -384,7 +448,7 @@ void keyHandler(GLFWwindow* win, int key, int scancode, int action, int mods)
             float add = 1.0f;
             float grav = fluidModel.getGravity() + add;
             fluidModel.setGravity(grav);
-            printf("Buoyancy force: %f\n", grav);
+            printf("Buoyancy force: %f\n", grav + add);
         }
         break;
     case GLFW_KEY_COMMA:
@@ -511,6 +575,28 @@ void dabSomePaint(Buffer2D* scr, int x, int y )
              for(int w = 0; w < nBytes; w++)
              {
                 if(nBytes * index + w < nBytes * iwidth * iheight) baseimage[nBytes*index + w] += source_brush[ix-xstart][iy-ystart];
+             }
+         }
+      }
+   }
+   else if( paint_mode == PAINT_TARGET )
+   {
+      for(int ix=xstart;ix <= xend; ix++)
+      {
+         for( int iy=ystart;iy<=yend; iy++)
+         {
+             int index = ix + iwidth*(iheight-iy-1);
+             for(int w = 0; w < nBytes; w++)
+             {
+                if(nBytes * index + w < nBytes * iwidth * iheight)
+                {
+                    if(nBytes == 1) baseimage[nBytes*index + w] += source_brush[ix-xstart][iy-ystart];
+                    else if(w == 1) baseimage[nBytes*index + w] += source_brush[ix-xstart][iy-ystart];
+                    else
+                    {
+                        baseimage[nBytes*index + w] += source_brush[ix-xstart][iy-ystart];
+                    }
+                }
              }
          }
       }

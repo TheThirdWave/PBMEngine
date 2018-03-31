@@ -25,6 +25,7 @@ public:
     void init(int, int, int, float);
     void setDataFloat(float);
     void setDataBuffer(Buffer2D&);
+    void setToIndicies();
     void zeroOut();
     void readImage(const char*);
     void writeImage(const char*);
