@@ -112,6 +112,7 @@ enum displayType{
     IMAGE = 0,
     DENSITY = 1,
     PRESSURE = 2,
+    ERROR = 3,
 };
 
 #endif // STRUCTPILE_H

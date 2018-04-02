@@ -13,7 +13,8 @@ private:
     Buffer2D stDensity;
     Buffer2D velocity;
     Buffer2D charMap;
-    Buffer2D charMap2;
+    Buffer2D forwardsMap;
+    Buffer2D backwardsMap;
     Buffer2D err;
     Buffer2D pressure;
     Buffer2D obstruction;
@@ -65,6 +66,7 @@ public:
     Buffer2D* getDensity();
     Buffer2D* getPressure();
     Buffer2D* getObstruction();
+    Buffer2D* getError();
 };
 
 #endif // FLUIDMODEL_H

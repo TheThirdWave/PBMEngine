@@ -33,7 +33,7 @@ void mouseButtonHandler(GLFWwindow* window, int button, int action, int mods);
 GLuint LoadShaders(const char * vertex_file_path, const char * fragment_file_path);
 void initializeBrushes();
 void dabSomePaint(Buffer2D *scr, int x, int y);
-void convertSourceIn();
+void convertSourceIn(float intensity);
 void display(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, glm::mat4 &mvp);
 void update(double ts);
 
@@ -56,6 +56,7 @@ int paint_mode;
 int prog_state = 0;
 int capturedFrames = 0;
 int display_state = IMAGE;
+float brightness;
 double prev_time, cur_time, delta_time, d_delta_time, d_prev_time, d_cur_time;
 double timeStep = 1.0 / (60.0 * 1.0);
 double simTime = 0.0f;
@@ -71,8 +72,14 @@ int main(int argc, char* argv[])
     int iopLoops = clf.find("-iop", 5, "Number of Iterated Orthogonal Projection loops.");
     int logLoops = clf.find("-log", 0, "Number of Log Advection loops.");
     int macCormack = clf.find("-MC", 0, "Non-zero input sets macCormack advection. 0 sets Semi-Lagrangian advection.");
-    float timeToCapture = clf.find("-ttc", 0, "How long to run the non-interactive simulation.");
+    int noImage = clf.find("-blank", 0, "Set to one if you don't want a blank image (must set width and height)");
+    int width = clf.find("-width", 256, "Width of simulation if no image supplied");
+    int height = clf.find("-height", 256, "Height of simulation if no image supplied.");
+    float timeToCapture = clf.find("-ttc", 0.0f, "How long to run the non-interactive simulation.");
+    float sourceIntensity = clf.find("-si", 1.0f, "Source multiplication coefficient.");
+    brightness = clf.find("-b", 1.0f, "The initial display brightness.");
     std::string sourceIn = clf.find("-source", "", "File name for source input");
+    std::string imgName = clf.find("-image", "../black.png", "File name for base image.");
     if(sourceIn != "")
     {
         prog_state = prog_state | SOURCEIN;
@@ -81,8 +88,16 @@ int main(int argc, char* argv[])
     timeStep = clf.find("-ts", (1.0f / (60.0f)), "Starting timestep size.");
 
     //load initial images;
-    loadedImg.readImage("../black.png");
-    displayBuf.readImage("../black.png");
+    if(noImage == 0)
+    {
+        loadedImg.readImage(imgName.c_str());
+        displayBuf.readImage(imgName.c_str());
+    }
+    else
+    {
+        loadedImg.init(width, height, 3, 1.0f);
+        displayBuf.init(width, height, 3, 1.0f);
+    }
     
     sourceBuf.init(displayBuf.getWidth(), displayBuf.getHeight(), 1, 1.0);
 
@@ -233,9 +248,11 @@ int main(int argc, char* argv[])
     d_cur_time = cur_time;
     d_prev_time = d_cur_time;
 
+    display(window, MatrixID, programID, vertexbuffer, mvp);
+
     do {
 
-        if(prog_state & SOURCEIN && prog_state & RUNNING) convertSourceIn();
+        if(prog_state & SOURCEIN && prog_state & RUNNING) convertSourceIn(sourceIntensity);
         if(timeToCapture <= 0)
         {
             if(prog_state & RUNNING)
@@ -253,14 +270,11 @@ int main(int argc, char* argv[])
         }
         else
         {
-            while(simTime < timeToCapture)
-            {
-                update(timeStep);
-                simTime += timeStep;
-                displayBuf.writeImage(("../Mov/frame" + std::to_string(capturedFrames++) + ".png").c_str());
-                display(window, MatrixID, programID, vertexbuffer, mvp);
-            }
-            glfwSetWindowShouldClose(window, GLFW_TRUE);
+            update(timeStep);
+            simTime += timeStep;
+            displayBuf.writeImage(("../Mov/frame" + std::to_string(capturedFrames++) + ".png").c_str());
+            display(window, MatrixID, programID, vertexbuffer, mvp);
+            if(simTime >= timeToCapture) glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
 		glfwPollEvents();
 
@@ -276,23 +290,41 @@ void printControls()
     printf("f       Toggle pressure display\n");
     printf("-, +    Change the buoyancy of the fluid (no shift)\n");
     printf("<, >    Change the timestep size of the simulation (no shift)\n");
+    printf("[, ]    Change the display brightness");
 }
 
 void display(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, glm::mat4 &mvp)
 {
     //update the texture from the display buffer.
     glBindTexture(GL_TEXTURE_2D, textureID);
-    if(display_state == IMAGE) glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, displayBuf.getWidth(), displayBuf.getHeight(), GL_RGB, GL_FLOAT, displayBuf.getBuf());
-    //if(display_state == IMAGE) glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, sourceBuf.getWidth(), sourceBuf.getHeight(), GL_RED, GL_FLOAT, sourceBuf.getBuf());
+    Buffer2D* h;
+    if(display_state == IMAGE) h = &displayBuf;
+    else if(display_state == DENSITY) h = fluidModel.getDensity();
+    else if(display_state == PRESSURE) h = fluidModel.getPressure();
+    else if(display_state == ERROR) h = fluidModel.getError();
+
+    int size = h->getHeight() * h->getWidth() * h->getNumChannels();
+    float* buf = new float[h->getHeight() * h->getWidth() * h->getNumChannels()];
+    memcpy(buf, h->getBuf(), sizeof(float) * size);
+    for(int i = 0; i < h->getWidth() * h->getHeight() * h->getNumChannels(); i++)
+    {
+        if(display_state != ERROR) buf[i] *= brightness;
+        else buf[i] *= brightness * 10;
+    }
+
+    if(display_state == IMAGE) glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, h->getWidth(), h->getHeight(), GL_RGB, GL_FLOAT, buf);
+    //if(display_state == IMAGE) glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, sourceBuf.getWidth(), sourceBuf.getHeight(), GL_RED, GL_FLOAT, sourceBuf.getBuf());)
     else if(display_state == DENSITY)
     {
-        Buffer2D* h = fluidModel.getDensity();
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, h->getWidth(), h->getHeight(), GL_RED, GL_FLOAT, h->getBuf());
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, h->getWidth(), h->getHeight(), GL_RED, GL_FLOAT, buf);
     }
     else if(display_state == PRESSURE)
     {
-        Buffer2D* h = fluidModel.getPressure();
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, h->getWidth(), h->getHeight(), GL_RED, GL_FLOAT, h->getBuf());
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, h->getWidth(), h->getHeight(), GL_RED, GL_FLOAT, buf);
+    }
+    else if(display_state == ERROR)
+    {
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, h->getWidth(), h->getHeight(), GL_RG, GL_FLOAT, buf);
     }
 
     //draw stuff.
@@ -433,6 +465,21 @@ void keyHandler(GLFWwindow* win, int key, int scancode, int action, int mods)
             }
         }
         break;
+    case GLFW_KEY_G:
+        if(action == GLFW_PRESS)
+        {
+            if(display_state != ERROR)
+            {
+                display_state = ERROR;
+                printf("Display: ERROR\n");
+            }
+            else if(display_state == ERROR)
+            {
+                display_state = IMAGE;
+                printf("Display: IMAGE\n");
+            }
+        }
+        break;
     case GLFW_KEY_MINUS:
         if(action == GLFW_PRESS)
         {
@@ -449,6 +496,20 @@ void keyHandler(GLFWwindow* win, int key, int scancode, int action, int mods)
             float grav = fluidModel.getGravity() + add;
             fluidModel.setGravity(grav);
             printf("Buoyancy force: %f\n", grav + add);
+        }
+        break;
+    case GLFW_KEY_LEFT_BRACKET:
+        if(action == GLFW_PRESS)
+        {
+            brightness -= 0.2f;
+            printf("Brightness force: %f\n", brightness);
+        }
+        break;
+    case GLFW_KEY_RIGHT_BRACKET:
+        if(action == GLFW_PRESS)
+        {
+            brightness += 0.2f;
+            printf("Brightness force: %f\n", brightness);
         }
         break;
     case GLFW_KEY_COMMA:
@@ -606,10 +667,11 @@ void dabSomePaint(Buffer2D* scr, int x, int y )
    return;
 }
 
-void convertSourceIn()
+void convertSourceIn(float intensity)
 {
     Buffer2D* source = fluidModel.getSource();
     float* sourceGrid = source->getBuf();
+    float* displayGrid = displayBuf.getBuf();
     float* inGrid = sourceInBuf.getBuf();
     int width = source->getWidth();
     int height = source->getHeight();
@@ -620,7 +682,10 @@ void convertSourceIn()
         for(int i = 0; i < width; i++)
         {
             int index = i + j * width;
-            sourceGrid[index * source->getNumChannels()] += inGrid[index * sourceInBuf.getNumChannels()];
+            sourceGrid[index * source->getNumChannels()] += inGrid[index * sourceInBuf.getNumChannels()] * intensity;
+            displayGrid[index * displayBuf.getNumChannels()] += inGrid[index * sourceInBuf.getNumChannels()] * intensity;
+            displayGrid[index * displayBuf.getNumChannels() + 1] += inGrid[index * sourceInBuf.getNumChannels()] * intensity;
+            displayGrid[index * displayBuf.getNumChannels() + 2] += inGrid[index * sourceInBuf.getNumChannels()] * intensity;
         }
     }
     fluidModel.setHasSource(true);
