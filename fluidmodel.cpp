@@ -11,6 +11,7 @@ FluidModel::FluidModel(Buffer2D *initBuf, Buffer2D* s)
     sDensity.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
     tDensity.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
     stDensity.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
+    vortMag.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
     velocity.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
     charMap.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
     forwardsMap.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
@@ -26,6 +27,8 @@ FluidModel::FluidModel(Buffer2D *initBuf, Buffer2D* s)
     hasTSource = false;
     macCormack = false;
     gravity = 30.0;
+    vCoefficient = 0;
+    cCoefficient = 0;
     pLoops = 5;
     iopLoops = 5;
 }
@@ -36,6 +39,7 @@ void FluidModel::init(Buffer2D *initBuf, Buffer2D* s)
     sDensity.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
     tDensity.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
     stDensity.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
+    vortMag.init(initBuf->getWidth(), initBuf->getHeight(), 1, 1.0);
     velocity.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
     charMap.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
     forwardsMap.init(initBuf->getWidth(), initBuf->getHeight(), 2, 1.0);
@@ -51,6 +55,8 @@ void FluidModel::init(Buffer2D *initBuf, Buffer2D* s)
     hasTSource = false;
     macCormack = false;
     gravity = 30.0;
+    vCoefficient = 0;
+    cCoefficient = 0;
     pLoops = 5;
     iopLoops = 5;
 }
@@ -89,13 +95,14 @@ void FluidModel::runTimeStep(double timeStep)
     }
 
     //calculate all forces.
-    forces(timeStep);
+    buoyancy(timeStep);
+    viscosity(timeStep);
+    vorticity(timeStep);
 
     //work out the pressure stuff to make it actually look like a fluid.
-
+    pressure.zeroOut();
     for(int j = 0; j < iopLoops; j++)
     {
-        pressure.zeroOut();
         for(int i = 0; i < pLoops; i++)
         {
             calcPressure();
@@ -146,7 +153,7 @@ void FluidModel::advection(double timeStep)
     }
 }
 
-void FluidModel::forces(double timeStep)
+void FluidModel::buoyancy(double timeStep)
 {
     int width = velocity.getWidth();
     int height = velocity.getHeight();
@@ -164,9 +171,136 @@ void FluidModel::forces(double timeStep)
             vel.x = velGrid[index * velocity.getNumChannels()];
             vel.y = velGrid[index * velocity.getNumChannels() + 1];
 
+            if(denGrid[index * density.getNumChannels()] > 0)
+            {
+                int x = 0;
+            }
+
             vel += (-denGrid[index * density.getNumChannels()] * up * gravity) * (float)timeStep;
             velGrid[index * velocity.getNumChannels()] = vel.x;
             velGrid[index * velocity.getNumChannels() + 1] = vel.y;
+        }
+    }
+}
+
+void FluidModel::viscosity(double timeStep)
+{
+    int width = velocity.getWidth();
+    int height = velocity.getHeight();
+    float* velGrid = velocity.getBuf();
+    int size = height * width * velocity.getNumChannels();
+
+    for(int j = 0; j < height; j++)
+    {
+//    #pragma omp parallel for
+        for(int i = 0; i < width; i++)
+        {
+            glm::vec2 vel;
+            int index = i + j * width;
+            if(index * velocity.getNumChannels() >= 0 && index * velocity.getNumChannels() < size)
+            {
+                vel.x = velGrid[index * velocity.getNumChannels()];
+                vel.y = velGrid[index * velocity.getNumChannels() + 1];
+            }
+            else
+            {
+                vel.x = 0.0f;
+                vel.y = 0.0f;
+            }
+
+            glm::vec2 vx0;
+            index = (i - 1) + j * width;
+            if(index * velocity.getNumChannels() >= 0 && index * velocity.getNumChannels() < size)
+            {
+                vx0.x = velGrid[index * velocity.getNumChannels()];
+                vx0.y = velGrid[index * velocity.getNumChannels() + 1];
+            }
+            else
+            {
+                vx0.x = 0.0f;
+                vx0.y = 0.0f;
+            }
+
+            glm::vec2 vx1;
+            index = (i + 1) + j * width;
+            if(index * velocity.getNumChannels() >= 0 && index * velocity.getNumChannels() < size)
+            {
+                vx1.x = velGrid[index * velocity.getNumChannels()];
+                vx1.y = velGrid[index * velocity.getNumChannels() + 1];
+            }
+            else
+            {
+                vx1.x = 0.0f;
+                vx1.y = 0.0f;
+            }
+
+            glm::vec2 vy0;
+            index = i + (j - 1) * width;
+            if(index * velocity.getNumChannels() >= 0 && index * velocity.getNumChannels() < size)
+            {
+                vy0.x = velGrid[index * velocity.getNumChannels()];
+                vy0.y = velGrid[index * velocity.getNumChannels() + 1];
+            }
+            else
+            {
+                vy0.x = 0.0f;
+                vy0.y = 0.0f;
+            }
+
+            glm::vec2 vy1;
+            index = i + (j + 1) * width;
+            if(index * velocity.getNumChannels() >= 0 && index * velocity.getNumChannels() < size)
+            {
+                vy1.x = velGrid[index * velocity.getNumChannels()];
+                vy1.y = velGrid[index * velocity.getNumChannels() + 1];
+            }
+            else
+            {
+                vy1.x = 0.0f;
+                vy1.y = 0.0f;
+            }
+
+            int x = exp(-4.0f * vCoefficient * (float)timeStep);
+            glm::vec2 final = exp(-4.0f * vCoefficient * (float)timeStep) * (vel + (vCoefficient * (float)timeStep / (velocity.getCellSize() * velocity.getCellSize())) * (vx1 + vx0 + vy1 + vy0));
+
+            index = i + j * width;
+            velGrid[index * velocity.getNumChannels()] = final.x;
+            velGrid[index * velocity.getNumChannels() + 1] = final.y;
+        }
+    }
+}
+
+void FluidModel::vorticity(double timeStep)
+{
+    updateVortMag();
+
+    int width = vortMag.getWidth();
+    int height = vortMag.getHeight();
+    float* vortGrid = vortMag.getBuf();
+    float* velGrid = velocity.getBuf();
+    int size = width * height * vortMag.getNumChannels();
+    for(int j = 0; j < height; j++)
+    {
+//    #pragma omp parallel for
+        for(int i = 0; i < width; i++)
+        {
+            int index = (i + 1) + j * width;
+            int index1 = (i - 1) + j * width;
+            float ex = (std::abs(vortGrid[index * vortMag.getNumChannels()]) - std::abs(vortGrid[index1 * vortMag.getNumChannels()])) / (2 * vortMag.getCellSize());
+
+            index = i + (j + 1) * width;
+            index1 = i + (j - 1) * width;
+            float ey = (std::abs(vortGrid[index * vortMag.getNumChannels()]) - std::abs(vortGrid[index1 * vortMag.getNumChannels()])) / (2 * vortMag.getCellSize());
+
+            glm::vec2 n = glm::vec2(-ex, ey);
+            float sqrtTerm = (ex * ex) + (ey * ey);
+            float sqrtAns = sqrt(sqrtTerm);
+            if(sqrtAns != 0) n = n / sqrtAns;
+
+            index = i + j * width;
+            glm::vec2 f = n * vortGrid[index * vortMag.getNumChannels()] * cCoefficient * vortMag.getCellSize() * (float)timeStep;
+            velGrid[index * velocity.getNumChannels()] += f.x;
+            velGrid[index * velocity.getNumChannels() + 1] += f.y;
         }
     }
 }
@@ -281,6 +415,70 @@ void FluidModel::applyPressure()
             curVel = curVel - curP;
             velGrid[index * velocity.getNumChannels()] = curVel.x;
             velGrid[index * velocity.getNumChannels() + 1] = curVel.y;
+        }
+    }
+}
+
+void FluidModel::updateVortMag()
+{
+    int width = velocity.getWidth();
+    int height = velocity.getHeight();
+    float* velGrid = velocity.getBuf();
+    float* vortGrid = vortMag.getBuf();
+    int size = height * width * velocity.getNumChannels();
+
+    for(int j = 0; j < height; j++)
+    {
+    #pragma omp parallel for
+        for(int i = 0; i < width; i++)
+        {
+            float ux0;
+            int index = i + (j + 1) * width;
+            if(index * velocity.getNumChannels() >= 0 && index * velocity.getNumChannels() < size)
+            {
+                ux0 = velGrid[index * velocity.getNumChannels()];
+            }
+            else
+            {
+                ux0 = 0.0f;
+            }
+
+            float ux1;
+            index = i + (j - 1) * width;
+            if(index * velocity.getNumChannels() >= 0 && index * velocity.getNumChannels() < size)
+            {
+                ux1 = velGrid[index * velocity.getNumChannels()];
+            }
+            else
+            {
+                ux1 = 0.0f;
+            }
+
+            float uy0;
+            index = (i + 1) + j * width;
+            if(index * velocity.getNumChannels() >= 0 && index * velocity.getNumChannels() < size)
+            {
+                uy0 = velGrid[index * velocity.getNumChannels() + 1];
+            }
+            else
+            {
+                uy0 = 0.0f;
+            }
+
+            float uy1;
+            index = (i - 1) + j * width;
+            if(index * velocity.getNumChannels() >= 0 && index * velocity.getNumChannels() < size)
+            {
+                uy1 = velGrid[index * velocity.getNumChannels() + 1];
+            }
+            else
+            {
+                uy1 = 0.0f;
+            }
+
+
+            index = i + j * width;
+            vortGrid[index * vortMag.getNumChannels()] = (uy0 - uy1) / (2 * vortMag.getCellSize()) + (ux0 - ux1) / (2 * vortMag.getCellSize());
         }
     }
 }
@@ -691,6 +889,16 @@ float FluidModel::getGravity()
     return gravity;
 }
 
+float FluidModel::getViscosity()
+{
+    return vCoefficient;
+}
+
+float FluidModel::getVorticity()
+{
+    return cCoefficient;
+}
+
 int FluidModel::getPLoops()
 {
     return pLoops;
@@ -714,6 +922,16 @@ bool FluidModel::usingMacCormack()
 void FluidModel::setGravity(float f)
 {
     gravity = f;
+}
+
+void FluidModel::setViscosity(float v)
+{
+    vCoefficient = v;
+}
+
+void FluidModel::setVorticity(float v)
+{
+    cCoefficient = v;
 }
 
 void FluidModel::setHasSource(bool t)

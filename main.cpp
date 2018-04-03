@@ -74,9 +74,11 @@ int main(int argc, char* argv[])
     int macCormack = clf.find("-MC", 0, "Non-zero input sets macCormack advection. 0 sets Semi-Lagrangian advection.");
     int noImage = clf.find("-blank", 0, "Set to one if you don't want a blank image (must set width and height)");
     int width = clf.find("-width", 256, "Width of simulation if no image supplied");
-    int height = clf.find("-height", 256, "Height of simulation if no image supplied.");
+    int height = clf.find("-height", 500, "Height of simulation if no image supplied.");
     float timeToCapture = clf.find("-ttc", 0.0f, "How long to run the non-interactive simulation.");
     float sourceIntensity = clf.find("-si", 1.0f, "Source multiplication coefficient.");
+    float viscosity = clf.find("-v", 0.0f, "The initial viscosity of the simulation.");
+    float vorticity = clf.find("-vort", 0.0f, "The initial vorticity coefficient of the simulation.");
     brightness = clf.find("-b", 1.0f, "The initial display brightness.");
     std::string sourceIn = clf.find("-source", "", "File name for source input");
     std::string imgName = clf.find("-image", "../black.png", "File name for base image.");
@@ -112,6 +114,8 @@ int main(int argc, char* argv[])
     fluidModel.setPLoops(pLoops);
     fluidModel.setIOPLoops(iopLoops);
     fluidModel.setLogLoops(logLoops);
+    fluidModel.setViscosity(viscosity);
+    fluidModel.setVorticity(vorticity);
     if(macCormack > 0)fluidModel.setUsingMacCormack(true);
     else fluidModel.setUsingMacCormack(false);
 
@@ -290,7 +294,9 @@ void printControls()
     printf("f       Toggle pressure display\n");
     printf("-, +    Change the buoyancy of the fluid (no shift)\n");
     printf("<, >    Change the timestep size of the simulation (no shift)\n");
-    printf("[, ]    Change the display brightness");
+    printf("[, ]    Change the display brightness\n");
+    printf(";, ',   Change the viscocity coefficient\n");
+    printf("9, 0,   Change the vorticity coefficient\n");
 }
 
 void display(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, glm::mat4 &mvp)
@@ -480,6 +486,24 @@ void keyHandler(GLFWwindow* win, int key, int scancode, int action, int mods)
             }
         }
         break;
+    case GLFW_KEY_9:
+        if(action == GLFW_PRESS)
+        {
+            float add = 1.0f;
+            float vort = fluidModel.getVorticity();
+            fluidModel.setVorticity(vort - add);
+            printf("Buoyancy force: %f\n", vort - add);
+        }
+    break;
+    case GLFW_KEY_0:
+        if(action == GLFW_PRESS)
+        {
+            float add = 1.0f;
+            float vort = fluidModel.getVorticity();
+            fluidModel.setVorticity(vort + add);
+            printf("Buoyancy force: %f\n", vort + add);
+        }
+    break;
     case GLFW_KEY_MINUS:
         if(action == GLFW_PRESS)
         {
@@ -510,6 +534,24 @@ void keyHandler(GLFWwindow* win, int key, int scancode, int action, int mods)
         {
             brightness += 0.2f;
             printf("Brightness force: %f\n", brightness);
+        }
+        break;
+    case GLFW_KEY_SEMICOLON:
+        if(action == GLFW_PRESS)
+        {
+            float add = 1.0f;
+            float visc = fluidModel.getViscosity() - add;
+            fluidModel.setViscosity(visc);
+            printf("Viscosity force: %f\n", visc - add);
+        }
+        break;
+    case GLFW_KEY_APOSTROPHE:
+        if(action == GLFW_PRESS)
+        {
+            float add = 1.0f;
+            float visc = fluidModel.getViscosity() + add;
+            fluidModel.setViscosity(visc);
+            printf("Viscosity force: %f\n", visc + add);
         }
         break;
     case GLFW_KEY_COMMA:

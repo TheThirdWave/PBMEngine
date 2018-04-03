@@ -11,6 +11,7 @@ private:
     Buffer2D sDensity;
     Buffer2D tDensity;
     Buffer2D stDensity;
+    Buffer2D vortMag;
     Buffer2D velocity;
     Buffer2D charMap;
     Buffer2D forwardsMap;
@@ -22,7 +23,7 @@ private:
     Buffer2D* color;
     bool hasSource, hasTSource, macCormack;
     int pLoops, iopLoops, logLoops;
-    float gravity;
+    float gravity, vCoefficient, cCoefficient;
 
 public:
     FluidModel();
@@ -30,7 +31,9 @@ public:
     void init(Buffer2D* initBuf, Buffer2D* s);
     void runTimeStep(double timeStep);
     void advection(double timeStep);
-    void forces(double timeStep);
+    void buoyancy(double timeStep);
+    void viscosity(double timeStep);
+    void vorticity(double timeStep);
     void sources(double timeStep);
     void targetSource();
     void calcPressure();
@@ -39,6 +42,7 @@ public:
 
     void cMapSLAdvect(double timeStep);
     void cMapMCAdvect(double timeStep);
+    void updateVortMag();
     void setObsBoundary();
     void fastBlur(Buffer2D* in, Buffer2D* out);
 
@@ -49,6 +53,8 @@ public:
     glm::vec3 interpolate3Vec(Buffer2D* buf, glm::vec2 vec);
 
     float getGravity();
+    float getViscosity();
+    float getVorticity();
     int getPLoops();
     int getIOPLoops();
     int getLogLoops();
@@ -57,6 +63,8 @@ public:
     void setHasSource(bool);
     void setHasTSource(bool);
     void setGravity(float);
+    void setViscosity(float);
+    void setVorticity(float);
     void setPLoops(int);
     void setIOPLoops(int);
     void setLogLoops(int);
