@@ -4,6 +4,7 @@ Function3D::Function3D()
 {
     normal = glm::vec3(0.0f);
     origPoint = glm::vec3(0.0f);
+    parent = NULL;
 }
 
 Function3D::Function3D(glm::vec3 norm, glm::vec3 pt)
@@ -117,10 +118,15 @@ void Function3D::setUVTriangle(triangle2d t)
     uvs = t;
 }
 
-void Function3D::setChildren(Function3D *ch, int num)
+void Function3D::setChildren(Function3D* ch, int num)
 {
     children = ch;
     numChildren = num;
+}
+
+void Function3D::setParent(Function3D* p)
+{
+    parent = p;
 }
 
 glm::vec4 Function3D::getCS()
@@ -146,4 +152,9 @@ float Function3D::getDisp()
 geometry Function3D::getGeo()
 {
     return geo;
+}
+
+Function3D* Function3D::getParent()
+{
+    return parent;
 }

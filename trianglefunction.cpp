@@ -3,6 +3,7 @@
 
 TriangleFunction::TriangleFunction()
 {
+    parent = NULL;
 }
 
 TriangleFunction::TriangleFunction(glm::vec3 A, glm::vec3 B, glm::vec3 C)
@@ -12,6 +13,7 @@ TriangleFunction::TriangleFunction(glm::vec3 A, glm::vec3 B, glm::vec3 C)
     tri.c = C;
     origPoint = (A + B + C) / 3.0f;
     normal = glm::normalize(glm::cross(C - A, B - A));
+    parent = NULL;
 }
 
 glm::vec4 TriangleFunction::getTexCol(glm::vec3 pt)
@@ -119,8 +121,8 @@ glm::vec3 TriangleFunction::getSurfaceNormal(glm::vec3 pt)
     float w = glm::dot(glm::cross(e12, p1x), normal) / area2;
     float u = glm::dot(glm::cross(e20, p2x), normal) / area2;
     float v = 1 - u - w;
-    normal = u * nTri.a + w * nTri.b + v * nTri.c;*/
-    //return glm::normalize(glm::cross(tri.b - tri.a, tri.c - tri.a));
+    normal = w * nTri.a + u * nTri.b + v * nTri.c;*/
+    //return glm::normalize(glm::cross(tri.c - tri.a, tri.b - tri.a));
     return normal;
 }
 

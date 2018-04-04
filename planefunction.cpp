@@ -3,12 +3,14 @@
 
 PlaneFunction::PlaneFunction()
 {
+    parent = NULL;
 }
 
 PlaneFunction::PlaneFunction(glm::vec3 pos, glm::vec3 norm)
 {
     origPoint = pos;
     normal = glm::normalize(norm);
+    parent = NULL;
 }
 
 glm::vec4 PlaneFunction::getTexCol(glm::vec3 pt)

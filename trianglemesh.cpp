@@ -191,8 +191,8 @@ void TriangleMesh::createCube(float radius)
     triangles[10].setTriNorms(norms[4], norms[6], norms[5]);
     triangles[10].getGroupNormal();
     triangles[10].getGroupPos();
-    triangles[11].setTriangle(points[6], points[4], points[5]);
-    triangles[11].setTriNorms(norms[6], norms[4], norms[5]);
+    triangles[11].setTriangle(points[6], points[4], points[7]);
+    triangles[11].setTriNorms(norms[6], norms[4], norms[7]);
     triangles[11].getGroupNormal();
     triangles[11].getGroupPos();
 

@@ -55,7 +55,7 @@ float Shaders::getTotalR(intercept *ret, int idx, Function3D& obj)
                 indicies[i] = -1;
                 break;
             }
-            else if(ret[i].obj == ret[j].obj)
+            else if(ret[i].obj == ret[j].obj || ret[i].obj->getParent() == ret[j].obj->getParent())
             {
                 indicies[j] = i;
                 indicies[i] = j;
@@ -73,7 +73,7 @@ float Shaders::getTotalR(intercept *ret, int idx, Function3D& obj)
             closest.t = (float)i;
             counted = false;
         }
-        else if(ret[i].obj == closest.obj)
+        else if(ret[i].obj == closest.obj || ret[i].obj->getParent() == closest.obj->getParent())
         {
             if(closest.obj != &obj) r += ret[i].t - ret[(int)closest.t].t;
             else r += ret[i].t;

@@ -20,6 +20,7 @@ protected:
     geometry geo;
     Imagemanip* texture;
     Function3D* children;
+    Function3D* parent;
     triangle tri, nTri;
     triangle2d uvs;
 
@@ -44,11 +45,13 @@ public:
     void setUVTriangle(glm::vec2, glm::vec2, glm::vec2);
     void setUVTriangle(triangle2d);
     void setChildren(Function3D* ch, int num);
+    void setParent(Function3D* p);
     geometry getGeo();
     glm::vec4 getCS();
     glm::vec4 getCD();
     glm::vec4 getCA();
     float getDisp();
+    Function3D* getParent();
     virtual glm::vec4 getTexCol(glm::vec3) = 0;
     virtual float getRelativePoint(glm::vec3) = 0;
     virtual int getRelativeLine(glm::vec3, glm::vec3, intercept*, int) = 0;
