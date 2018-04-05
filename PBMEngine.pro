@@ -6,7 +6,9 @@ QMAKE_CXXFLAGS += -fopenmp
 
 SOURCES += main.cpp \
     buffer2d.cpp \
-    fluidmodel.cpp
+    fluidmodel.cpp \
+    sphmodel.cpp \
+    particle.cpp
 
 OTHER_FILES += \
     FragS1.glsl \
@@ -18,4 +20,6 @@ HEADERS += \
     buffer2d.h \
     CmdLineFind.h \
     structpile.h \
-    fluidmodel.h
+    fluidmodel.h \
+    sphmodel.h \
+    particle.h

@@ -106,6 +106,7 @@ enum progState{
     DRAW = 1 << 1,
     PAUSED = 1 << 2,
     SOURCEIN = 1 << 3,
+    SPH = 1 << 4
 };
 
 enum displayType{

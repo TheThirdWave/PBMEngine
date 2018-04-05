@@ -35,6 +35,7 @@ void initializeBrushes();
 void dabSomePaint(Buffer2D *scr, int x, int y);
 void convertSourceIn(float intensity);
 void display(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, glm::mat4 &mvp);
+void displaySPH(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, glm::mat4 &mvp);
 void update(double ts);
 
 //static variables.
@@ -72,7 +73,8 @@ int main(int argc, char* argv[])
     int iopLoops = clf.find("-iop", 5, "Number of Iterated Orthogonal Projection loops.");
     int logLoops = clf.find("-log", 0, "Number of Log Advection loops.");
     int macCormack = clf.find("-MC", 0, "Non-zero input sets macCormack advection. 0 sets Semi-Lagrangian advection.");
-    int noImage = clf.find("-blank", 0, "Set to one if you don't want a blank image (must set width and height)");
+    int noImage = clf.find("-blank", 0, "Set to one if you want a blank image (must set width and height)");
+    int sph = clf.find("-SPH", 1, "Set to one if you want to run a Something Particle Hydrodynamics simulation");
     int width = clf.find("-width", 256, "Width of simulation if no image supplied");
     int height = clf.find("-height", 500, "Height of simulation if no image supplied.");
     float timeToCapture = clf.find("-ttc", 0.0f, "How long to run the non-interactive simulation.");
@@ -86,6 +88,10 @@ int main(int argc, char* argv[])
     {
         prog_state = prog_state | SOURCEIN;
         sourceInBuf.readImage(sourceIn.c_str());
+    }
+    if(sph >= 0)
+    {
+        prog_state = prog_state | SPH;
     }
     timeStep = clf.find("-ts", (1.0f / (60.0f)), "Starting timestep size.");
 
@@ -137,7 +143,7 @@ int main(int argc, char* argv[])
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	
 	GLFWwindow* window;
-	window = glfwCreateWindow(WIDTH, HEIGHT, "Tutorial 01", NULL, NULL);
+    window = glfwCreateWindow(WIDTH, HEIGHT, "Fluid Model Display", NULL, NULL);
 	if (window == NULL)
 	{
 		fprintf(stderr, "Failed to open GLFW window.\n");
@@ -173,13 +179,16 @@ int main(int argc, char* argv[])
     //create vertex buffer
     // An array of 3 vectors which represents 3 vertices
     static const GLfloat g_vertex_buffer_data[] = {
-        -1.0f,-1.0f, -1.0f, // triangle 1 : begin
-        1.0f,-1.0f, -1.0f,
-        -1.0f, 1.0f, -1.0f, // triangle 1 : end
-        1.0f, 1.0f, -1.0f, // triangle 2 : begin
-        1.0f,-1.0f, -1.0f,
-        -1.0f, 1.0f, -1.0f, // triangle 2 : end
+        //-1.0f,-1.0f, -1.0f, // triangle 1 : begin
+        //1.0f,-1.0f, -1.0f,
+        //-1.0f, 1.0f, -1.0f, // triangle 1 : end
+        //1.0f, 1.0f, -1.0f, // triangle 2 : begin
+        //1.f,-1.0f, -1.0f,
+        //-1.0f, 1.0f, -1.0f, // triangle 2 : end
+        0.0f, 0.0f, -1.0f,
       };
+
+    glPointSize(3.0f);
 
     // This will identify our vertex buffer
     GLuint vertexbuffer;
@@ -206,12 +215,13 @@ int main(int argc, char* argv[])
     // Create uv buffer.
     // One color for each vertex. They were generated randomly.
     static const GLfloat g_uv_buffer_data[] = {
-        0.0f,  0.0f,
-        1.0f,  0.0f,
-        0.0f,  1.0f,
-        1.0f,  1.0f,
-        1.0f,  0.0f,
-        0.0f,  1.0f
+        //0.0f,  0.0f,
+        //1.0f,  0.0f,
+        //0.0f,  1.0f,
+        //1.0f,  1.0f,
+        //1.0f,  0.0f,
+        //0.0f,  1.0f
+        0.5f, 0.5f
     };
 
     glGenBuffers(1, &uvbuffer);
@@ -256,29 +266,36 @@ int main(int argc, char* argv[])
 
     do {
 
-        if(prog_state & SOURCEIN && prog_state & RUNNING) convertSourceIn(sourceIntensity);
-        if(timeToCapture <= 0)
+        if(!(prog_state & sph))
         {
-            if(prog_state & RUNNING)
+            if(prog_state & SOURCEIN && prog_state & RUNNING) convertSourceIn(sourceIntensity);
+            if(timeToCapture <= 0)
+            {
+                if(prog_state & RUNNING)
+                {
+                    update(timeStep);
+                    simTime += timeStep;
+                }
+                d_cur_time = glfwGetTime();
+                d_delta_time = d_cur_time - d_prev_time;
+                if(d_delta_time >= displayTime)
+                {
+                    d_prev_time = d_cur_time;
+                    display(window, MatrixID, programID, vertexbuffer, mvp);
+                }
+            }
+            else
             {
                 update(timeStep);
                 simTime += timeStep;
-            }
-            d_cur_time = glfwGetTime();
-            d_delta_time = d_cur_time - d_prev_time;
-            if(d_delta_time >= displayTime)
-            {
-                d_prev_time = d_cur_time;
+                displayBuf.writeImage(("../Mov/frame" + std::to_string(capturedFrames++) + ".png").c_str());
                 display(window, MatrixID, programID, vertexbuffer, mvp);
+                if(simTime >= timeToCapture) glfwSetWindowShouldClose(window, GLFW_TRUE);
             }
         }
         else
         {
-            update(timeStep);
-            simTime += timeStep;
-            displayBuf.writeImage(("../Mov/frame" + std::to_string(capturedFrames++) + ".png").c_str());
-            display(window, MatrixID, programID, vertexbuffer, mvp);
-            if(simTime >= timeToCapture) glfwSetWindowShouldClose(window, GLFW_TRUE);
+            displaySPH(window, MatrixID, programID, vertexbuffer, mvp);
         }
 		glfwPollEvents();
 
@@ -372,6 +389,88 @@ void display(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, gl
 
     // Draw the triangle !
     glDrawArrays(GL_TRIANGLES, 0, 2 * 3);// Starting from vertex 0; 3 vertices total -> 1 triangle
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+
+    //swap image buffers (though shouldn't it be a buffer chain, technically?)
+    glfwSwapBuffers(window);
+}
+
+void displaySPH(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, glm::mat4 &mvp)
+{
+    //update the texture from the display buffer.
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    /*
+    Buffer2D* h;
+    if(display_state == IMAGE) h = &displayBuf;
+    else if(display_state == DENSITY) h = fluidModel.getDensity();
+    else if(display_state == PRESSURE) h = fluidModel.getPressure();
+    else if(display_state == ERROR) h = fluidModel.getError();
+
+    int size = h->getHeight() * h->getWidth() * h->getNumChannels();
+    float* buf = new float[h->getHeight() * h->getWidth() * h->getNumChannels()];
+    memcpy(buf, h->getBuf(), sizeof(float) * size);
+    for(int i = 0; i < h->getWidth() * h->getHeight() * h->getNumChannels(); i++)
+    {
+        if(display_state != ERROR) buf[i] *= brightness;
+        else buf[i] *= brightness * 10;
+    }
+
+    if(display_state == IMAGE) glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, h->getWidth(), h->getHeight(), GL_RGB, GL_FLOAT, buf);
+    //if(display_state == IMAGE) glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, sourceBuf.getWidth(), sourceBuf.getHeight(), GL_RED, GL_FLOAT, sourceBuf.getBuf());)
+    else if(display_state == DENSITY)
+    {
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, h->getWidth(), h->getHeight(), GL_RED, GL_FLOAT, buf);
+    }
+    else if(display_state == PRESSURE)
+    {
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, h->getWidth(), h->getHeight(), GL_RED, GL_FLOAT, buf);
+    }
+    else if(display_state == ERROR)
+    {
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, h->getWidth(), h->getHeight(), GL_RG, GL_FLOAT, buf);
+    }
+    */
+
+    //draw stuff.
+    //clear the screen.
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Send our transformation to the currently bound shader, in the "MVP" uniform
+    // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
+    glUniformMatrix4fv(matID, 1, GL_FALSE, &mvp[0][0]);
+
+    //set the shader.
+    glUseProgram(progID);
+
+
+    // 1st attribute buffer : vertices
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, vertBuf);
+    glVertexAttribPointer(
+        0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+        3,                  // size
+        GL_FLOAT,           // type
+        GL_FALSE,           // normalized?
+        0,                  // stride
+        (void*)0            // array buffer offset
+    );
+
+
+    // 2nd attribute buffer : uv positions
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+    glVertexAttribPointer(
+        1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+        2,                                // size
+        GL_FLOAT,                         // type
+        GL_FALSE,                         // normalized?
+        0,                                // stride
+        (void*)0                          // array buffer offset
+    );
+
+    // Draw the triangle !
+    glDrawArrays(GL_POINTS, 0, 1);// Starting from vertex 0; 3 vertices total -> 1 triangle
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
 
@@ -492,7 +591,7 @@ void keyHandler(GLFWwindow* win, int key, int scancode, int action, int mods)
             float add = 1.0f;
             float vort = fluidModel.getVorticity();
             fluidModel.setVorticity(vort - add);
-            printf("Buoyancy force: %f\n", vort - add);
+            printf("Vorticity force: %f\n", vort - add);
         }
     break;
     case GLFW_KEY_0:
@@ -501,7 +600,7 @@ void keyHandler(GLFWwindow* win, int key, int scancode, int action, int mods)
             float add = 1.0f;
             float vort = fluidModel.getVorticity();
             fluidModel.setVorticity(vort + add);
-            printf("Buoyancy force: %f\n", vort + add);
+            printf("Vorticity force: %f\n", vort + add);
         }
     break;
     case GLFW_KEY_MINUS:

@@ -80,7 +80,7 @@ void FluidModel::runTimeStep(double timeStep)
         if(!macCormack) cMapSLAdvect(dt);
         else cMapMCAdvect(dt);
         loops++;
-        dt = dt * pow(2, loops);
+        dt = dt * 2;
     }
 
     //now we actually apply the advected characteristic map to the velocity and color maps.
