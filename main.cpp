@@ -221,7 +221,7 @@ int main(int argc, char* argv[])
         //1.0f,  1.0f,
         //1.0f,  0.0f,
         //0.0f,  1.0f
-        0.5f, 0.5f
+        0.5f, 0.5f, 0.0f
     };
 
     glGenBuffers(1, &uvbuffer);
@@ -462,7 +462,7 @@ void displaySPH(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf,
     glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
     glVertexAttribPointer(
         1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-        2,                                // size
+        3,                                // size
         GL_FLOAT,                         // type
         GL_FALSE,                         // normalized?
         0,                                // stride

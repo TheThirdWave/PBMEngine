@@ -2,7 +2,7 @@
 
 //Input data.
 //in vec3 fragmentColor;
-in vec2 UV;
+in vec3 COL;
 
 //Output.
 out vec3 color;
@@ -12,5 +12,5 @@ uniform sampler2D texSampler;
 
 void main()
 {
-        color = vec3(1, 1, 1);//texture(texSampler, UV).rgb;
+        color = COL;//texture(texSampler, UV).rgb;
 }

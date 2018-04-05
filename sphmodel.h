@@ -1,12 +1,14 @@
 #ifndef SPHMODEL_H
 #define SPHMODEL_H
 
+class Particle;
 
 class SPHModel
 {
-    float* pointBuf;
-    float* colBuf;
-    int numPoints;
+    Particle* particles;
+    float* pointDispBuf;
+    float* colDispBuf;
+    int numParticles;
 public:
     SPHModel();
 };
