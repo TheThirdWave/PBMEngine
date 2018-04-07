@@ -605,6 +605,224 @@ glm::vec4 Shaders::nMapMirror(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::ve
 
 }
 
+glm::vec4 Shaders::refractor(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
+{
+    if(numDeep < MAX_REFLECTIONS)
+    {
+        glm::vec4 cD = obj.getCD();
+        glm::vec4 cA = obj.getCA();
+        glm::vec4 cS = obj.getCS();
+        glm::vec4 cL;
+        glm::vec4 cPe = cA;
+        float shnell = obj.getShnell();
+        float t = 0;
+        float d = obj.getGeo().depth;
+        float r;
+        glm::vec3 pDH = pH - nH * d;
+        LightBase* curLight;
+        glm::vec3 nL;
+        intercept hits[MAX_LINE_INTERCEPTS];
+        int numHits = 0;
+        for(int i = 0; i < renderer->lightNum; i++)
+        {
+            numHits = 0;
+            curLight = renderer->lights[i];
+            nL = -curLight->getRelativeNorm(pH);
+            cL = curLight->getColor();
+
+            //get angle for diffuse light, raycast can catch occluders as well.
+            numHits = castRay(pDH, nL, hits, numHits);
+            sortByT(hits, numHits);
+            if(curLight->getType() != DIRECTIONAL) numHits = cullForPLight(hits, numHits, pH, curLight);
+            r = getTotalR(hits, numHits, obj);
+            if(r == 0) t = 0;
+            else t = d / r;
+
+            glm::vec4 cDD = cD * cL;
+            if(curLight->getType() != DIRECTIONAL)
+            {
+                //float dnom = glm::dot(curLight->getPos() - pH, curLight->getPos() - pH);
+                //t = t / dnom * 10000;
+            }
+            if(curLight->getType() == SPOTLIGHT)
+            {
+                float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+                t *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+            }
+            t = clamp(t, 1.0, 0.0);
+            cDD.r *= t;
+            cDD.g *= t;
+            cDD.b *= t;
+
+            cPe += cDD;
+
+            //calculate angle for refraction
+            glm::vec3 ref1;
+            float C = glm::dot(nH, nPe);
+            float sqrtTerm = (C * C - 1)/(shnell * shnell) + 1;
+            if(sqrtTerm >= 0)
+            {
+                float b = (C / shnell) - sqrt(sqrtTerm);
+                ref1 = (-1 / shnell) * nPe + b * nH;
+            }
+            else ref1 = -nPe + (2 *glm::dot(nH, nPe) * nH);
+            numHits = 0;
+            //cast ray along the reflection angle.
+            numHits = castRay(pH, ref1, hits, numHits);
+            sortByT(hits, numHits);
+            float s = 0;
+            for(int i = 0; i < numHits; i++)
+            {
+                if(hits[i].obj != &obj && (hits[i].obj->getParent() != obj.getParent() || hits[i].obj->getParent() == NULL))
+                {
+                    //get the color of the closest object hit by the reflection ray.
+                    glm::vec3 hitPoint = pH + ref1 * hits[i].t;
+                    cS = (*this.*(hits[i].obj->shader))(hits[i].obj->getSurfaceNormal(hitPoint), -ref1, hitPoint, pE, *hits[i].obj, numDeep + 1);
+                    s = 1;
+                    break;
+                }
+            }
+            if(s == 0)
+            {
+                cS = glm::vec4(renderer->background * 1000.0f, 1000.0f);
+                s = 1;
+            }
+            //calculate angle for specular highlight
+            /*glm::vec3 ref = -nL + (2 * glm::dot(nH, nL) * nH);
+            float cos = glm::dot(nPe, ref);
+            s = clamp(cos, obj.getGeo().radius, obj.getGeo().width);
+            if(curLight->getType() == SPOTLIGHT)
+            {
+                float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+                s *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+            }*/
+            //if(cos > 0.98) s = 1;
+            //else s = 0;
+            cPe += cS * cL * s;
+
+        }
+
+        return cPe;
+    }
+    return glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+
+}
+
+glm::vec4 Shaders::refractorMaps(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
+{
+    if(numDeep < MAX_REFLECTIONS)
+    {
+        glm::vec4 cD = obj.getCD();
+        glm::vec4 cA = obj.getCA();
+        glm::vec4 cS = obj.getCS();
+        glm::vec4 cL;
+        glm::vec4 cPe = cA;
+        float shnell = obj.getShnell();
+        float t = 0;
+        float d = obj.getGeo().depth;
+        float r;
+        float displacement = (obj.getBMapAt(pH) - 0.5) * obj.getDisp();
+        glm::vec3 pHnew = pH + displacement;
+        glm::vec3 pDH = pHnew - nH * d;
+        LightBase* curLight;
+        glm::vec3 nL;
+        intercept hits[MAX_LINE_INTERCEPTS];
+        int numHits = 0;
+        for(int i = 0; i < renderer->lightNum; i++)
+        {
+            numHits = 0;
+            curLight = renderer->lights[i];
+            nL = -curLight->getRelativeNorm(pH);
+            cL = curLight->getColor();
+
+            //get normal map normal.
+            glm::vec3 mapNorm = obj.getNMapAt(pH);
+            //combine mapNorm with the natural normal of the object
+            mapNorm -= 0.5f;
+            mapNorm += nH;
+
+            //get angle for diffuse light, raycast can catch occluders as well.
+            numHits = castRay(pDH, nL, hits, numHits);
+            sortByT(hits, numHits);
+            if(curLight->getType() != DIRECTIONAL) numHits = cullForPLight(hits, numHits, pH, curLight);
+            r = getTotalR(hits, numHits, obj);
+            if(r == 0) t = 0;
+            else t = d / r;
+
+            glm::vec4 cDD = cD * cL;
+            if(curLight->getType() != DIRECTIONAL)
+            {
+                //float dnom = glm::dot(curLight->getPos() - pH, curLight->getPos() - pH);
+                //t = t / dnom * 10000;
+            }
+            if(curLight->getType() == SPOTLIGHT)
+            {
+                float cos = glm::dot(glm::normalize((pHnew - curLight->getPos())), curLight->getGeo().normal);
+                t *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+            }
+            t = clamp(t, 1.0, 0.0);
+            cDD.r *= t;
+            cDD.g *= t;
+            cDD.b *= t;
+
+            cPe += cDD;
+
+            //calculate angle for refraction
+            glm::vec3 ref1;
+            float C = glm::dot(mapNorm, nPe);
+            float sqrtTerm = (C * C - 1)/(shnell * shnell) + 1;
+            if(sqrtTerm >= 0)
+            {
+                float b = (C / shnell) - sqrt(sqrtTerm);
+                ref1 = (-1 / shnell) * nPe + b * mapNorm;
+            }
+            else ref1 = -nPe + (2 *glm::dot(mapNorm, nPe) * mapNorm);
+            numHits = 0;
+            //cast ray along the reflection angle.
+            numHits = castRay(pHnew, ref1, hits, numHits);
+            sortByT(hits, numHits);
+            float s = 0;
+            if(numHits > 2)
+            {
+                int x = 1;
+            }
+            for(int i = 0; i < numHits; i++)
+            {
+                if(hits[i].obj != &obj && (hits[i].obj->getParent() != obj.getParent() || hits[i].obj->getParent() == NULL))
+                {
+                    //get the color of the closest object hit by the reflection ray.
+                    glm::vec3 hitPoint = pHnew + ref1 * hits[i].t;
+                    cS = (*this.*(hits[i].obj->shader))(hits[i].obj->getSurfaceNormal(hitPoint), -ref1, hitPoint, pE, *hits[i].obj, numDeep + 1);
+                    s = 1;
+                    break;
+                }
+            }
+            if(s == 0)
+            {
+                cS = glm::vec4(renderer->background * 1000.0f, 1000.0f);
+                s = 1;
+            }
+            //calculate angle for specular highlight
+            /*glm::vec3 ref = -nL + (2 * glm::dot(nH, nL) * nH);
+            float cos = glm::dot(nPe, ref);
+            s = clamp(cos, obj.getGeo().radius, obj.getGeo().width);
+            if(curLight->getType() == SPOTLIGHT)
+            {
+                float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+                s *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+            }*/
+            //if(cos > 0.98) s = 1;
+            //else s = 0;
+            cPe += cS * cL * s;
+
+        }
+
+        return cPe;
+    }
+    return glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+
+}
+
 glm::vec4 Shaders::phongShadowClassic(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
 {
     glm::vec4 cD = obj.getCD();

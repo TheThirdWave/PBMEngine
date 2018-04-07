@@ -40,6 +40,54 @@ glm::vec4 TriangleFunction::getTexCol(glm::vec3 pt)
 
 }
 
+glm::vec3 TriangleFunction::getNMapAt(glm::vec3 pt)
+{
+    glm::vec3 hitPoint = pt;
+    glm::vec3 e01 = tri.b - tri.a;
+    glm::vec3 e12 = tri.c - tri.b;
+    glm::vec3 e20 = tri.a - tri.c;
+    glm::vec3 p1x = hitPoint - tri.b;
+    glm::vec3 p2x = hitPoint - tri.c;
+    glm::vec3 Vn = glm::cross(e01, e12);
+    float area2 = glm::length(Vn);
+    glm::vec3 normal = Vn/area2;
+    float w = glm::dot(glm::cross(e12, p1x), normal) / area2;
+    float u = glm::dot(glm::cross(e20, p2x), normal) / area2;
+    float v = 1 - u - w;
+    glm::vec2 texCoord = w * uvs.a + u * uvs.b + v * uvs.c;
+
+    int texWidth = normMap->getWidth();
+    int texHeight = normMap->getHeight();
+    int buf[4];
+    normMap->getDataAt(texCoord.x * texWidth, texCoord.y * texHeight, buf);
+    return glm::normalize(glm::vec3((buf[0] / 255.0f), (buf[1] / 255.0f), (buf[2] / 255.0f)));
+
+}
+
+float TriangleFunction::getBMapAt(glm::vec3 pt)
+{
+    glm::vec3 hitPoint = pt;
+    glm::vec3 e01 = tri.b - tri.a;
+    glm::vec3 e12 = tri.c - tri.b;
+    glm::vec3 e20 = tri.a - tri.c;
+    glm::vec3 p1x = hitPoint - tri.b;
+    glm::vec3 p2x = hitPoint - tri.c;
+    glm::vec3 Vn = glm::cross(e01, e12);
+    float area2 = glm::length(Vn);
+    glm::vec3 normal = Vn/area2;
+    float w = glm::dot(glm::cross(e12, p1x), normal) / area2;
+    float u = glm::dot(glm::cross(e20, p2x), normal) / area2;
+    float v = 1 - u - w;
+    glm::vec2 texCoord = w * uvs.a + u * uvs.b + v * uvs.c;
+
+    int texWidth = bumpMap->getWidth();
+    int texHeight = bumpMap->getHeight();
+    int buf[4];
+    bumpMap->getDataAt(texCoord.x * texWidth, texCoord.y * texHeight, buf);
+    return ((buf[0] / 255.0f) + (buf[1] / 255.0f) + (buf[2] / 255.0f)) / 3;
+
+}
+
 float TriangleFunction::getRelativePoint(glm::vec3 pt)
 {
     float dist = glm::dot(pt - origPoint, normal);

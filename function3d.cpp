@@ -72,6 +72,11 @@ void Function3D::setDisp(float d)
     disp = d;
 }
 
+void Function3D::setShnell(float s)
+{
+    shnell = s;
+}
+
 void Function3D::setGeometry(geometry g)
 {
     geo = g;
@@ -80,6 +85,16 @@ void Function3D::setGeometry(geometry g)
 void Function3D::setTexture(Imagemanip* tex)
 {
     texture = tex;
+}
+
+void Function3D::setNormalMap(Imagemanip* n)
+{
+    normMap = n;
+}
+
+void Function3D::setBumpMap(Imagemanip* b)
+{
+    bumpMap = b;
 }
 
 void Function3D::setTriangle(glm::vec3 A, glm::vec3 B, glm::vec3 C)
@@ -147,6 +162,11 @@ glm::vec4 Function3D::getCA()
 float Function3D::getDisp()
 {
     return disp;
+}
+
+float Function3D::getShnell()
+{
+    return shnell;
 }
 
 geometry Function3D::getGeo()

@@ -16,9 +16,11 @@ protected:
     glm::vec3* points[MAX_POINTS];
     glm::vec4 cS, cD, cA;
     int a02, a12, a22, a21, a00, pointIdx, numChildren;
-    float s0, s1, s2, disp;
+    float s0, s1, s2, disp, shnell;
     geometry geo;
     Imagemanip* texture;
+    Imagemanip* bumpMap;
+    Imagemanip* normMap;
     Function3D* children;
     Function3D* parent;
     triangle tri, nTri;
@@ -36,8 +38,11 @@ public:
     void setQParams(int, int, int, int, int);
     void setQReals(float, float, float);
     void setDisp(float);
+    void setShnell(float);
     void setGeometry(geometry);
     void setTexture(Imagemanip*);
+    void setBumpMap(Imagemanip*);
+    void setNormalMap(Imagemanip*);
     void setTriangle(glm::vec3, glm::vec3, glm::vec3);
     void setTriangle(triangle);
     void setTriNorms(glm::vec3, glm::vec3, glm::vec3);
@@ -50,9 +55,12 @@ public:
     glm::vec4 getCS();
     glm::vec4 getCD();
     glm::vec4 getCA();
+    float getShnell();
     float getDisp();
     Function3D* getParent();
     virtual glm::vec4 getTexCol(glm::vec3) = 0;
+    virtual glm::vec3 getNMapAt(glm::vec3) = 0;
+    virtual float getBMapAt(glm::vec3) = 0;
     virtual float getRelativePoint(glm::vec3) = 0;
     virtual int getRelativeLine(glm::vec3, glm::vec3, intercept*, int) = 0;
     virtual glm::vec3 getSurfaceNormal(glm::vec3) = 0;

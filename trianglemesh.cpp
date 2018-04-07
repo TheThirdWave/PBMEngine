@@ -12,6 +12,18 @@ glm::vec4 TriangleMesh::getTexCol(glm::vec3 pH)
     return closest.obj->getTexCol(pH);
 }
 
+glm::vec3 TriangleMesh::getNMapAt(glm::vec3 pH)
+{
+    intercept closest = getClosest(pH);
+    return closest.obj->getNMapAt(pH);
+}
+
+float TriangleMesh::getBMapAt(glm::vec3 pH)
+{
+    intercept closest = getClosest(pH);
+    return closest.obj->getBMapAt(pH);
+}
+
 float TriangleMesh::getRelativePoint(glm::vec3 pH)
 {
     float dist;
@@ -68,6 +80,19 @@ intercept TriangleMesh::getClosest(glm::vec3 pH)
     return closest;
 }
 
+void TriangleMesh::updateChildParams()
+{
+    for(int i = 0; i < numChildren; i ++)
+    {
+        children[i].setColor(cS, cD, cA);
+        children[i].setGeometry(geo);
+        children[i].setShnell(shnell);
+        children[i].setTexture(texture);
+        children[i].shader = shader;
+        children[i].setParent(this);
+    }
+}
+
 void TriangleMesh::createTetrahedron(float radius)
 {
     glm::vec3 upVec = normal;
@@ -89,8 +114,10 @@ void TriangleMesh::createTetrahedron(float radius)
     {
         triangles[i].setColor(cS, cD, cA);
         triangles[i].setGeometry(geo);
+        triangles[i].setShnell(shnell);
         triangles[i].setTexture(texture);
         triangles[i].shader = shader;
+        triangles[i].setParent(this);
     }
     triangles[0].setTriangle(points[0], points[1], points[2]);
     triangles[0].setTriNorms(norms[0], norms[1], norms[2]);
@@ -144,8 +171,10 @@ void TriangleMesh::createCube(float radius)
     {
         triangles[i].setColor(cS, cD, cA);
         triangles[i].setGeometry(geo);
+        triangles[i].setShnell(shnell);
         triangles[i].shader = shader;
         triangles[i].setTexture(texture);
+        triangles[i].setParent(this);
     }
     triangles[0].setTriangle(points[0], points[2], points[1]);
     triangles[0].setTriNorms(norms[0], norms[2], norms[1]);
@@ -229,6 +258,8 @@ void TriangleMesh::loadFromModel(model* mod, float scale)
         triangles[i].setUVTriangle(tTri);
         triangles[i].setColor(cS, cD, cA);
         triangles[i].setGeometry(geo);
+        triangles[i].setShnell(shnell);
+        triangles[i].setParent(this);
         triangles[i].shader = shader;
         triangles[i].setTexture(texture);
         triangles[i].getGroupNormal();
