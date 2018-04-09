@@ -718,6 +718,12 @@ glm::vec4 Shaders::refractorMaps(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm:
         glm::vec4 cL;
         glm::vec4 cPe = cA;
         float shnell = obj.getShnell();
+        //get normal map normal.
+        glm::vec3 mapNorm = obj.getNMapAt(pH);
+        //combine mapNorm with the natural normal of the object
+        mapNorm -= 0.5f;
+        mapNorm += nH;
+        shnell = sqrt((1 - pow(glm::dot(nH, nPe), 2)) / (1 - pow(glm::dot(-mapNorm, nPe), 2)));
         float t = 0;
         float d = obj.getGeo().depth;
         float r;
@@ -734,12 +740,6 @@ glm::vec4 Shaders::refractorMaps(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm:
             curLight = renderer->lights[i];
             nL = -curLight->getRelativeNorm(pH);
             cL = curLight->getColor();
-
-            //get normal map normal.
-            glm::vec3 mapNorm = obj.getNMapAt(pH);
-            //combine mapNorm with the natural normal of the object
-            mapNorm -= 0.5f;
-            mapNorm += nH;
 
             //get angle for diffuse light, raycast can catch occluders as well.
             numHits = castRay(pDH, nL, hits, numHits);
@@ -769,14 +769,14 @@ glm::vec4 Shaders::refractorMaps(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm:
 
             //calculate angle for refraction
             glm::vec3 ref1;
-            float C = glm::dot(mapNorm, nPe);
+            float C = glm::dot(nH, nPe);
             float sqrtTerm = (C * C - 1)/(shnell * shnell) + 1;
             if(sqrtTerm >= 0)
             {
                 float b = (C / shnell) - sqrt(sqrtTerm);
-                ref1 = (-1 / shnell) * nPe + b * mapNorm;
+                ref1 = (-1 / shnell) * nPe + b * nH;
             }
-            else ref1 = -nPe + (2 *glm::dot(mapNorm, nPe) * mapNorm);
+            else ref1 = -nPe + (2 *glm::dot(nH, nPe) * nH);
             numHits = 0;
             //cast ray along the reflection angle.
             numHits = castRay(pHnew, ref1, hits, numHits);

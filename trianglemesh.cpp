@@ -88,6 +88,9 @@ void TriangleMesh::updateChildParams()
         children[i].setGeometry(geo);
         children[i].setShnell(shnell);
         children[i].setTexture(texture);
+        children[i].setNormalMap(normMap);
+        children[i].setBumpMap(bumpMap);
+        children[i].setDisp(disp);
         children[i].shader = shader;
         children[i].setParent(this);
     }
@@ -116,6 +119,9 @@ void TriangleMesh::createTetrahedron(float radius)
         triangles[i].setGeometry(geo);
         triangles[i].setShnell(shnell);
         triangles[i].setTexture(texture);
+        triangles[i].setNormalMap(normMap);
+        triangles[i].setBumpMap(bumpMap);
+        triangles[i].setDisp(disp);
         triangles[i].shader = shader;
         triangles[i].setParent(this);
     }
@@ -174,6 +180,9 @@ void TriangleMesh::createCube(float radius)
         triangles[i].setShnell(shnell);
         triangles[i].shader = shader;
         triangles[i].setTexture(texture);
+        triangles[i].setNormalMap(normMap);
+        triangles[i].setBumpMap(bumpMap);
+        triangles[i].setDisp(disp);
         triangles[i].setParent(this);
     }
     triangles[0].setTriangle(points[0], points[2], points[1]);
@@ -262,6 +271,9 @@ void TriangleMesh::loadFromModel(model* mod, float scale)
         triangles[i].setParent(this);
         triangles[i].shader = shader;
         triangles[i].setTexture(texture);
+        triangles[i].setNormalMap(normMap);
+        triangles[i].setBumpMap(bumpMap);
+        triangles[i].setDisp(disp);
         triangles[i].getGroupNormal();
         triangles[i].getGroupPos();
     }
