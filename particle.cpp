@@ -2,7 +2,23 @@
 
 Particle::Particle()
 {
+    position = glm::vec3(0.0f);
+    color = glm::vec3(1.0f);
+    mass = 0;
+}
 
+Particle::Particle(glm::vec3 p, glm::vec3 c, float m)
+{
+    position = p;
+    color = c;
+    mass = m;
+}
+
+void Particle::init(glm::vec3 p, glm::vec3 c, float m)
+{
+    position = p;
+    color = c;
+    mass = m;
 }
 
 void Particle::setPosition(glm::vec3 p)
@@ -20,11 +36,6 @@ void Particle::setMass(float m)
     mass = m;
 }
 
-void Particle::setDisplayIndex(int i)
-{
-    dispIdx = i;
-}
-
 glm::vec3 Particle::getPosition()
 {
     return position;
@@ -38,9 +49,4 @@ glm::vec3 Particle::getColor()
 float Particle::getMass()
 {
     return mass;
-}
-
-int Particle::getDisplayIndex()
-{
-    return dispIdx;
 }

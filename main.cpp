@@ -25,6 +25,10 @@
 //the actual physics engine.
 #include "fluidmodel.h"
 
+//SPH stuff
+#include "particle.h"
+#include "sphmodel.h"
+
 //headers
 void printControls();
 void keyHandler(GLFWwindow* win, int key, int scancode, int action, int mods);
@@ -34,8 +38,8 @@ GLuint LoadShaders(const char * vertex_file_path, const char * fragment_file_pat
 void initializeBrushes();
 void dabSomePaint(Buffer2D *scr, int x, int y);
 void convertSourceIn(float intensity);
-void display(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, glm::mat4 &mvp);
-void displaySPH(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, glm::mat4 &mvp);
+void display(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, glm::mat4 &mvp, int verts);
+void displaySPH(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, glm::mat4 &mvp, int verts);
 void update(double ts);
 
 //static variables.
@@ -48,6 +52,10 @@ Buffer2D sourceInBuf;
 Buffer2D sourceBuf;
 GLuint uvbuffer, textureID;
 FluidModel fluidModel;
+SPHModel sphModel;
+
+GLfloat* g_vertex_buffer_data;
+GLfloat* g_uv_buffer_data;
 
 #define BRUSH_SIZE 11
 float obstruction_brush[BRUSH_SIZE][BRUSH_SIZE];
@@ -89,10 +97,11 @@ int main(int argc, char* argv[])
         prog_state = prog_state | SOURCEIN;
         sourceInBuf.readImage(sourceIn.c_str());
     }
-    if(sph >= 0)
+    if(sph > 0)
     {
         prog_state = prog_state | SPH;
     }
+    else prog_state = prog_state & ~SPH;
     timeStep = clf.find("-ts", (1.0f / (60.0f)), "Starting timestep size.");
 
     //load initial images;
@@ -115,19 +124,28 @@ int main(int argc, char* argv[])
     //set program state;
     prog_state = prog_state | RUNNING;
 
-    //initialize Fluid Model.
-    fluidModel.init(&displayBuf, &sourceBuf);
-    fluidModel.setPLoops(pLoops);
-    fluidModel.setIOPLoops(iopLoops);
-    fluidModel.setLogLoops(logLoops);
-    fluidModel.setViscosity(viscosity);
-    fluidModel.setVorticity(vorticity);
-    if(macCormack > 0)fluidModel.setUsingMacCormack(true);
-    else fluidModel.setUsingMacCormack(false);
-
     //set static variables.
     WIDTH = displayBuf.getWidth();
     HEIGHT = displayBuf.getHeight();
+
+    //initialize Fluid Model.
+    if(prog_state & SPH)
+    {
+        sphModel.init(WIDTH, HEIGHT, 0);
+        sphModel.addPart(Particle(glm::vec3(WIDTH / 2.0f, HEIGHT / 2.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1));
+        sphModel.addPart(Particle(glm::vec3(WIDTH / 3.0f, HEIGHT / 3.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1));
+    }
+    else
+    {
+        fluidModel.init(&displayBuf, &sourceBuf);
+        fluidModel.setPLoops(pLoops);
+        fluidModel.setIOPLoops(iopLoops);
+        fluidModel.setLogLoops(logLoops);
+        fluidModel.setViscosity(viscosity);
+        fluidModel.setVorticity(vorticity);
+        if(macCormack > 0)fluidModel.setUsingMacCormack(true);
+        else fluidModel.setUsingMacCormack(false);
+    }
 
     //initialize glfw
 	if (!glfwInit())
@@ -178,15 +196,29 @@ int main(int argc, char* argv[])
 
     //create vertex buffer
     // An array of 3 vectors which represents 3 vertices
-    static const GLfloat g_vertex_buffer_data[] = {
-        //-1.0f,-1.0f, -1.0f, // triangle 1 : begin
-        //1.0f,-1.0f, -1.0f,
-        //-1.0f, 1.0f, -1.0f, // triangle 1 : end
-        //1.0f, 1.0f, -1.0f, // triangle 2 : begin
-        //1.f,-1.0f, -1.0f,
-        //-1.0f, 1.0f, -1.0f, // triangle 2 : end
-        0.0f, 0.0f, -1.0f,
-      };
+    int numVerts;
+    if(prog_state & SPH)
+    {
+        //numVerts = 1;
+        numVerts = NUM_PARTS;
+        g_vertex_buffer_data = new GLfloat[numVerts * 3];
+        g_vertex_buffer_data[0] = 0.5f;
+        g_vertex_buffer_data[1] = 0.5f;
+        g_vertex_buffer_data[2] = -1.0f;
+        sphModel.setpointDispBuf(g_vertex_buffer_data);
+    }
+    else
+    {
+        numVerts = 6;
+        g_vertex_buffer_data = new GLfloat[numVerts * 3]{
+            -1.0f,-1.0f, -1.0f, // triangle 1 : begin
+            1.0f,-1.0f, -1.0f,
+            -1.0f, 1.0f, -1.0f, // triangle 1 : end
+            1.0f, 1.0f, -1.0f, // triangle 2 : begin
+            1.f,-1.0f, -1.0f,
+            -1.0f, 1.0f, -1.0f, // triangle 2 : end
+          };
+    }
 
     glPointSize(3.0f);
 
@@ -197,7 +229,7 @@ int main(int argc, char* argv[])
     // The following commands will talk about our 'vertexbuffer' buffer
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
     // Give our vertices to OpenGL.
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * numVerts * 3, g_vertex_buffer_data, GL_STATIC_DRAW);
 
     // Create one OpenGL texture
     glGenTextures(1, &textureID);
@@ -214,23 +246,36 @@ int main(int argc, char* argv[])
 
     // Create uv buffer.
     // One color for each vertex. They were generated randomly.
-    static const GLfloat g_uv_buffer_data[] = {
-        //0.0f,  0.0f,
-        //1.0f,  0.0f,
-        //0.0f,  1.0f,
-        //1.0f,  1.0f,
-        //1.0f,  0.0f,
-        //0.0f,  1.0f
-        0.5f, 0.5f, 0.0f
-    };
+    if(prog_state & SPH)
+    {
+        g_uv_buffer_data = new GLfloat[numVerts * 3];
+        g_uv_buffer_data[0] = 0.0f;
+        g_uv_buffer_data[1] = 1.0f;
+        g_uv_buffer_data[2] = 0.0f;
+        sphModel.setcolDispBuf(g_uv_buffer_data);
+    }
+    else
+    {
+        g_uv_buffer_data = new GLfloat[numVerts * 2]{
+            0.0f,  0.0f,
+            1.0f,  0.0f,
+            0.0f,  1.0f,
+            1.0f,  1.0f,
+            1.0f,  0.0f,
+            0.0f,  1.0f
+        };
+    }
 
     glGenBuffers(1, &uvbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_uv_buffer_data), g_uv_buffer_data, GL_STATIC_DRAW);
+    if(prog_state & SPH) glBufferData(GL_ARRAY_BUFFER, sizeof(float) * numVerts * 3, g_uv_buffer_data, GL_STATIC_DRAW);
+    else glBufferData(GL_ARRAY_BUFFER, sizeof(float) * numVerts * 2, g_uv_buffer_data, GL_STATIC_DRAW);
 
 
     //load the shaders.
-    GLuint programID = LoadShaders("../PBMEngine/VertS1.glsl", "../PBMEngine/FragS1.glsl");
+    GLuint programID;
+    if(prog_state & SPH) programID = LoadShaders("../PBMEngine/VertS1.glsl", "../PBMEngine/FragS1.glsl");
+    else programID = LoadShaders("../PBMEngine/VertS2.glsl", "../PBMEngine/FragS2.glsl");
 
     //Compute the ModelViewPerspective matrix.
     // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
@@ -262,7 +307,7 @@ int main(int argc, char* argv[])
     d_cur_time = cur_time;
     d_prev_time = d_cur_time;
 
-    display(window, MatrixID, programID, vertexbuffer, mvp);
+    display(window, MatrixID, programID, vertexbuffer, mvp, numVerts);
 
     do {
 
@@ -281,7 +326,7 @@ int main(int argc, char* argv[])
                 if(d_delta_time >= displayTime)
                 {
                     d_prev_time = d_cur_time;
-                    display(window, MatrixID, programID, vertexbuffer, mvp);
+                    display(window, MatrixID, programID, vertexbuffer, mvp, numVerts);
                 }
             }
             else
@@ -289,13 +334,15 @@ int main(int argc, char* argv[])
                 update(timeStep);
                 simTime += timeStep;
                 displayBuf.writeImage(("../Mov/frame" + std::to_string(capturedFrames++) + ".png").c_str());
-                display(window, MatrixID, programID, vertexbuffer, mvp);
+                display(window, MatrixID, programID, vertexbuffer, mvp, numVerts);
                 if(simTime >= timeToCapture) glfwSetWindowShouldClose(window, GLFW_TRUE);
             }
         }
         else
         {
-            displaySPH(window, MatrixID, programID, vertexbuffer, mvp);
+            numVerts = sphModel.getNumParts();
+            sphModel.passToDisplay(NUM_PARTS);
+            displaySPH(window, MatrixID, programID, vertexbuffer, mvp, numVerts);
         }
 		glfwPollEvents();
 
@@ -316,7 +363,7 @@ void printControls()
     printf("9, 0,   Change the vorticity coefficient\n");
 }
 
-void display(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, glm::mat4 &mvp)
+void display(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, glm::mat4 &mvp, int verts)
 {
     //update the texture from the display buffer.
     glBindTexture(GL_TEXTURE_2D, textureID);
@@ -388,7 +435,7 @@ void display(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, gl
     );
 
     // Draw the triangle !
-    glDrawArrays(GL_TRIANGLES, 0, 2 * 3);// Starting from vertex 0; 3 vertices total -> 1 triangle
+    glDrawArrays(GL_TRIANGLES, 0, verts);// Starting from vertex 0; 3 vertices total -> 1 triangle
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
 
@@ -396,7 +443,7 @@ void display(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, gl
     glfwSwapBuffers(window);
 }
 
-void displaySPH(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, glm::mat4 &mvp)
+void displaySPH(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, glm::mat4 &mvp, int verts)
 {
     //update the texture from the display buffer.
     glBindTexture(GL_TEXTURE_2D, textureID);
@@ -447,6 +494,8 @@ void displaySPH(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf,
     // 1st attribute buffer : vertices
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, vertBuf);
+    // Give our vertices to OpenGL.
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * verts * 3, g_vertex_buffer_data, GL_STATIC_DRAW);
     glVertexAttribPointer(
         0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
         3,                  // size
@@ -460,6 +509,7 @@ void displaySPH(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf,
     // 2nd attribute buffer : uv positions
     glEnableVertexAttribArray(1);
     glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * verts * 3, g_uv_buffer_data, GL_STATIC_DRAW);
     glVertexAttribPointer(
         1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
         3,                                // size
@@ -470,7 +520,7 @@ void displaySPH(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf,
     );
 
     // Draw the triangle !
-    glDrawArrays(GL_POINTS, 0, 1);// Starting from vertex 0; 3 vertices total -> 1 triangle
+    glDrawArrays(GL_POINTS, 0, verts);// Starting from vertex 0; 3 vertices total -> 1 triangle
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
 

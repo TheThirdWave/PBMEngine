@@ -23,3 +23,7 @@ HEADERS += \
     fluidmodel.h \
     sphmodel.h \
     particle.h
+
+DISTFILES += \
+    FragS2.glsl \
+    VertS2.glsl
