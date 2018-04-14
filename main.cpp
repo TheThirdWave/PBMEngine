@@ -131,9 +131,9 @@ int main(int argc, char* argv[])
     //initialize Fluid Model.
     if(prog_state & SPH)
     {
-        sphModel.init(WIDTH, HEIGHT, 0);
-        sphModel.addPart(Particle(glm::vec3(WIDTH / 2.0f, HEIGHT / 2.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1));
-        sphModel.addPart(Particle(glm::vec3(WIDTH / 3.0f, HEIGHT / 3.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1));
+        sphModel.init(WIDTH, HEIGHT, 0, 1.0f, 0.9f);
+        sphModel.addPart(Particle(glm::vec2(WIDTH / 2.0f, HEIGHT / 2.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1, 10.0f));
+        sphModel.addPart(Particle(glm::vec2(WIDTH / 3.0f, HEIGHT / 3.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1, 10.0f));
     }
     else
     {
@@ -341,6 +341,7 @@ int main(int argc, char* argv[])
         else
         {
             numVerts = sphModel.getNumParts();
+            sphModel.update(timeStep);
             sphModel.passToDisplay(NUM_PARTS);
             displaySPH(window, MatrixID, programID, vertexbuffer, mvp, numVerts);
         }
@@ -733,11 +734,20 @@ void mouseButtonHandler(GLFWwindow* window, int button, int action, int mods)
         case GLFW_MOUSE_BUTTON_LEFT:
         if(action == GLFW_PRESS)
         {
-             glfwGetCursorPos(window, &xpos, &ypos);
-             dabSomePaint(&displayBuf, xpos, ypos);
-             dabSomePaint(&sourceBuf, xpos, ypos);
-             fluidModel.setHasSource(true);
-             prog_state = prog_state | DRAW;
+            if(prog_state && SPH)
+            {
+                glfwGetCursorPos(window, &xpos, &ypos);
+                ypos = sphModel.getHeight() - ypos;
+                sphModel.addPart(Particle(glm::vec2(xpos, ypos), glm::vec3(0.0f, 1.0f, 0.0f), 1, 10.0f));
+            }
+            else
+            {
+                glfwGetCursorPos(window, &xpos, &ypos);
+                dabSomePaint(&displayBuf, xpos, ypos);
+                dabSomePaint(&sourceBuf, xpos, ypos);
+                fluidModel.setHasSource(true);
+                prog_state = prog_state | DRAW;
+            }
         }
         else if(action == GLFW_RELEASE)
         {
