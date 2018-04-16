@@ -77,6 +77,11 @@ void Function3D::setShnell(float s)
     shnell = s;
 }
 
+void Function3D::setBlur(float b)
+{
+    blur = b;
+}
+
 void Function3D::setGeometry(geometry g)
 {
     geo = g;
@@ -167,6 +172,11 @@ float Function3D::getDisp()
 float Function3D::getShnell()
 {
     return shnell;
+}
+
+float Function3D::getBlur()
+{
+    return blur;
 }
 
 geometry Function3D::getGeo()

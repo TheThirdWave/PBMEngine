@@ -27,8 +27,10 @@ public:
     glm::vec4 phongShadow(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);
     glm::vec4 phongShadowClassic(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);
     glm::vec4 mirror(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);
+    glm::vec4 mirrorBlur(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);
     glm::vec4 nMapMirror(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);
     glm::vec4 refractor(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);
+    glm::vec4 refractorBlur(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);
     glm::vec4 refractorMaps(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);
     glm::vec4 aLight(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);
     glm::vec4 texMap(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);

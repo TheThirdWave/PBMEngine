@@ -16,7 +16,7 @@ protected:
     glm::vec3* points[MAX_POINTS];
     glm::vec4 cS, cD, cA;
     int a02, a12, a22, a21, a00, pointIdx, numChildren;
-    float s0, s1, s2, disp, shnell;
+    float s0, s1, s2, disp, shnell, blur;
     geometry geo;
     Imagemanip* texture;
     Imagemanip* bumpMap;
@@ -39,6 +39,7 @@ public:
     void setQReals(float, float, float);
     void setDisp(float);
     void setShnell(float);
+    void setBlur(float);
     void setGeometry(geometry);
     void setTexture(Imagemanip*);
     void setBumpMap(Imagemanip*);
@@ -57,6 +58,7 @@ public:
     glm::vec4 getCA();
     float getShnell();
     float getDisp();
+    float getBlur();
     Function3D* getParent();
     virtual glm::vec4 getTexCol(glm::vec3) = 0;
     virtual glm::vec3 getNMapAt(glm::vec3) = 0;

@@ -110,7 +110,6 @@ const char* fragShade;
 
 int main(int argc, char *argv[])
 {
-
     int width = 1920;
     int height = 1080;
 
@@ -216,7 +215,7 @@ image* flatImageRWStuff(int argc, char** argv)
 
     alphaMask.initScreen(img);
 
-    holdImage = imageManager.openPNG("../Circles_Normal.png");
+    holdImage = imageManager.openPNG("../serratedMetalBMap.png");
     if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
     img = imageManager.getImgPtr(holdImage);
 
@@ -413,30 +412,28 @@ void KeyHandler(unsigned char key, int x, int y)
             gTest.radius = 1.0f;
             gTest.width = 0.9f;
             SphereFunction3D hold;
-            hold.setPoint(glm::vec3(100.0f, -100.0f, -900.0f));
+            hold.setPoint(glm::vec3(0.0f, -100.0f, 0.0f));
             hold.setRadius(200.0f);
-            hold.setShnell(1.0);
-            hold.setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+            hold.setShnell(1.1);
+            hold.setBlur(0.2);
+            hold.setColor(glm::vec4(100.0f, 100.0f, 100.0f, 100.0f), glm::vec4(1000.0f, 1.0f, 1.0f, 1000.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
             hold.setGeometry(gTest);
             hold.setTexNorms(glm::normalize(glm::vec3(0.0f, -1.0f, 0.0f)), glm::normalize(glm::vec3(-0.0f, 0.0f, 1.0f)));
-            hold.setTexture(&outerMask);
-            hold.setNormalMap(&bumpMap1);
-            hold.setBumpMap(&bumpMap);
-            hold.setDisp(50);
-            hold.shader = &Shaders::texMap;
+            hold.setTexture(&innerMask);
+            hold.setNormalMap(&normMap);
+            hold.setBumpMap(&bumpMap1);
+            hold.setDisp(0);
+            hold.shader = &Shaders::mirrorBlur;
             Screen.addFunction3D(&hold);
             gTest.depth = 1.0f;
             TriangleMesh hold6;
             hold6.setShnell(1.25);
-            hold6.setPoint(glm::vec3(0.0f, -200.0f, -250.0f));
+            hold6.setPoint(glm::vec3(0.0f, -200.0f, -600.0f));
             hold6.setNormal(glm::vec3(0.0f, -1.0f, 0.0f), glm::normalize(glm::vec3(1.0f, 0.0f, 0.0f)), glm::vec3(0.0f));
             hold6.setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
             hold6.setGeometry(gTest);
             hold6.setTexture(&outerMask);
-            hold6.setNormalMap(&bumpMap);
-            hold6.setBumpMap(&bumpMap1);
-            hold6.setDisp(0);
-            hold6.shader = &Shaders::refractorMaps;
+            hold6.shader = &Shaders::texMap;
             //hold6.createTetrahedron(300);
             //hold6.createCube(500);
             hold6.loadFromModel(modelManager.getModel(capModel), 3);
@@ -462,7 +459,7 @@ void KeyHandler(unsigned char key, int x, int y)
             hold7.setGeometry(gTest);
             hold7.shader = &Shaders::mirror;
             //Screen.addFunction3D(&hold7);
-            gTest.depth = 40.0f;
+            gTest.depth = 1.0f;
             gTest.radius = 1.0f;
             gTest.width = 0.99;
             PlaneFunction hold3;
@@ -490,11 +487,11 @@ void KeyHandler(unsigned char key, int x, int y)
             light2.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f));
             //Screen.addLight(&light2);
             SpotLight light3;
-            light3.initialize(glm::vec3(-600.0f, -400.0f, -400.0f), glm::normalize(glm::vec3(0.5f, 0.5f, 0.0f)), 0.6, 0.5);
-            light3.setColor(glm::vec4(5000.0f, 5000.0f, 5000.0f, 5000.0f));
-            Screen.addLight(&light3);
+            light3.initialize(glm::vec3(400.0f, -400.0f, 0.0f), glm::normalize(glm::vec3(-0.5f, 0.5f, 0.0f)), 0.6, 0.5);
+            light3.setColor(glm::vec4(500.0f, 500.0f, 5000.0f, 5000.0f));
+            //Screen.addLight(&light3);
             SpotLight light5;
-            light5.initialize(glm::vec3(600.0f, -400.0f, -400.0f), glm::normalize(glm::vec3(-0.5f, 0.5f, 0.0f)), 0.6, 0.5);
+            light5.initialize(glm::vec3(-0.0f, -600.0f, -100.0f), glm::normalize(glm::vec3(0.0f, 0.7f, -0.3f)), 0.6, 0.5);
             light5.setColor(glm::vec4(5000.0f, 5000.0f, 5000.0f, 5000.0f));
             Screen.addLight(&light5);
             AreaLight light4;
@@ -509,13 +506,15 @@ void KeyHandler(unsigned char key, int x, int y)
             hold4.setColor(glm::vec4(0.0f, 0.0f, 100.0f, 100.0f));
             Screen.addFunction3D(&hold4);
             QuadraticFunction3D hold5;
-            hold5.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f - 200, (float)Scree;n.getHeight() / 2.0f - 200, 0.0f));
+            hold5.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f - 200, (float)Scree        vTri.a += this->origPoint;
+        vTri.b += this->origPoint;
+        vTri.c += this->origPoint;n.getHeight() / 2.0f - 200, 0.0f));
             hold5.setNormal(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
             hold5.setQParams(1, 1, 0, 0, -1);
             hold5.setQReals(100.0f, 50.0f, 100.0);
             hold5.setColor(glm::vec4(0.0f, 100.0f, 100.0f, 100.0f));
             Screen.addFunction3D(&hold5);*/
-            Screen.draw3D(glm::vec3(-800.0f, -575.0f, 25.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.35f, 0.25f, -0.25f)), (float)Screen.getHeight(), 3);
+            Screen.draw3D(glm::vec3(600.0f, -700.0f, 200.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-0.6f, 0.7f, -0.2f)), (float)Screen.getHeight(), 1);
             //Screen.draw3D(glm::vec3(0.0f, 0.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 1);
             /*int count = 0;
             int idx = imageManager.addImage(*Screen.getPtr());
