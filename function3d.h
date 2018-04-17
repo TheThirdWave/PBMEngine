@@ -16,7 +16,7 @@ protected:
     glm::vec3* points[MAX_POINTS];
     glm::vec4 cS, cD, cA;
     int a02, a12, a22, a21, a00, pointIdx, numChildren;
-    float s0, s1, s2, disp, shnell, blur;
+    float s0, s1, s2, disp, shnell, blur, tt;
     geometry geo;
     Imagemanip* texture;
     Imagemanip* bumpMap;
@@ -34,12 +34,14 @@ public:
     void setNormal(glm::vec3, glm::vec3);
     void setNormal(glm::vec3, glm::vec3, glm::vec3);
     void setPoint(glm::vec3);
+    void setPoint2(glm::vec3);
     void setColor(glm::vec4, glm::vec4, glm::vec4);
     void setQParams(int, int, int, int, int);
     void setQReals(float, float, float);
     void setDisp(float);
     void setShnell(float);
     void setBlur(float);
+    void floatTT(float);
     void setGeometry(geometry);
     void setTexture(Imagemanip*);
     void setBumpMap(Imagemanip*);
@@ -59,12 +61,14 @@ public:
     float getShnell();
     float getDisp();
     float getBlur();
+    float getTT();
     Function3D* getParent();
     virtual glm::vec4 getTexCol(glm::vec3) = 0;
     virtual glm::vec3 getNMapAt(glm::vec3) = 0;
     virtual float getBMapAt(glm::vec3) = 0;
     virtual float getRelativePoint(glm::vec3) = 0;
     virtual int getRelativeLine(glm::vec3, glm::vec3, intercept*, int) = 0;
+    virtual int getRelativeLineMBlur(glm::vec3, glm::vec3, intercept*, int) = 0;
     virtual glm::vec3 getSurfaceNormal(glm::vec3) = 0;
     ShaderPtr shader;
 };

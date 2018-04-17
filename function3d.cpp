@@ -44,6 +44,11 @@ void Function3D::setPoint(glm::vec3 p)
     origPoint = p;
 }
 
+void Function3D::setPoint2(glm::vec3 p)
+{
+    point2 = p;
+}
+
 void Function3D::setColor(glm::vec4 cs, glm::vec4 cd, glm::vec4 ca)
 {
     cS = cs;
@@ -80,6 +85,11 @@ void Function3D::setShnell(float s)
 void Function3D::setBlur(float b)
 {
     blur = b;
+}
+
+void Function3D::floatTT(float t)
+{
+    tt = t;
 }
 
 void Function3D::setGeometry(geometry g)
@@ -177,6 +187,11 @@ float Function3D::getShnell()
 float Function3D::getBlur()
 {
     return blur;
+}
+
+float Function3D::getTT()
+{
+    return tt;
 }
 
 geometry Function3D::getGeo()

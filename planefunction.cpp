@@ -106,6 +106,22 @@ int PlaneFunction::getRelativeLine(glm::vec3 pt, glm::vec3 nL, intercept* hits, 
     return idx;
 }
 
+int PlaneFunction::getRelativeLineMBlur(glm::vec3 pt, glm::vec3 nL, intercept* hits, int idx)
+{
+    float denom = glm::dot(nL, normal);
+    if(denom == 0) return idx;
+
+    glm::vec3 curPoint = origPoint - (point2 - origPoint) * tt;
+    float t = glm::dot(normal, (curPoint - pt)) / denom;
+    if(idx < MAX_LINE_INTERCEPTS && t > 0)
+    {
+        hits[idx].t = t;
+        hits[idx++].obj = this;
+    }
+
+    return idx;
+}
+
 glm::vec3 PlaneFunction::getSurfaceNormal(glm::vec3 pt)
 {
     return normal;

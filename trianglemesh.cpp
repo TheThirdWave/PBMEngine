@@ -53,6 +53,21 @@ int TriangleMesh::getRelativeLine(glm::vec3 pt, glm::vec3 nL, intercept* hits, i
     return idx;
 }
 
+int TriangleMesh::getRelativeLineMBlur(glm::vec3 pt, glm::vec3 nL, intercept* hits, int idx)
+{
+    int holdIdx = idx;
+    for(int i = 0; i < numChildren; i++)
+    {
+        idx = children[i].getRelativeLineMBlur(pt, nL, hits, idx);
+        if(idx > holdIdx)
+        {
+            int x = 0;
+            //hits[holdIdx++].obj = this;
+        }
+    }
+    return idx;
+}
+
 glm::vec3 TriangleMesh::getSurfaceNormal(glm::vec3 pH)
 {
     intercept closest = getClosest(pH);

@@ -15,6 +15,7 @@ public:
     float getBMapAt(glm::vec3);
     float getRelativePoint(glm::vec3);
     int getRelativeLine(glm::vec3, glm::vec3, intercept*, int);
+    int getRelativeLineMBlur(glm::vec3, glm::vec3, intercept*, int);
     glm::vec3 getSurfaceNormal(glm::vec3);
 };
 

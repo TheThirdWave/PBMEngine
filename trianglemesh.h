@@ -13,6 +13,7 @@ public:
     float getBMapAt(glm::vec3 pH);
     float getRelativePoint(glm::vec3 pH);
     int getRelativeLine(glm::vec3, glm::vec3, intercept*, int);
+    int getRelativeLineMBlur(glm::vec3, glm::vec3, intercept*, int);
     glm::vec3 getSurfaceNormal(glm::vec3 pH);
 
     intercept getClosest(glm::vec3 pH);

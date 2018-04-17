@@ -155,6 +155,46 @@ int TriangleFunction::getRelativeLine(glm::vec3 pt, glm::vec3 nL, intercept* hit
     return idx;
 }
 
+int TriangleFunction::getRelativeLineMBlur(glm::vec3 pt, glm::vec3 nL, intercept* hits, int idx)
+{
+    glm::vec3 intNorm = glm::normalize(glm::cross(tri.b - tri.a, tri.c - tri.a));
+    float denom = glm::dot(nL, intNorm);
+    if(denom == 0) return idx;
+
+    glm::vec3 curPoint = origPoint + (point2 - origPoint) * tt;
+    //first get the point where the line intercepts the plane.
+    float t = glm::dot(intNorm, (curPoint - pt)) / denom;
+    glm::vec3 hitPoint = pt + nL * t;
+
+    //if t is positive test if the plane intercept is within the triangle.
+    if(idx < MAX_LINE_INTERCEPTS && t > 0)
+    {
+    //Get the barycentric coordinates of the point of collision on the plane. (We're assuming that the "polygon" is a triangle here)
+    glm::vec3 e01 = tri.b - tri.a;
+    glm::vec3 e12 = tri.c - tri.b;
+    glm::vec3 e20 = tri.a - tri.c;
+    glm::vec3 p1x = hitPoint - tri.b;
+    glm::vec3 p2x = hitPoint - tri.c;
+    glm::vec3 Vn = glm::cross(e01, e12);
+    float area2 = glm::length(Vn);
+    glm::vec3 n2 = Vn/area2;
+    float w = glm::dot(glm::cross(e12, p1x), n2) / area2;
+    float u = glm::dot(glm::cross(e20, p2x), n2) / area2;
+    float v = 1 - u - w;
+
+    //If the barycentric coordinates are all between 0 and 1, the collision point is inside the triangle, otherwise it's a miss.
+    if(u < 0 || v < 0 || w < 0)
+    {
+        return idx;
+    }
+
+    hits[idx].t = t;
+    hits[idx++].obj = this;
+    }
+
+    return idx;
+}
+
 glm::vec3 TriangleFunction::getSurfaceNormal(glm::vec3 pt)
 {
     /*glm::vec3 hitPoint = pt;

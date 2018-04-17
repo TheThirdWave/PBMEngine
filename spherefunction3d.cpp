@@ -149,6 +149,37 @@ int SphereFunction3D::getRelativeLine(glm::vec3 pt, glm::vec3 nL, intercept* hit
     return idx;
 }
 
+int SphereFunction3D::getRelativeLineMBlur(glm::vec3 pt, glm::vec3 nL, intercept* hits, int idx)
+{
+    float t;
+    float radius = glm::length(normal);
+    glm::vec3 curPoint = origPoint + (point2 - origPoint) * tt;
+    glm::vec3 length = curPoint - pt;
+    float b = glm::dot((curPoint - pt), nL);
+    float a = glm::dot(length, length) - b * b;
+    float c = glm::dot(curPoint - pt, curPoint - pt) - radius * radius;
+    float delta = b * b - c;
+    if(delta > 0)
+    {
+        float sqrt = std::sqrt(delta);
+        t = b + sqrt;
+        if(idx < MAX_LINE_INTERCEPTS && t >= 0)
+        {
+            hits[idx].t = t;
+            hits[idx++].obj = this;
+        }
+        t = b - sqrt;
+        if(idx < MAX_LINE_INTERCEPTS && t >= 0)
+        {
+            hits[idx].t = t;
+            hits[idx++].obj = this;
+        }
+        return idx;
+    }
+    t = -1;
+    return idx;
+}
+
 glm::vec3 SphereFunction3D::getSurfaceNormal(glm::vec3 pt)
 {
     return glm::normalize(pt - origPoint);

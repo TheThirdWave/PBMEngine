@@ -73,6 +73,7 @@ public:
     void drawBlobbyAA(int);
     void draw3D(glm::vec3, float, glm::vec3, glm::vec3, float, int);
     void draw3DFocus(glm::vec3, float, float, glm::vec3, glm::vec3, float, float, int);
+    void draw3DFocusMBlur(glm::vec3, float, float, glm::vec3, glm::vec3, float, float, int);
     void drawShaded();
     void simpleBlur();
     void motionBlur(Function2D*);

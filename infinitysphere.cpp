@@ -114,6 +114,14 @@ int InfinitySphere::getRelativeLine(glm::vec3 pt, glm::vec3 nL, intercept* hits,
     return idx;
 }
 
+int InfinitySphere::getRelativeLineMBlur(glm::vec3 pt, glm::vec3 nL, intercept* hits, int idx)
+{
+    hits[idx].t = normal.x;
+    hits[idx++].obj = this;
+    return idx;
+}
+
+
 glm::vec3 InfinitySphere::getSurfaceNormal(glm::vec3 pt)
 {
     return -glm::normalize(pt);
