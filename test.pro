@@ -1,4 +1,4 @@
-QMAKE_CXXFLAGS += -std=c++0x
+QMAKE_CXXFLAGS += -std=c++0x -fopenmp
 TEMPLATE = app
 CONFIG += console
 CONFIG -= qt
@@ -71,5 +71,5 @@ HEADERS += \
     trianglefunction.h \
     trianglemesh.h
 
-LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt
+LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt -fopenmp
 

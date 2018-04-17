@@ -416,7 +416,7 @@ void KeyHandler(unsigned char key, int x, int y)
             hold.setRadius(200.0f);
             hold.setShnell(1.1);
             hold.setBlur(0.2);
-            hold.setColor(glm::vec4(100.0f, 100.0f, 100.0f, 100.0f), glm::vec4(1000.0f, 1.0f, 1.0f, 1000.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
+            hold.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
             hold.setGeometry(gTest);
             hold.setTexNorms(glm::normalize(glm::vec3(0.0f, -1.0f, 0.0f)), glm::normalize(glm::vec3(-0.0f, 0.0f, 1.0f)));
             hold.setTexture(&innerMask);
@@ -446,19 +446,19 @@ void KeyHandler(unsigned char key, int x, int y)
             //Screen.addFunction3D(&hold5);
             gTest.depth = 5.0f;
             SphereFunction3D hold2;
-            hold2.setPoint(glm::vec3(-200.0f, -100.0f, 0.0f));
-            hold2.setRadius(40.0f);
+            hold2.setPoint(glm::vec3(720.0f, 91.0f, -80.0f));
+            hold2.setRadius(10.0f);
             hold2.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(0.0f, 100.0f, 0.0f, 100.0f), glm::vec4(5000.0f, 0.0f, 5000.0f, 5000.0f));
             hold2.setGeometry(gTest);
             hold2.shader = &Shaders::phongShadow;
-            //Screen.addFunction3D(&hold2);
+            Screen.addFunction3D(&hold2);
             SphereFunction3D hold7;
-            hold7.setPoint(glm::vec3(-0.0f, 20.0f, 0.0f));
-            hold7.setRadius(80.0f);
+            hold7.setPoint(glm::vec3(720.0f, 95.0f, -100.0f));
+            hold7.setRadius(5.0f);
             hold7.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(5000.0f, 0.0f, 5000.0f, 5000.0f));
             hold7.setGeometry(gTest);
             hold7.shader = &Shaders::mirror;
-            //Screen.addFunction3D(&hold7);
+            Screen.addFunction3D(&hold7);
             gTest.depth = 1.0f;
             gTest.radius = 1.0f;
             gTest.width = 0.99;
@@ -514,8 +514,10 @@ void KeyHandler(unsigned char key, int x, int y)
             hold5.setQReals(100.0f, 50.0f, 100.0);
             hold5.setColor(glm::vec4(0.0f, 100.0f, 100.0f, 100.0f));
             Screen.addFunction3D(&hold5);*/
-            Screen.draw3D(glm::vec3(600.0f, -700.0f, 200.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-0.6f, 0.7f, -0.2f)), (float)Screen.getHeight(), 1);
-            //Screen.draw3D(glm::vec3(0.0f, 0.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 1);
+            //Screen.draw3D(glm::vec3(600.0f, -700.0f, 200.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-0.6f, 0.7f, -0.2f)), (float)Screen.getHeight(), 1);
+            //Screen.draw3DFocus(glm::vec3(600.0f, -700.0f, 200.0f), 500.0f, 800.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-0.6f, 0.7f, -0.2f)), (float)Screen.getHeight(), 0.0f, 1);
+            //Screen.draw3D(glm::vec3(780.0f, 88.0f, -100.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-1.0f, -0.1f, -0.0f)), (float)Screen.getHeight(), 1);
+            Screen.draw3DFocus(glm::vec3(780.0f, 88.0f, -100.0f), 500.0f, 500.0f, glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-1.0f, -0.1f, -0.0f)), (float)Screen.getHeight(), 0.0f, 1);
             /*int count = 0;
             int idx = imageManager.addImage(*Screen.getPtr());
             string nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
