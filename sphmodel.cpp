@@ -16,11 +16,11 @@ SPHModel::SPHModel(int w, int h, int parts, float g, float f)
     initColor = glm::vec3(1.0f);
     gravity = g;
     wFriction = f;
-    Pconst = 0.000000000001;
-    Dconst = 0.000000000001;
+    Pconst = 1000.0;
+    Dconst = 1000.0;
     Rho = 1;
-    Vconst = 0.000001;
-    Epsilon = 10000000;
+    Vconst = 10.0;
+    Epsilon = 10;
 }
 
 void SPHModel::init(int w, int h, int parts, float g, float f)
@@ -31,11 +31,11 @@ void SPHModel::init(int w, int h, int parts, float g, float f)
     initColor = glm::vec3(1.0f);
     gravity = g;
     wFriction = f;
-    Pconst = 0.0001;
-    Dconst = 0.0001;
-    Rho = 1;
-    Vconst = 10000;
-    Epsilon = 10000;
+    Pconst = 300.0;
+    Dconst = 20;
+    Rho = 3;
+    Vconst = 100;
+    Epsilon = 10;
 }
 
 void SPHModel::update(float timeStep)
@@ -77,11 +77,13 @@ void SPHModel::leapFrogTS(float timeStep)
 
 void SPHModel::forces(float timeStep)
 {
+#pragma omp parallel for
     for(int i = 0; i < particles.size(); i++)
     {
         particles[i].acceleration = glm::vec2(0.0f);
     }
     pvF(timeStep);
+    #pragma omp parallel for
     for(int i = 0; i < particles.size(); i++)
     {
         particles[i].acceleration /= particles[i].mass;
@@ -96,8 +98,6 @@ void SPHModel::pvF(float timeStep)
         glm::vec2 holdAccel = glm::vec2(0.0f);
         for(int j = 0; j < particles.size(); j++)
         {
-            if(i != j)
-            {
                 float h = calcPressElement(&particles[i], &particles[j]);
                 float h3 =  calcViscElement(&particles[i], &particles[j]);
                 glm::vec2 h2 = particles[j].findGradWeight(particles[i].position);
@@ -105,9 +105,8 @@ void SPHModel::pvF(float timeStep)
                 {
                     int x = 1;
                 }
-                holdAccel += particles[j].mass * (calcPressElement(&particles[i], &particles[j])) * h2;
-                //holdAccel += particles[j].mass * (calcPressElement(&particles[i], &particles[j]) + calcViscElement(&particles[i], &particles[j])) * particles[j].findGradWeight(particles[i].position);
-            }
+                //holdAccel += particles[j].mass * (calcPressElement(&particles[i], &particles[j])) * h2;
+                holdAccel += particles[j].mass * (calcPressElement(&particles[i], &particles[j]) + calcViscElement(&particles[i], &particles[j])) * particles[j].findGradWeight(particles[i].position);
         }
         particles[i].acceleration = -holdAccel;
     }
@@ -129,10 +128,10 @@ void SPHModel::calcDensities()
 //#pragma omp parallel for
         for(int j = 0; j < particles.size(); j++)
         {
-            if(i != j)
-            {
+            //if(i != j)
+            //{
                 particles[i].density += particles[j].mass * particles[j].findWeight(particles[i].position);
-            }
+            //}
         }
         particles[i].pressure = Pconst * (pow((particles[i].density / Dconst), Rho) - 1);
     }
@@ -192,9 +191,13 @@ void SPHModel::enforceBounds()
 
 void SPHModel::addParts(int parts)
 {
-    for(int i = 0; i < parts; i++)
+    int sides = sqrt(parts);
+    for(int i = 0; i < sides; i++)
     {
-        particles.push_back(Particle(glm::vec2(width / 2, height / 2), initColor, 1.0f, 1.0f));
+        for(int j = 0; j < sides; j++)
+        {
+            particles.push_back(Particle(glm::vec2(i/3.0f, j/2.0f), initColor, 1.0f, 0.5f));
+        }
     }
 }
 

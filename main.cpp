@@ -85,6 +85,8 @@ int main(int argc, char* argv[])
     int sph = clf.find("-SPH", 1, "Set to one if you want to run a Something Particle Hydrodynamics simulation");
     int width = clf.find("-width", 256, "Width of simulation if no image supplied");
     int height = clf.find("-height", 500, "Height of simulation if no image supplied.");
+    int simWidth = clf.find("-swidth", 50, "width of SPH simulation.");
+    int simHeight = clf.find("-sheight", 50, "height of SPH simulation.");
     float timeToCapture = clf.find("-ttc", 0.0f, "How long to run the non-interactive simulation.");
     float sourceIntensity = clf.find("-si", 1.0f, "Source multiplication coefficient.");
     float viscosity = clf.find("-v", 0.0f, "The initial viscosity of the simulation.");
@@ -100,6 +102,7 @@ int main(int argc, char* argv[])
     if(sph > 0)
     {
         prog_state = prog_state | SPH;
+        noImage = 1;
     }
     else prog_state = prog_state & ~SPH;
     timeStep = clf.find("-ts", (1.0f / (60.0f)), "Starting timestep size.");
@@ -131,9 +134,10 @@ int main(int argc, char* argv[])
     //initialize Fluid Model.
     if(prog_state & SPH)
     {
-        sphModel.init(WIDTH, HEIGHT, 0, 1.0f, 0.9f);
-        sphModel.addPart(Particle(glm::vec2(WIDTH / 2.0f, HEIGHT / 2.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1, 10.0f));
-        sphModel.addPart(Particle(glm::vec2(WIDTH / 3.0f, HEIGHT / 3.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1, 10.0f));
+        sphModel.init(simWidth, simHeight, 0, 10.0f, 0.9f);
+        sphModel.addParts(200);
+        //sphModel.addPart(Particle(glm::vec2(WIDTH / 2.0f, HEIGHT / 2.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1, 10.0f));
+        //sphModel.addPart(Particle(glm::vec2(WIDTH / 3.0f, HEIGHT / 3.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1, 10.0f));
     }
     else
     {
@@ -737,8 +741,12 @@ void mouseButtonHandler(GLFWwindow* window, int button, int action, int mods)
             if(prog_state && SPH)
             {
                 glfwGetCursorPos(window, &xpos, &ypos);
+                xpos = xpos / WIDTH;
+                ypos = ypos / HEIGHT;
+                xpos = xpos * sphModel.getWidth();
+                ypos = ypos * sphModel.getHeight();
                 ypos = sphModel.getHeight() - ypos;
-                sphModel.addPart(Particle(glm::vec2(xpos, ypos), glm::vec3(0.0f, 1.0f, 0.0f), 1, 10.0f));
+                sphModel.addPart(Particle(glm::vec2(xpos, ypos), glm::vec3(0.0f, 1.0f, 0.0f), 1, 0.5f));
             }
             else
             {
