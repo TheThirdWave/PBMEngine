@@ -4,6 +4,7 @@ Function3D::Function3D()
 {
     normal = glm::vec3(0.0f);
     origPoint = glm::vec3(0.0f);
+    parent = NULL;
 }
 
 Function3D::Function3D(glm::vec3 norm, glm::vec3 pt)
@@ -43,6 +44,11 @@ void Function3D::setPoint(glm::vec3 p)
     origPoint = p;
 }
 
+void Function3D::setPoint2(glm::vec3 p)
+{
+    point2 = p;
+}
+
 void Function3D::setColor(glm::vec4 cs, glm::vec4 cd, glm::vec4 ca)
 {
     cS = cs;
@@ -71,6 +77,21 @@ void Function3D::setDisp(float d)
     disp = d;
 }
 
+void Function3D::setShnell(float s)
+{
+    shnell = s;
+}
+
+void Function3D::setBlur(float b)
+{
+    blur = b;
+}
+
+void Function3D::floatTT(float t)
+{
+    tt = t;
+}
+
 void Function3D::setGeometry(geometry g)
 {
     geo = g;
@@ -79,6 +100,16 @@ void Function3D::setGeometry(geometry g)
 void Function3D::setTexture(Imagemanip* tex)
 {
     texture = tex;
+}
+
+void Function3D::setNormalMap(Imagemanip* n)
+{
+    normMap = n;
+}
+
+void Function3D::setBumpMap(Imagemanip* b)
+{
+    bumpMap = b;
 }
 
 void Function3D::setTriangle(glm::vec3 A, glm::vec3 B, glm::vec3 C)
@@ -117,10 +148,15 @@ void Function3D::setUVTriangle(triangle2d t)
     uvs = t;
 }
 
-void Function3D::setChildren(Function3D *ch, int num)
+void Function3D::setChildren(Function3D* ch, int num)
 {
     children = ch;
     numChildren = num;
+}
+
+void Function3D::setParent(Function3D* p)
+{
+    parent = p;
 }
 
 glm::vec4 Function3D::getCS()
@@ -143,7 +179,27 @@ float Function3D::getDisp()
     return disp;
 }
 
+float Function3D::getShnell()
+{
+    return shnell;
+}
+
+float Function3D::getBlur()
+{
+    return blur;
+}
+
+float Function3D::getTT()
+{
+    return tt;
+}
+
 geometry Function3D::getGeo()
 {
     return geo;
+}
+
+Function3D* Function3D::getParent()
+{
+    return parent;
 }

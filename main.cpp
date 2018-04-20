@@ -71,7 +71,7 @@ unsigned long getTickCount();
 ShaderManager shaderManager;
 ReaderWriter imageManager;
 ModelManager modelManager;
-Imagemanip Screen, vecMask, layer1, outerMask, innerMask, alphaMask;
+Imagemanip Screen, vecMask, layer1, outerMask, innerMask, alphaMask, bumpMap, bumpMap1, normMap, normMap1;
 
 PolygonObject plane2;
 RenderObject sModel, pModel, poModel;
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
     initMatricies(width, height);
 
     initShade();
-    capModel = modelManager.readObjLoader("../Sphere2.obj");
+    capModel = modelManager.readObjLoader("../Cube1.obj");
 
     float vertices[] = {
         -1.0f, 1.0f, 1.0f,
@@ -191,19 +191,19 @@ image* flatImageRWStuff(int argc, char** argv)
     //int count = stoi(argv[2], NULL, 10);
     vecMask.initScreen(img);
 
-    holdImage = imageManager.openPNG("../AlphaTest2.png");
+    holdImage = imageManager.openPNG("../Close-Up-Snail-Wallpaper.png");
     if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
     img = imageManager.getImgPtr(holdImage);
 
     layer1.initScreen(img);
 
-    holdImage = imageManager.openPNG("../skybox.png");
+    holdImage = imageManager.openPNG("../serratedMetalBMap.png");
     if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
     img = imageManager.getImgPtr(holdImage);
 
     outerMask.initScreen(img);
 
-    holdImage = imageManager.openPNG("../GWbackground.png");
+    holdImage = imageManager.openPNG("../woodTex.png");
     if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
     img = imageManager.getImgPtr(holdImage);
 
@@ -215,7 +215,25 @@ image* flatImageRWStuff(int argc, char** argv)
 
     alphaMask.initScreen(img);
 
-    holdImage = imageManager.openPNG("../Skull.png");
+    holdImage = imageManager.openPNG("../serratedMetalBMap.png");
+    if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
+    img = imageManager.getImgPtr(holdImage);
+
+    bumpMap.initScreen(img);
+
+    holdImage = imageManager.openPNG("../flatBump.png");
+    if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
+    img = imageManager.getImgPtr(holdImage);
+
+    bumpMap1.initScreen(img);
+
+    holdImage = imageManager.openPNG("../RocksNormal.png");
+    if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
+    img = imageManager.getImgPtr(holdImage);
+
+    normMap.initScreen(img);
+
+    holdImage = imageManager.openPNG("../Skull1.png");
     img = imageManager.getImgPtr(holdImage);
     Screen.initScreen(img);
     Screen.setBackground(0, 0, 0);
@@ -394,26 +412,34 @@ void KeyHandler(unsigned char key, int x, int y)
             gTest.radius = 1.0f;
             gTest.width = 0.9f;
             SphereFunction3D hold;
-            hold.setPoint(glm::vec3(300.0f, -100.0f, 0.0f));
+            hold.setPoint(glm::vec3(0.0f, -100.0f, 0.0f));
+            hold.setPoint2(glm::vec3(0.0f, -100.0f, 0.0f));
+            //hold.setPoint2(glm::vec3(0.0f, -100.0f, 200.0f));
             hold.setRadius(200.0f);
-            hold.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(50.0f, 1.0f, 1.0f, 50.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
+            hold.setShnell(1.1);
+            hold.setBlur(0.1);
+            hold.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
             hold.setGeometry(gTest);
             hold.setTexNorms(glm::normalize(glm::vec3(0.0f, -1.0f, 0.0f)), glm::normalize(glm::vec3(-0.0f, 0.0f, 1.0f)));
             hold.setTexture(&innerMask);
-            hold.setDisp(15);
-            hold.shader = &Shaders::mirror;
+            hold.setNormalMap(&normMap);
+            hold.setBumpMap(&bumpMap1);
+            hold.setDisp(0);
+            hold.shader = &Shaders::refractorBlur;
             Screen.addFunction3D(&hold);
             gTest.depth = 1.0f;
             TriangleMesh hold6;
-            hold6.setPoint(glm::vec3(-150.0f, -150.0f, -0.0f));
+            hold6.setShnell(1.25);
+            hold6.setPoint(glm::vec3(0.0f, -200.0f, -600.0f));
+            hold6.setPoint2(glm::vec3(0.0f, -200.0f, -600.0f));
             hold6.setNormal(glm::vec3(0.0f, -1.0f, 0.0f), glm::normalize(glm::vec3(1.0f, 0.0f, 0.0f)), glm::vec3(0.0f));
-            hold6.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
+            hold6.setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
             hold6.setGeometry(gTest);
-            hold6.setTexture(&innerMask);
-            hold6.shader = &Shaders::mirror;
-            //hold6.createTetrahedron(100);
-            //hold6.createCube(100);
-            hold6.loadFromModel(modelManager.getModel(capModel), 200);
+            hold6.setTexture(&outerMask);
+            hold6.shader = &Shaders::texMap;
+            //hold6.createTetrahedron(300);
+            //hold6.createCube(500);
+            hold6.loadFromModel(modelManager.getModel(capModel), 3);
             Screen.addFunction3D(&hold6);
             //TriangleFunction hold5(glm::vec3(100.0f, 50.0f, -200.0f), glm::vec3(150.0f, -150.0f, 0.0f), glm::vec3(0.0f, 50.0f, 200.0f));
             //hold5.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(100.0f, 0.0f, 0.0f, 100.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
@@ -423,26 +449,27 @@ void KeyHandler(unsigned char key, int x, int y)
             //Screen.addFunction3D(&hold5);
             gTest.depth = 5.0f;
             SphereFunction3D hold2;
-            hold2.setPoint(glm::vec3(-200.0f, -100.0f, 0.0f));
-            hold2.setRadius(40.0f);
+            hold2.setPoint(glm::vec3(720.0f, 91.0f, -80.0f));
+            hold2.setRadius(10.0f);
             hold2.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(0.0f, 100.0f, 0.0f, 100.0f), glm::vec4(5000.0f, 0.0f, 5000.0f, 5000.0f));
             hold2.setGeometry(gTest);
             hold2.shader = &Shaders::phongShadow;
-            //Screen.addFunction3D(&hold2);
+            Screen.addFunction3D(&hold2);
             SphereFunction3D hold7;
-            hold7.setPoint(glm::vec3(-0.0f, 20.0f, 0.0f));
-            hold7.setRadius(80.0f);
+            hold7.setPoint(glm::vec3(720.0f, 95.0f, -100.0f));
+            hold7.setRadius(5.0f);
             hold7.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(5000.0f, 0.0f, 5000.0f, 5000.0f));
             hold7.setGeometry(gTest);
             hold7.shader = &Shaders::mirror;
-            //Screen.addFunction3D(&hold7);
-            gTest.depth = 40.0f;
+            Screen.addFunction3D(&hold7);
+            gTest.depth = 1.0f;
             gTest.radius = 1.0f;
             gTest.width = 0.99;
             PlaneFunction hold3;
             hold3.setPoint(glm::vec3(0.0f, 100.0f, -100.0f));
+            hold3.setPoint2(glm::vec3(0.0f, 100.0f, -100.0f));
             hold3.setNormal(glm::normalize(glm::vec3(0.0f, -1.0f, 0.0f)));
-            hold3.setColor(glm::vec4(800.0f, 800.0f, 1000.0f, 1000.0f), glm::vec4(0.0f, 0.0f, 100.0f, 100.0f), glm::vec4(0.0f, 0.0f, 1000.0f, 1000.0f));
+            hold3.setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), glm::vec4(100.0f, 100.0f, 100.0f, 100.0f), glm::vec4(0.0f, 0.0f, 1000.0f, 1000.0f));
             hold3.setGeometry(gTest);
             hold3.setTexture(&innerMask);
             hold3.shader = &Shaders::texMap;
@@ -453,24 +480,24 @@ void KeyHandler(unsigned char key, int x, int y)
             hold4.setTexture(&outerMask);
             hold4.setTexNorms(glm::normalize(glm::vec3(0.0f, -1.0f, 0.0f)), glm::normalize(glm::vec3(0.5f, 0.0f, -1.0f)));
             hold4.shader = &Shaders::skySphere;
-            Screen.addFunction3D(&hold4);
+            //Screen.addFunction3D(&hold4);
 
             DirectionalLight light;
             light.initialize(glm::normalize(glm::vec3(0.0f, 0.5f, -0.5f)));
             light.setColor(glm::vec4(500.0f, 500.0f, 500.0f, 500.0f));
-            Screen.addLight(&light);
+            //Screen.addLight(&light);
             PointLight light2;
             light2.initialize(glm::vec3(-300.0, -200.0f, 0.0f));
             light2.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f));
             //Screen.addLight(&light2);
             SpotLight light3;
-            light3.initialize(glm::vec3(100.0f, -400.0f, 0.0f), glm::normalize(glm::vec3(-0.5f, 0.5f, 0.0f)), 0.6, 0.5);
-            light3.setColor(glm::vec4(500.0f, 500.0f, 500.0f, 500.0f));
+            light3.initialize(glm::vec3(400.0f, -400.0f, 0.0f), glm::normalize(glm::vec3(-0.5f, 0.5f, 0.0f)), 0.6, 0.5);
+            light3.setColor(glm::vec4(500.0f, 500.0f, 5000.0f, 5000.0f));
             //Screen.addLight(&light3);
             SpotLight light5;
-            light5.initialize(glm::vec3(-100.0f, -600.0f, 0.0f), glm::normalize(glm::vec3(0.5f, 0.5f, 0.0f)), 0.6, 0.5);
+            light5.initialize(glm::vec3(-0.0f, -600.0f, -100.0f), glm::normalize(glm::vec3(0.0f, 0.7f, -0.3f)), 0.6, 0.5);
             light5.setColor(glm::vec4(5000.0f, 5000.0f, 5000.0f, 5000.0f));
-            //Screen.addLight(&light5);
+            Screen.addLight(&light5);
             AreaLight light4;
             light4.initialize(glm::vec3(100.0f, -300.0f, 0.0f), glm::normalize(glm::vec3(-0.5f, 0.5f, 0.0f)), glm::vec3(0.0f, 1.0f, 0.0f), 100, 100, 1);
             light4.setColor(glm::vec4(500.0f, 500.0f, 500.0f, 500.0f));
@@ -491,21 +518,30 @@ void KeyHandler(unsigned char key, int x, int y)
             hold5.setQReals(100.0f, 50.0f, 100.0);
             hold5.setColor(glm::vec4(0.0f, 100.0f, 100.0f, 100.0f));
             Screen.addFunction3D(&hold5);*/
-            Screen.draw3D(glm::vec3(0.0f, 0.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 3);
+            //Screen.draw3D(glm::vec3(600.0f, -700.0f, 200.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-0.6f, 0.7f, -0.2f)), (float)Screen.getHeight(), 1);
+            //Screen.draw3DFocus(glm::vec3(500.0f, -500.0f, 700.0f), 500.0f, 800.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-0.5f, 0.5f, -0.7f)), (float)Screen.getHeight(), 0.0f, 1);
+            Screen.draw3DPaint(glm::vec3(500.0f, -500.0f, 700.0f), 500.0f, glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-0.5f, 0.5f, -0.7f)), (float)Screen.getHeight(), 1, layer1.getPtr(), glm::vec3(1.0f));
+            //Screen.draw3DFocusMBlur(glm::vec3(600.0f, -700.0f, 200.0f), 500.0f, 800.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-0.6f, 0.7f, -0.2f)), (float)Screen.getHeight(), 0.0f, 16);
+            //Screen.draw3D(glm::vec3(780.0f, 88.0f, -100.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-1.0f, -0.1f, -0.0f)), (float)Screen.getHeight(), 1);
+            //Screen.draw3DFocus(glm::vec3(780.0f, 88.0f, -100.0f), 1000.0f, 500.0f, glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-1.0f, 0.1f, -0.0f)), (float)Screen.getHeight(), 0.0f, 1);
+            //Screen.draw3DFocusMBlur(glm::vec3(780.0f, 88.0f, -100.0f), 500.0f, 500.0f, glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-1.0f, -0.1f, -0.0f)), (float)Screen.getHeight(), 0.0f, 1);
             /*int count = 0;
             int idx = imageManager.addImage(*Screen.getPtr());
-            string nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
-            imageManager.writePNG((char*)nameBuf.c_str(), idx);
-            for(int i = 0; i < 40; i++)
+            string nameBuf;// = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
+            //imageManager.writePNG((char*)nameBuf.c_str(), idx);
+            float sH = 0.6;
+            for(int i = 0; i < 24 * 3; i++)
             {
-                if(i < 10)hold6.setNormal(glm::vec3(0.0f, -1.0f, 0.0f), glm::normalize(glm::vec3(1.0f - ((float)i/10.0f), 0.0f, ((float)i/10.0f))), glm::vec3(0.0f));
-                else if(i < 20) hold6.setNormal(glm::vec3(0.0f, -1.0f, 0.0f), glm::normalize(glm::vec3(-((float)(i - 10)/10.0f), 0.0f, (1.0f - (float)(i - 10)/10.0f))), glm::vec3(0.0f));
-                else if(i < 30) hold6.setNormal(glm::vec3(0.0f, -1.0f, 0.0f), glm::normalize(glm::vec3(-1.0f + ((float)(i - 20)/10.0f), 0.0f, ( - (float)(i - 20)/10.0f))), glm::vec3(0.0f));
-                else hold6.setNormal(glm::vec3(0.0f, -1.0f, 0.0f), glm::normalize(glm::vec3(((float)(i - 30)/10.0f), 0.0f, (-1.0f + (float)(i - 30)/10.0f))), glm::vec3(0.0f));
-                hold6.createCube(100);
-                Screen.draw3D(glm::vec3(0.0f, 0.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 1);
-                nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
+                glm::vec3 cPos1 = glm::vec3(780.0f, 88.0f, -100.0f);
+                glm::vec3 cPos2 = glm::vec3(500.0f, -500.0f, 700.0f);
+                glm::vec3 cAng1 = glm::normalize(glm::vec3(-1.0f, 0.1f, -0.0f));
+                glm::vec3 cAng2 = glm::normalize(glm::vec3(-0.5f, 0.5f, -0.7f));
+                Screen.draw3DFocus(cPos2 * ((float)i/(float)(24.0*3.0)) + cPos1 * (1 - ((float)i/(float)(24.0*3.0))), 1000.0f, 500.0f, glm::vec3(0.0f, 1.0f, 0.0f), cAng2 * ((float)i/(float)(24.0*3.0)) + cAng1 * (1 - ((float)i/(float)(24.0*3.0))), (float)Screen.getHeight(), 0.0f, 1);
+                //Screen.draw3DFocus(glm::vec3(-400.0f, -500.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.35f, 0.5f, -1.0f)), (float)Screen.getHeight(), 1);
+                //Screen.draw3DFocus(glm::vec3(0.0f, 0.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 1);
+                nameBuf = std::string("../Mov1/frame" + std::to_string(count++) + ".png");
                 imageManager.writePNG((char*)nameBuf.c_str(), idx);
+                sH += .1;
             }*/
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
