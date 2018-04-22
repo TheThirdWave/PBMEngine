@@ -3,6 +3,7 @@
 
 #include <../glm-0.9.8.5/glm/glm.hpp>
 #include "structpile.h"
+#include <vector>
 
 class Particle
 {
@@ -14,6 +15,7 @@ private:
     glm::vec2 acceleration;
     glm::vec3 color;
     float mass, density, pressure, radius;
+    int gridX, gridY;
 public:
     Particle();
     Particle(glm::vec2 p, glm::vec3 c, float m, float r);
@@ -31,6 +33,7 @@ public:
     void setDensity(float d);
     void setPressure(float p);
     void setRadius(float r);
+    void setGridPos(int x, int y);
 
     glm::vec2 getPosition();
     glm::vec2 getHalfPos();
@@ -41,6 +44,7 @@ public:
     float getDensity();
     float getPressure();
     float getRadius();
+    std::vector<int> getGridPos();
 };
 
 #endif // PARTICLE_H

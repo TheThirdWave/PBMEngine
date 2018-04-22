@@ -8,7 +8,8 @@ SOURCES += main.cpp \
     buffer2d.cpp \
     fluidmodel.cpp \
     sphmodel.cpp \
-    particle.cpp
+    particle.cpp \
+    particlegrid.cpp
 
 OTHER_FILES += \
     FragS1.glsl \
@@ -22,7 +23,8 @@ HEADERS += \
     structpile.h \
     fluidmodel.h \
     sphmodel.h \
-    particle.h
+    particle.h \
+    particlegrid.h
 
 DISTFILES += \
     FragS2.glsl \

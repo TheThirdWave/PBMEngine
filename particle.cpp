@@ -99,6 +99,12 @@ void Particle::setRadius(float r)
     radius = r;
 }
 
+void Particle::setGridPos(int x, int y)
+{
+    gridX = x;
+    gridY = y;
+}
+
 glm::vec2 Particle::getPosition()
 {
     return position;
@@ -142,4 +148,10 @@ float Particle::getPressure()
 float Particle::getRadius()
 {
     return radius;
+}
+
+std::vector<int> Particle::getGridPos()
+{
+    std::vector<int> ret{ gridX, gridY};
+    return ret;
 }

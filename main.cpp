@@ -134,8 +134,8 @@ int main(int argc, char* argv[])
     //initialize Fluid Model.
     if(prog_state & SPH)
     {
-        sphModel.init(simWidth, simHeight, 0, 10.0f, 0.9f);
-        sphModel.addParts(200);
+        sphModel.init(simWidth, simHeight, 0, 10.0f, 0.9f, 0.5f);
+        sphModel.addParts(1000);
         //sphModel.addPart(Particle(glm::vec2(WIDTH / 2.0f, HEIGHT / 2.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1, 10.0f));
         //sphModel.addPart(Particle(glm::vec2(WIDTH / 3.0f, HEIGHT / 3.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1, 10.0f));
     }

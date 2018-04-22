@@ -3,18 +3,20 @@
 
 #include <vector>
 #include <../glm-0.9.8.5/glm/glm.hpp>
+#include "particlegrid.h"
 
 class Particle;
 
 class SPHModel
 {
     std::vector<Particle> particles;
+    ParticleGrid grid;
     float* pointDispBuf;
     float* colDispBuf;
     glm::vec3 initColor;
     int numParticles;
     int width, height;
-    float gravity, wFriction;
+    float gravity, wFriction, radius;
     //pressure coefficients
     float Pconst;
     float Dconst;
@@ -25,8 +27,8 @@ class SPHModel
 
 public:
     SPHModel();
-    SPHModel(int w, int h, int parts, float g, float f);
-    void init(int w, int h, int parts, float g, float f);
+    SPHModel(int w, int h, int parts, float g, float f, float r);
+    void init(int w, int h, int parts, float g, float f, float r);
 
     void update(float timeStep);
 
