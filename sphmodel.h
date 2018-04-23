@@ -4,18 +4,22 @@
 #include <vector>
 #include <../glm-0.9.8.5/glm/glm.hpp>
 #include "particlegrid.h"
+#include "solidframe.h"
 
 class Particle;
+//class SolidFrame;
 
 class SPHModel
 {
     std::vector<Particle> particles;
     ParticleGrid grid;
+    std::vector<SolidFrame> frames;
     float* pointDispBuf;
     float* colDispBuf;
     glm::vec3 initColor;
     int numParticles;
     int width, height;
+    int sph_state = 0;
     float gravity, wFriction, radius;
     //pressure coefficients
     float Pconst;
@@ -34,9 +38,11 @@ public:
 
     void eulerTS(float timeStep);
     void leapFrogTS(float timeStep);
+    void sixesTS(float timeStep);
 
     void forces(float timeStep);
     void pvF(float timeStep);
+    void sFrameF(float timeStep);
     void gravityF(float timeStep);
 
     void calcDensities();
@@ -46,7 +52,8 @@ public:
     void enforceBounds();
 
     void addParts(int parts);
-    void addPart(Particle part);
+    int addPart(Particle part);
+    int addFrame(SolidFrame frame);
     void passToDisplay(int max);
 
     void setInitColor(glm::vec3 col);
@@ -61,12 +68,17 @@ public:
     void setVCoefficients(float V, float E);
     void setVconst(float V);
     void setEpsilon(float E);
+    void setState(int s);
 
     int getNumParts();
     int getHeight();
     int getWidth();
+    int getState();
     float getGravity();
     float getWFriction();
+    Particle* getPart(int i);
+    SolidFrame* getFrame(int i);
+
 
 };
 

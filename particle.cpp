@@ -1,4 +1,5 @@
 #include "particle.h"
+#include "solidframe.h"
 
 Particle::Particle()
 {
@@ -11,6 +12,8 @@ Particle::Particle()
     pressure = 0;
     density = 0;
     radius = 1;
+    solidPtr = NULL;
+    parentPtr = NULL;
 }
 
 Particle::Particle(glm::vec2 p, glm::vec3 c, float m, float r)
@@ -24,6 +27,8 @@ Particle::Particle(glm::vec2 p, glm::vec3 c, float m, float r)
     pressure = 0;
     density = 0;
     radius = r;
+    solidPtr = NULL;
+    parentPtr = NULL;
 }
 
 void Particle::init(glm::vec2 p, glm::vec3 c, float m, float r)
@@ -105,6 +110,16 @@ void Particle::setGridPos(int x, int y)
     gridY = y;
 }
 
+void Particle::setSolidPtr(int sp)
+{
+    solidPtr = sp;
+}
+
+void Particle::setParentPtr(SolidFrame *pp)
+{
+    parentPtr = pp;
+}
+
 glm::vec2 Particle::getPosition()
 {
     return position;
@@ -154,4 +169,14 @@ std::vector<int> Particle::getGridPos()
 {
     std::vector<int> ret{ gridX, gridY};
     return ret;
+}
+
+int Particle::getSolidPtr()
+{
+    return solidPtr;
+}
+
+SolidFrame* Particle::getParentPtr()
+{
+    return parentPtr;
 }

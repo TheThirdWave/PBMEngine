@@ -51,8 +51,9 @@ void SPHModel::update(float timeStep)
     grid.buildGrid(particles);
 //    grid.printGridStatus();
     calcDensities();
-    //eulerTS(timeStep);
-    leapFrogTS(timeStep);
+    if(sph_state && ~SIXES) eulerTS(timeStep);
+    else leapFrogTS(timeStep);
+    //sixesTS(timeStep);
     enforceBounds();
 }
 
@@ -64,6 +65,17 @@ void SPHModel::eulerTS(float timeStep)
         particles[i].velocity += particles[i].acceleration * timeStep;
         particles[i].position += particles[i].velocity * timeStep;
     }
+}
+
+void SPHModel::sixesTS(float timeStep)
+{
+    float a = 1/(4 - pow(4, (1/3)));
+    float b = 1 - 4 * a;
+    leapFrogTS(a * timeStep);
+    leapFrogTS(a * timeStep);
+    leapFrogTS(b * timeStep);
+    leapFrogTS(a * timeStep);
+    leapFrogTS(a * timeStep);
 }
 
 void SPHModel::leapFrogTS(float timeStep)
@@ -93,6 +105,7 @@ void SPHModel::forces(float timeStep)
         particles[i].acceleration = glm::vec2(0.0f);
     }
     pvF(timeStep);
+    if(sph_state && SFFORCES) sFrameF(timeStep);
     #pragma omp parallel for
     for(int i = 0; i < particles.size(); i++)
     {
@@ -122,6 +135,22 @@ void SPHModel::pvF(float timeStep)
                     particles[i].acceleration = -holdAccel;
                 }
             }
+        }
+    }
+}
+
+void SPHModel::sFrameF(float timeStep)
+{
+    for(int i = 0; i < particles.size(); i++)
+    {
+        Particle* cpart = particles[i].getParentPtr()->getParticle(particles[i].getSolidPtr());
+        if(cpart != NULL)
+        {
+            float elasticity = cpart->parentPtr->getElasticity();
+            glm::vec2 dVec = cpart->getPosition() - particles[i].getPosition();
+            float dist = glm::length(dVec);
+            dVec = glm::normalize(dVec);
+            particles[i].acceleration += dVec * dist * dist * elasticity;
         }
     }
 }
@@ -226,9 +255,16 @@ void SPHModel::addParts(int parts)
     }
 }
 
-void SPHModel::addPart(Particle part)
+int SPHModel::addPart(Particle part)
 {
     particles.push_back(part);
+    return particles.size() - 1;
+}
+
+int SPHModel::addFrame(SolidFrame frame)
+{
+    frames.push_back(frame);
+    return frames.size() - 1;
 }
 
 void SPHModel::passToDisplay(int max)
@@ -245,6 +281,13 @@ void SPHModel::passToDisplay(int max)
         colDispBuf[(i * 3)] = pCol.r;
         colDispBuf[(i * 3) + 1] = pCol.g;
         colDispBuf[(i * 3) + 2] = pCol.b;
+    }
+    if(size < max)
+    {
+        for(int i = 0; i < frames.size(); i++)
+        {
+            size = frames[i].passToDisplay(size, max, width, height, pointDispBuf, colDispBuf);
+        }
     }
 }
 
@@ -311,6 +354,11 @@ void SPHModel::setEpsilon(float E)
     Epsilon = E;
 }
 
+void SPHModel::setState(int s)
+{
+    sph_state = s;
+}
+
 int SPHModel::getNumParts()
 {
     return particles.size();
@@ -326,6 +374,11 @@ int SPHModel::getWidth()
     return width;
 }
 
+int SPHModel::getState()
+{
+    return sph_state;
+}
+
 float SPHModel::getGravity()
 {
     return gravity;
@@ -334,4 +387,14 @@ float SPHModel::getGravity()
 float SPHModel::getWFriction()
 {
     return wFriction;
+}
+
+Particle* SPHModel::getPart(int i)
+{
+    return &particles[i];
+}
+
+SolidFrame* SPHModel::getFrame(int i)
+{
+    return &frames[i];
 }

@@ -9,7 +9,9 @@ SOURCES += main.cpp \
     fluidmodel.cpp \
     sphmodel.cpp \
     particle.cpp \
-    particlegrid.cpp
+    particlegrid.cpp \
+    solidframe.cpp \
+    stuffbuilder.cpp
 
 OTHER_FILES += \
     FragS1.glsl \
@@ -24,7 +26,9 @@ HEADERS += \
     fluidmodel.h \
     sphmodel.h \
     particle.h \
-    particlegrid.h
+    particlegrid.h \
+    solidframe.h \
+    stuffbuilder.h
 
 DISTFILES += \
     FragS2.glsl \

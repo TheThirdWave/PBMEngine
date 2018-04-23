@@ -109,6 +109,11 @@ enum progState{
     SPH = 1 << 4
 };
 
+enum SPHState{
+    SIXES = 1,
+    SFFORCES = 1 << 1,
+};
+
 enum displayType{
     IMAGE = 0,
     DENSITY = 1,

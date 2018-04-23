@@ -5,10 +5,14 @@
 #include "structpile.h"
 #include <vector>
 
+class SolidFrame;
+
 class Particle
 {
     friend class SPHModel;
 private:
+    SolidFrame* parentPtr;
+    int solidPtr;
     glm::vec2 position;
     glm::vec2 halfPos;
     glm::vec2 velocity;
@@ -34,6 +38,8 @@ public:
     void setPressure(float p);
     void setRadius(float r);
     void setGridPos(int x, int y);
+    void setSolidPtr(int sp);
+    void setParentPtr(SolidFrame* pp);
 
     glm::vec2 getPosition();
     glm::vec2 getHalfPos();
@@ -45,6 +51,8 @@ public:
     float getPressure();
     float getRadius();
     std::vector<int> getGridPos();
+    int getSolidPtr();
+    SolidFrame* getParentPtr();
 };
 
 #endif // PARTICLE_H
