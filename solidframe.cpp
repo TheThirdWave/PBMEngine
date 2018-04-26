@@ -4,11 +4,18 @@
 SolidFrame::SolidFrame()
 {
     elasticity = 1;
+    COMVel = glm::vec2(0.0f);
 }
 
 SolidFrame::SolidFrame(float e)
 {
     elasticity = e;
+    COMVel = glm::vec2(0.0f);
+}
+
+void SolidFrame::initBuf(int size)
+{
+    particles.resize(size);
 }
 
 int SolidFrame::addParticle(Particle p)
@@ -19,7 +26,40 @@ int SolidFrame::addParticle(Particle p)
 
 void SolidFrame::calcCOM()
 {
+    COM = glm::vec2(0.0f);
+    mass = 0;
+    for(int i = 0; i < particles.size(); i++)
+    {
+        COM += particles[i].getMass() * particles[i].getPosition();
+        mass += particles[i].getMass();
+    }
+    COM /= mass;
+}
 
+void SolidFrame::calcRelPos()
+{
+    for(int i = 0; i < particles.size(); i++)
+    {
+        pVecs.push_back(particles[i].getPosition() - COM);
+    }
+}
+
+void SolidFrame::updateChildren()
+{
+    for(int i = 0; i < particles.size(); i++)
+    {
+        particles[i].setPosition(COM + pVecs[i]);
+    }
+}
+
+void SolidFrame::gatherForces()
+{
+    COMAcc = glm::vec2(0.0f);
+    for(int i = 0; i < particles.size(); i++)
+    {
+        COMAcc += particles[i].getMass() * particles[i].getAcceleration();
+    }
+    COMAcc /= mass;
 }
 
 int SolidFrame::passToDisplay(int start, int max, float width, float height, float* pBuf, float* cBuf)
@@ -46,6 +86,16 @@ int SolidFrame::passToDisplay(int start, int max, float width, float height, flo
 void SolidFrame::setElasticity(float e)
 {
     elasticity = e;
+}
+
+void SolidFrame::setParticle(Particle p, int i)
+{
+    particles[i] = p;
+}
+
+int SolidFrame::getNumParts()
+{
+    return particles.size();
 }
 
 float SolidFrame::getElasticity()

@@ -56,7 +56,7 @@ glm::vec2 Particle::findGradWeight(glm::vec2 pt)
     glm::vec2 rVec = pt - position;
     float dist = glm::length(rVec);
     if(dist > radius || dist == 0) return glm::vec2(0.0f);
-    return (float)(-pow((1 - (dist / radius)), 2) * (30 / (PI * radius * radius * radius))) * (rVec / dist);;
+    return (float)(-pow((1 - (dist / radius)), 2) * (30 / (PI * radius * radius * radius))) * (rVec / dist);
 }
 
 void Particle::setPosition(glm::vec2 p)

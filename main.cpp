@@ -72,6 +72,7 @@ double prev_time, cur_time, delta_time, d_delta_time, d_prev_time, d_cur_time;
 double timeStep = 1.0 / (60.0 * 1.0);
 double simTime = 0.0f;
 double displayTime = 1.0f / (60.0f);
+double holdXPos, holdYPos;
 
 int main(int argc, char* argv[])
 {
@@ -138,8 +139,8 @@ int main(int argc, char* argv[])
     {
         sphModel.init(simWidth, simHeight, 0, 10.0f, 0.9f, 0.5f);
         //sphModel.addParts(1000);
-        stuffbuilder.MakeSFCube(&sphModel, glm::vec2(WIDTH / 2.0f, HEIGHT / 2.0f), 0.5, 5);
-        sphModel.setState(SFFORCES);
+        stuffbuilder.MakeSFCube(&sphModel, glm::vec2(simWidth / 2, simHeight / 2), 228, 2.0f, 500.0f);
+        sphModel.setState(SFFORCES | SIXES);
         //sphModel.addPart(Particle(glm::vec2(WIDTH / 2.0f, HEIGHT / 2.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1, 10.0f));
         //sphModel.addPart(Particle(glm::vec2(WIDTH / 3.0f, HEIGHT / 3.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1, 10.0f));
     }
@@ -348,7 +349,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-            numVerts = sphModel.getNumParts();
+            numVerts = sphModel.getNumVerts();
             sphModel.update(timeStep);
             sphModel.passToDisplay(NUM_PARTS);
             displaySPH(window, MatrixID, programID, vertexbuffer, mvp, numVerts);
@@ -742,7 +743,7 @@ void mouseButtonHandler(GLFWwindow* window, int button, int action, int mods)
         case GLFW_MOUSE_BUTTON_LEFT:
         if(action == GLFW_PRESS)
         {
-            if(prog_state && SPH)
+            if(prog_state & SPH)
             {
                 glfwGetCursorPos(window, &xpos, &ypos);
                 xpos = xpos / WIDTH;
@@ -750,7 +751,8 @@ void mouseButtonHandler(GLFWwindow* window, int button, int action, int mods)
                 xpos = xpos * sphModel.getWidth();
                 ypos = ypos * sphModel.getHeight();
                 ypos = sphModel.getHeight() - ypos;
-                sphModel.addPart(Particle(glm::vec2(xpos, ypos), glm::vec3(0.0f, 1.0f, 0.0f), 1, 0.5f));
+                holdXPos = xpos;
+                holdYPos = ypos;
             }
             else
             {
@@ -763,7 +765,20 @@ void mouseButtonHandler(GLFWwindow* window, int button, int action, int mods)
         }
         else if(action == GLFW_RELEASE)
         {
-            prog_state = prog_state & ~DRAW;
+            if(prog_state & SPH)
+            {
+                glfwGetCursorPos(window, &xpos, &ypos);
+                xpos = xpos / WIDTH;
+                ypos = ypos / HEIGHT;
+                xpos = xpos * sphModel.getWidth();
+                ypos = ypos * sphModel.getHeight();
+                ypos = sphModel.getHeight() - ypos;
+                int idx = sphModel.addPart(Particle(glm::vec2(holdXPos, holdYPos), glm::vec3(0.0f, 1.0f, 0.0f), 10, 0.5f));
+                Particle* p = sphModel.getPart(idx);
+                p->setVelocity(glm::vec2((xpos - holdXPos) * 10, (ypos - holdYPos) * 10));
+
+            }
+            else prog_state = prog_state & ~DRAW;
         }
         break;
         default:

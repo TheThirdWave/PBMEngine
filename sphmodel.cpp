@@ -40,7 +40,7 @@ void SPHModel::init(int w, int h, int parts, float g, float f, float r)
     Dconst = 20;
     Rho = 3;
     Vconst = 100;
-    Epsilon = 10;
+    Epsilon = 0.1;
     grid.setCellSize(radius * 2);
     grid.setMin(glm::vec2(0.0f));
     grid.setMax(glm::vec2(width, height));
@@ -48,13 +48,13 @@ void SPHModel::init(int w, int h, int parts, float g, float f, float r)
 
 void SPHModel::update(float timeStep)
 {
-    grid.buildGrid(particles);
+
 //    grid.printGridStatus();
     calcDensities();
-    if(sph_state && ~SIXES) eulerTS(timeStep);
-    else leapFrogTS(timeStep);
-    //sixesTS(timeStep);
-    enforceBounds();
+    if(!(sph_state & SIXES)) leapFrogTS(timeStep);
+    else sixesTS(timeStep);
+
+
 }
 
 void SPHModel::eulerTS(float timeStep)
@@ -65,6 +65,7 @@ void SPHModel::eulerTS(float timeStep)
         particles[i].velocity += particles[i].acceleration * timeStep;
         particles[i].position += particles[i].velocity * timeStep;
     }
+    enforceBounds();
 }
 
 void SPHModel::sixesTS(float timeStep)
@@ -80,21 +81,68 @@ void SPHModel::sixesTS(float timeStep)
 
 void SPHModel::leapFrogTS(float timeStep)
 {
+    //update particle position by a half-time step.
     for(int i = 0; i < particles.size(); i++)
     {
         glm::vec2 hold = particles[i].position;
         particles[i].position = particles[i].position + (timeStep / 2) * particles[i].velocity;
         particles[i].halfPos = hold;
     }
+    //update frame position by a half-time step.
+    for(int i = 0; i < frames.size(); i++)
+    {
+        glm::vec2 hold = frames[i].COM;
+        frames[i].COM = frames[i].COM + (timeStep / 2) * frames[i].COMVel;
+        frames[i].COMHalf = hold;
+    }
+    //update circle position by a half-time step.
+    for(int i = 0; i < circles.size(); i++)
+    {
+        glm::vec2 hold = circles[i].position;
+        circles[i].position = circles[i].position + (timeStep / 2) * circles[i].velocity;
+        circles[i].halfPos = hold;
+    }
+    //enforce bounds and handle collisions since we moved positions.
+    circPartCollide(timeStep);
+    enforceBounds();
+    //build a new speed-up grid and calculate the forces for all objects at the half-time step.
+    grid.buildGrid(particles);
     forces(timeStep);
+    //update particle velocity w/new acceleration
     for(int i = 0; i < particles.size(); i++)
     {
         particles[i].velocity = particles[i].velocity + particles[i].acceleration * timeStep;
     }
+    //update frame velocity w/new acceleration
+    for(int i = 0; i < frames.size(); i++)
+    {
+        frames[i].COMVel = frames[i].COMVel + frames[i].COMAcc * timeStep;
+    }
+    //update circle velocity w/new acceleration
+    for(int i = 0; i < circles.size(); i++)
+    {
+        circles[i].velocity = circles[i].velocity + circles[i].acceleration * timeStep;
+    }
+    //update the original particle position by the velocity by a full timestep (we're doing RK2 not leapfrog sue me)
     for(int i = 0; i < particles.size(); i++)
     {
         particles[i].position = particles[i].halfPos + (timeStep) * particles[i].velocity;
     }
+    //update the original frame position by the velocity by a full timestep (we're doing RK2 not leapfrog sue me)
+    for(int i = 0; i < frames.size(); i++)
+    {
+        frames[i].COM = frames[i].COMHalf + frames[i].COMVel * timeStep;
+    }
+    //update the original circle position by the velocity by a full timestep (we're doing RK2 not leapfrog sue me)
+    for(int i = 0; i < circles.size(); i++)
+    {
+        circles[i].position = circles[i].halfPos + (timeStep) * circles[i].velocity;
+    }
+    //enforce bounds and handle collisions since we moved positions.
+    circPartCollide(timeStep);
+    enforceBounds();
+    //update the positions of the child points for the frames.
+    updateFrameChilds(timeStep);
 }
 
 void SPHModel::forces(float timeStep)
@@ -105,12 +153,16 @@ void SPHModel::forces(float timeStep)
         particles[i].acceleration = glm::vec2(0.0f);
     }
     pvF(timeStep);
-    if(sph_state && SFFORCES) sFrameF(timeStep);
+    if(sph_state & SFFORCES)
+    {
+        sFrameF(timeStep);
+    }
     #pragma omp parallel for
     for(int i = 0; i < particles.size(); i++)
     {
         particles[i].acceleration /= particles[i].mass;
     }
+    updateFrameForces(timeStep);
     gravityF(timeStep);
 }
 
@@ -129,7 +181,6 @@ void SPHModel::pvF(float timeStep)
                 {
                     for(int j = 0; j < hold->size(); j++)
                     {
-                        //holdAccel += particles[j].mass * (calcPressElement(&particles[i], &particles[j])) * h2;
                         holdAccel += (*hold)[j]->mass * (calcPressElement(&particles[i], (*hold)[j]) + calcViscElement(&particles[i], (*hold)[j])) * (*hold)[j]->findGradWeight(particles[i].position);
                     }
                     particles[i].acceleration = -holdAccel;
@@ -143,14 +194,22 @@ void SPHModel::sFrameF(float timeStep)
 {
     for(int i = 0; i < particles.size(); i++)
     {
-        Particle* cpart = particles[i].getParentPtr()->getParticle(particles[i].getSolidPtr());
-        if(cpart != NULL)
+        if(particles[i].getParentPtr() != NULL)
         {
-            float elasticity = cpart->parentPtr->getElasticity();
-            glm::vec2 dVec = cpart->getPosition() - particles[i].getPosition();
-            float dist = glm::length(dVec);
-            dVec = glm::normalize(dVec);
-            particles[i].acceleration += dVec * dist * dist * elasticity;
+            Particle* cpart = particles[i].getParentPtr()->getParticle(particles[i].getSolidPtr());
+            if(cpart != NULL)
+            {
+                float elasticity = cpart->parentPtr->getElasticity();
+                glm::vec2 dVec = cpart->getPosition() - particles[i].getPosition();
+                float dist = glm::length(dVec);
+                if(dist == 0.0f) particles[i].acceleration += 0.0f;
+                else
+                {
+                    dVec = glm::normalize(dVec);
+                    particles[i].acceleration += dVec * dist * dist * elasticity;
+                    cpart->setAcceleration(-particles[i].acceleration);
+                }
+            }
         }
     }
 }
@@ -160,6 +219,66 @@ void SPHModel::gravityF(float timeStep)
     for(int i = 0; i < particles.size(); i++)
     {
         particles[i].acceleration += glm::vec2(0.0f, -1.0f) * gravity;
+    }
+    for(int i = 0; i < frames.size(); i++)
+    {
+        frames[i].COMAcc += glm::vec2(0.0f, -1.0f) * gravity;
+    }
+    for(int i = 0; i < circles.size(); i++)
+    {
+        circles[i].acceleration += glm::vec2(0.0f, -1.0f) * gravity;
+    }
+}
+
+void SPHModel::circPartCollide(float timeStep)
+{
+    //first determine if there's a collision.
+    for(int i = 0; i < particles.size(); i++)
+    {
+        for(int j = 0; j < circles.size(); j++)
+        {
+            glm::vec2 distVec = particles[i].position - circles[j].position;
+            float dist = glm::length(distVec);
+            //if the distance between the two objects is less than their combined radii, then they're hitting each other.
+            if(dist < particles[i].radius + circles[j].radius)
+            {
+                //if they're hitting each other, we have to do some momentum calculations.
+                //the center of momentum (com) is where everything pivots around, basically.
+                glm::vec2 com = ((particles[i].velocity * particles[i].mass) + (circles[j].velocity * circles[j].mass)) / (particles[i].mass * circles[i].mass);
+                //then we get the velocities of the objects relative to the center of momentum.
+                glm::vec2 vpartcom = particles[i].velocity - com;
+                glm::vec2 vcirccom = circles[i].velocity - com;
+                //we need the normals relative to each object at the collision point, since they're both essentially circles this is easy.
+                glm::vec2 partnorm = -glm::normalize(distVec);
+                glm::vec2 circnorm = -partnorm;
+                //now we reflect their velocities around the normals and multiply it by some random elasticity factor, for now we'll use the global wall friction value.
+                //first we get the normal component of the velocity by getting the dot product of the velocity and the collision normals.
+                glm::vec2 vpartcomnorm = partnorm * -glm::dot(vpartcom, partnorm) * wFriction;
+                glm::vec2 vcirccomnorm = circnorm * -glm::dot(vcirccom, circnorm) * wFriction;
+                //we add twice the reflected normal vector to the velocity to get the reflected velocity.
+                vpartcom += 2.0f * vpartcomnorm;
+                vcirccom += 2.0f * vcirccomnorm;
+                //finally, to get the updated velocities relative to each object, we add the center of momentum value back.
+                particles[i].velocity = vpartcom + com;
+                circles[j].velocity = vcirccom + com;
+            }
+        }
+    }
+}
+
+void SPHModel::updateFrameForces(float timeStep)
+{
+    for(int i = 0; i < frames.size(); i++)
+    {
+        frames[i].gatherForces();
+    }
+}
+
+void SPHModel::updateFrameChilds(float timeStep)
+{
+    for(int i = 0; i < frames.size(); i++)
+    {
+        frames[i].updateChildren();
     }
 }
 
@@ -267,6 +386,12 @@ int SPHModel::addFrame(SolidFrame frame)
     return frames.size() - 1;
 }
 
+int SPHModel::addCircle(Particle c)
+{
+    circles.push_back(c);
+    return circles.size() - 1;
+}
+
 void SPHModel::passToDisplay(int max)
 {
     int size = particles.size();
@@ -287,6 +412,23 @@ void SPHModel::passToDisplay(int max)
         for(int i = 0; i < frames.size(); i++)
         {
             size = frames[i].passToDisplay(size, max, width, height, pointDispBuf, colDispBuf);
+        }
+
+        int start = size;
+        int end = start + circles.size();
+        if(start > max) return;
+        if (start + size > max) size = max;
+        for(int i = start; i < end; i++)
+        {
+            int locIdx = i - start;
+            glm::vec2 pPos = circles[locIdx].getPosition();
+            glm::vec3 pCol = circles[locIdx].getColor();
+            pointDispBuf[(i * 3)] = 2 * (pPos.x / (float)width) - (1.0f);
+            pointDispBuf[(i * 3) + 1] = 2 * (pPos.y / (float)height) - (1.0f);
+            pointDispBuf[(i * 3) + 2] = -1.0f;
+            colDispBuf[(i * 3)] = pCol.r;
+            colDispBuf[(i * 3) + 1] = pCol.g;
+            colDispBuf[(i * 3) + 2] = pCol.b;
         }
     }
 }
@@ -364,6 +506,17 @@ int SPHModel::getNumParts()
     return particles.size();
 }
 
+int SPHModel::getNumVerts()
+{
+    int ret = particles.size();
+    for(int i = 0; i < frames.size(); i++)
+    {
+        ret += frames[i].getNumParts();
+    }
+    ret += circles.size();
+    return ret;
+}
+
 int SPHModel::getHeight()
 {
     return height;
@@ -389,6 +542,11 @@ float SPHModel::getWFriction()
     return wFriction;
 }
 
+float SPHModel::getRadius()
+{
+    return radius;
+}
+
 Particle* SPHModel::getPart(int i)
 {
     return &particles[i];
@@ -397,4 +555,9 @@ Particle* SPHModel::getPart(int i)
 SolidFrame* SPHModel::getFrame(int i)
 {
     return &frames[i];
+}
+
+Particle* SPHModel::getCircle(int i)
+{
+    return &circles[i];
 }

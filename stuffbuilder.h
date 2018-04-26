@@ -12,7 +12,7 @@ class StuffBuilder
 {
 public:
     StuffBuilder();
-    void MakeSFCube(SPHModel* model, glm::vec2 llc, float radius, float sidelength);
+    void MakeSFCube(SPHModel* model, glm::vec2 llc, int numParts, float sidelength, float elasticity);
 };
 
 #endif // STUFFBUILDER_H

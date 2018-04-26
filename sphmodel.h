@@ -14,6 +14,7 @@ class SPHModel
     std::vector<Particle> particles;
     ParticleGrid grid;
     std::vector<SolidFrame> frames;
+    std::vector<Particle> circles;
     float* pointDispBuf;
     float* colDispBuf;
     glm::vec3 initColor;
@@ -45,6 +46,11 @@ public:
     void sFrameF(float timeStep);
     void gravityF(float timeStep);
 
+    void circPartCollide(float timeStep);
+
+    void updateFrameForces(float timeStep);
+    void updateFrameChilds(float timeStep);
+
     void calcDensities();
     float calcPressElement(Particle* a, Particle* b);
     float calcViscElement(Particle* a, Particle* b);
@@ -54,6 +60,7 @@ public:
     void addParts(int parts);
     int addPart(Particle part);
     int addFrame(SolidFrame frame);
+    int addCircle(Particle c);
     void passToDisplay(int max);
 
     void setInitColor(glm::vec3 col);
@@ -71,13 +78,16 @@ public:
     void setState(int s);
 
     int getNumParts();
+    int getNumVerts();
     int getHeight();
     int getWidth();
     int getState();
     float getGravity();
     float getWFriction();
+    float getRadius();
     Particle* getPart(int i);
     SolidFrame* getFrame(int i);
+    Particle* getCircle(int i);
 
 
 };
