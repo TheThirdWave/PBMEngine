@@ -234,7 +234,7 @@ image* flatImageRWStuff(int argc, char** argv)
 
     normMap.initScreen(img);
 
-    holdImage = imageManager.openPNG("../Skull.png");
+    holdImage = imageManager.openPNG("../Skull1.png");
     img = imageManager.getImgPtr(holdImage);
     Screen.initScreen(img);
     Screen.setBackground(0, 0, 0);
