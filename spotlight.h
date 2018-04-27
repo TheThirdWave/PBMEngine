@@ -9,6 +9,7 @@ public:
     SpotLight();
     void initialize(glm::vec3 pos, glm::vec3 n, float rMin, float rMax);
     glm::vec3 getRelativeNorm(glm::vec3 pH);
+    glm::vec4 getColor(glm::vec3 pH);
 };
 
 #endif // SPOTLIGHT_H

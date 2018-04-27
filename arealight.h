@@ -9,6 +9,7 @@ public:
     AreaLight();
     void initialize(glm::vec3 pos, glm::vec3 n, glm::vec3 up, float  width, float height, int samples);
     glm::vec3 getRelativeNorm(glm::vec3 pH);
+    glm::vec4 getColor(glm::vec3 pH);
 };
 
 #endif // AREALIGHT_H

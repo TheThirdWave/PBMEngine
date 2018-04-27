@@ -24,6 +24,11 @@ void LightBase::setColor(glm::vec4 col)
     cL = col;
 }
 
+void LightBase::setTex(Imagemanip *tex)
+{
+    texture = tex;
+}
+
 geometry LightBase::getGeo()
 {
     return geo;
@@ -39,7 +44,7 @@ lightType LightBase::getType()
     return type;
 }
 
-glm::vec4 LightBase::getColor()
+Imagemanip* LightBase::getTex()
 {
-    return cL;
+    return texture;
 }

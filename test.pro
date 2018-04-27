@@ -31,7 +31,8 @@ SOURCES += main.cpp \
     arealight.cpp \
     infinitysphere.cpp \
     trianglefunction.cpp \
-    trianglemesh.cpp
+    trianglemesh.cpp \
+    directionalprojection.cpp
 
 OTHER_FILES += \
     vertshade \
@@ -69,7 +70,8 @@ HEADERS += \
     arealight.h \
     infinitysphere.h \
     trianglefunction.h \
-    trianglemesh.h
+    trianglemesh.h \
+    directionalprojection.h
 
 LIBS += -lglut -lGLEW -lGL -lGLU -lm -lstdc++ -lpng -lrt -fopenmp
 

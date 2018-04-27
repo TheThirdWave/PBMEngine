@@ -174,7 +174,7 @@ glm::vec4 Shaders::diffuse(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 
         //we get the current normal from the light.
         nL = -curLight->getRelativeNorm(pH);
         //we get the color of thelight.
-        cL = curLight->getColor();
+        cL = curLight->getColor(pH);
 
         //we actually cast the ray from pDH along nL.
         numHits = castRay(pDH, nL, hits, numHits);
@@ -245,7 +245,7 @@ glm::vec4 Shaders::phong(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE
         numHits = 0;
         curLight = renderer->lights[i];
         nL = -curLight->getRelativeNorm(pH);
-        cL = curLight->getColor();
+        cL = curLight->getColor(pH);
 
         //get angle for diffuse light, raycast can catch occluders as well.
         numHits = castRay(pDH, nL, hits, numHits);
@@ -312,7 +312,7 @@ glm::vec4 Shaders::diffuseShadow(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm:
         numHits = 0;
         curLight = renderer->lights[i];
         nL = -curLight->getRelativeNorm(pH);
-        cL = curLight->getColor();
+        cL = curLight->getColor(pH);
 
         numHits = castRay(pDH, nL, hits, numHits);
         if(numHits > 1)
@@ -373,7 +373,7 @@ glm::vec4 Shaders::phongShadow(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::v
         numHits = 0;
         curLight = renderer->lights[i];
         nL = -curLight->getRelativeNorm(pH);
-        cL = curLight->getColor();
+        cL = curLight->getColor(pH);
 
         //get angle for diffuse light, raycast can catch occluders as well.
         numHits = castRay(pDH, nL, hits, numHits);
@@ -440,7 +440,7 @@ glm::vec4 Shaders::phongShadowMBlur(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, g
         numHits = 0;
         curLight = renderer->lights[i];
         nL = -curLight->getRelativeNorm(pH);
-        cL = curLight->getColor();
+        cL = curLight->getColor(pH);
 
         //get angle for diffuse light, raycast can catch occluders as well.
         numHits = castRay(pDH, nL, hits, numHits);
@@ -509,7 +509,7 @@ glm::vec4 Shaders::mirror(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 p
             numHits = 0;
             curLight = renderer->lights[i];
             nL = -curLight->getRelativeNorm(pH);
-            cL = curLight->getColor();
+            cL = curLight->getColor(pH);
 
             //get angle for diffuse light, raycast can catch occluders as well.
             numHits = castRay(pDH, nL, hits, numHits);
@@ -603,7 +603,7 @@ glm::vec4 Shaders::mirrorBlur(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::ve
             numHits = 0;
             curLight = renderer->lights[i];
             nL = -curLight->getRelativeNorm(pH);
-            cL = curLight->getColor();
+            cL = curLight->getColor(pH);
 
             //get angle for diffuse light, raycast can catch occluders as well.
             numHits = castRay(pDH, nL, hits, numHits);
@@ -701,7 +701,7 @@ glm::vec4 Shaders::nMapMirror(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::ve
             numHits = 0;
             curLight = renderer->lights[i];
             nL = -curLight->getRelativeNorm(pH);
-            cL = curLight->getColor();
+            cL = curLight->getColor(pH);
 
             //get angle for diffuse light, raycast can catch occluders as well.
             numHits = castRay(pDH, nL, hits, numHits);
@@ -802,7 +802,7 @@ glm::vec4 Shaders::refractor(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec
             numHits = 0;
             curLight = renderer->lights[i];
             nL = -curLight->getRelativeNorm(pH);
-            cL = curLight->getColor();
+            cL = curLight->getColor(pH);
 
             //get angle for diffuse light, raycast can catch occluders as well.
             numHits = castRay(pDH, nL, hits, numHits);
@@ -905,7 +905,7 @@ glm::vec4 Shaders::refractorBlur(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm:
             numHits = 0;
             curLight = renderer->lights[i];
             nL = -curLight->getRelativeNorm(pH);
-            cL = curLight->getColor();
+            cL = curLight->getColor(pH);
 
             //get angle for diffuse light, raycast can catch occluders as well.
             numHits = castRay(pDH, nL, hits, numHits);
@@ -1014,7 +1014,7 @@ glm::vec4 Shaders::refractorMaps(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm:
             numHits = 0;
             curLight = renderer->lights[i];
             nL = -curLight->getRelativeNorm(pH);
-            cL = curLight->getColor();
+            cL = curLight->getColor(pH);
 
             //get normal map normal.
             glm::vec3 mapNorm = obj.getNMapAt(pH);
@@ -1124,7 +1124,7 @@ glm::vec4 Shaders::phongShadowClassic(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH,
         numHits = 0;
         curLight = renderer->lights[i];
         nL = -curLight->getRelativeNorm(pH);
-        cL = curLight->getColor();
+        cL = curLight->getColor(pH);
 
         //get angle for diffuse light, raycast can catch occluders as well.
         numHits = castRay(pH, nL, hits, numHits);
@@ -1193,7 +1193,7 @@ glm::vec4 Shaders::aLight(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 p
         numHits = 0;
         curLight = renderer->lights[i];
         nL = -curLight->getRelativeNorm(pH);
-        cL = curLight->getColor();
+        cL = curLight->getColor(pH);
 
         if(curLight->getType() != AREALIGHT)
         {
@@ -1289,7 +1289,7 @@ glm::vec4 Shaders::texMap(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 p
         numHits = 0;
         curLight = renderer->lights[i];
         nL = -curLight->getRelativeNorm(pH);
-        cL = curLight->getColor();
+        cL = curLight->getColor(pH);
 
         //get angle for diffuse light, raycast can catch occluders as well.
         numHits = castRay(pDH, nL, hits, numHits);
@@ -1359,7 +1359,7 @@ glm::vec4 Shaders::displacementMap(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, gl
         numHits = 0;
         curLight = renderer->lights[i];
         nL = -curLight->getRelativeNorm(pH);
-        cL = curLight->getColor();
+        cL = curLight->getColor(pH);
 
         //get angle for diffuse light, raycast can catch occluders as well.
         numHits = castRay(pDH, nL, hits, numHits);

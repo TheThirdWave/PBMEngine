@@ -14,3 +14,8 @@ glm::vec3 PointLight::getRelativeNorm(glm::vec3 pH)
 {
     return glm::normalize(pH - position);
 }
+
+glm::vec4 PointLight::getColor(glm::vec3 pH)
+{
+    return cL;
+}

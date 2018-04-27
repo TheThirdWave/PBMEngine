@@ -35,6 +35,7 @@
 #include "pointlight.h"
 #include "spotlight.h"
 #include "arealight.h"
+#include "directionalprojection.h"
 #include "structpile.h"
 #include "renderobject.h"
 #include "physicsobject.h"
@@ -191,7 +192,7 @@ image* flatImageRWStuff(int argc, char** argv)
     //int count = stoi(argv[2], NULL, 10);
     vecMask.initScreen(img);
 
-    holdImage = imageManager.openPNG("../AlphaTest2.png");
+    holdImage = imageManager.openPNG("../Close-Up-Snail-Wallpaper.png");
     if(holdImage < 0) fprintf(stderr, "Error, couldn't read PPM file.\n");
     img = imageManager.getImgPtr(holdImage);
 
@@ -412,12 +413,12 @@ void KeyHandler(unsigned char key, int x, int y)
             gTest.radius = 1.0f;
             gTest.width = 0.9f;
             SphereFunction3D hold;
-            hold.setPoint(glm::vec3(0.0f, -100.0f, 0.0f));
+            hold.setPoint(glm::vec3(0.0f, -00.0f, 0.0f));
             hold.setPoint2(glm::vec3(0.0f, -100.0f, 0.0f));
             //hold.setPoint2(glm::vec3(0.0f, -100.0f, 200.0f));
-            hold.setRadius(200.0f);
-            hold.setShnell(1.1);
-            hold.setBlur(0.1);
+            hold.setRadius(100.0f);
+            hold.setShnell(1.3);
+            hold.setBlur(0.0);
             hold.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 7000.0f, 7000.0f));
             hold.setGeometry(gTest);
             hold.setTexNorms(glm::normalize(glm::vec3(0.0f, -1.0f, 0.0f)), glm::normalize(glm::vec3(-0.0f, 0.0f, 1.0f)));
@@ -449,19 +450,26 @@ void KeyHandler(unsigned char key, int x, int y)
             //Screen.addFunction3D(&hold5);
             gTest.depth = 5.0f;
             SphereFunction3D hold2;
-            hold2.setPoint(glm::vec3(720.0f, 91.0f, -80.0f));
-            hold2.setRadius(10.0f);
-            hold2.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(0.0f, 100.0f, 0.0f, 100.0f), glm::vec4(5000.0f, 0.0f, 5000.0f, 5000.0f));
+            hold2.setPoint(glm::vec3(-150.0f, 50.0f, 50.0f));
+            hold2.setRadius(50.0f);
+            hold2.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(0.0f, 100.0f, 0.0f, 100.0f), glm::vec4(50000.0f, 0.0f, 0.0f, 50000.0f));
             hold2.setGeometry(gTest);
             hold2.shader = &Shaders::phongShadow;
             Screen.addFunction3D(&hold2);
             SphereFunction3D hold7;
-            hold7.setPoint(glm::vec3(720.0f, 95.0f, -100.0f));
-            hold7.setRadius(5.0f);
+            hold7.setPoint(glm::vec3(150.0f, -50.0f, -50.0f));
+            hold7.setRadius(50.0f);
             hold7.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(5000.0f, 0.0f, 5000.0f, 5000.0f));
             hold7.setGeometry(gTest);
             hold7.shader = &Shaders::mirror;
             Screen.addFunction3D(&hold7);
+            SphereFunction3D hold8;
+            hold8.setPoint(glm::vec3(150.0f, 50.0f, 50.0f));
+            hold8.setRadius(50.0f);
+            hold8.setColor(glm::vec4(1000.0f, 1000.0f, 1000.0f, 1000.0f), glm::vec4(100.0f, 0.0f, 0.0f, 100.0f), glm::vec4(0.0f, 50000.0f, 50000.0f, 50000.0f));
+            hold8.setGeometry(gTest);
+            hold8.shader = &Shaders::phongShadow;
+            Screen.addFunction3D(&hold8);
             gTest.depth = 1.0f;
             gTest.radius = 1.0f;
             gTest.width = 0.99;
@@ -497,47 +505,64 @@ void KeyHandler(unsigned char key, int x, int y)
             SpotLight light5;
             light5.initialize(glm::vec3(-0.0f, -600.0f, -100.0f), glm::normalize(glm::vec3(0.0f, 0.7f, -0.3f)), 0.6, 0.5);
             light5.setColor(glm::vec4(5000.0f, 5000.0f, 5000.0f, 5000.0f));
-            Screen.addLight(&light5);
+            //Screen.addLight(&light5);
             AreaLight light4;
-            light4.initialize(glm::vec3(100.0f, -300.0f, 0.0f), glm::normalize(glm::vec3(-0.5f, 0.5f, 0.0f)), glm::vec3(0.0f, 1.0f, 0.0f), 100, 100, 1);
-            light4.setColor(glm::vec4(500.0f, 500.0f, 500.0f, 500.0f));
-            //Screen.addLight(&light4);
-            /*QuadraticFunction3D hold4;
-            hold4.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f - 300, (float)Screen.getHeight() / 2.0f, 0.0f));
-            hold4.setNormal(glm::vec3(0.5f, 0.0f, 0.5f), glm::vec3(0.5f, 0.0f, 0.5f), glm::vec3(0.0f, 1.0f, 0.0f));
-            hold4.setQParams(0, 0, 0, 1, 0);
-            hold4.setQReals(1, 1, 1);
-            hold4.setColor(glm::vec4(0.0f, 0.0f, 100.0f, 100.0f));
-            Screen.addFunction3D(&hold4);
-            QuadraticFunction3D hold5;
-            hold5.setPoint(glm::vec3((float)Screen.getWidth() / 2.0f - 200, (float)Scree        vTri.a += this->origPoint;
-        vTri.b += this->origPoint;
-        vTri.c += this->origPoint;n.getHeight() / 2.0f - 200, 0.0f));
-            hold5.setNormal(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-            hold5.setQParams(1, 1, 0, 0, -1);
-            hold5.setQReals(100.0f, 50.0f, 100.0);
-            hold5.setColor(glm::vec4(0.0f, 100.0f, 100.0f, 100.0f));
-            Screen.addFunction3D(&hold5);*/
+            light4.initialize(glm::vec3(-0.0f, -600.0f, -100.0f), glm::normalize(glm::vec3(0.0f, 0.7f, -0.3f)), glm::vec3(0.0f, 1.0f, 0.0f), 100, 100, 1);
+            light4.setColor(glm::vec4(5000.0f, 5000.0f, 5000.0f, 5000.0f));
+            Screen.addLight(&light4);
+            DirectionalProjection light6;
+            light6.initialize(glm::normalize(glm::vec3(0.0f, 0.5f, -0.5f)), glm::vec3(300.0f, -200.0f, -200.0f));
+            light6.setTex(&normMap);
+            light6.setColor(glm::vec4(6000.0f, 6000.0f, 6000.0f, 6000.0f));
+            //Screen.addLight(&light6);
+            PerspectiveProjection light7;
+            light7.initialize(glm::normalize(glm::vec3(0.0f, 0.5f, -0.5f)), glm::vec3(0.0f, -0.0f, -200.0f), 1);
+            light7.setTex(&normMap);
+            light7.setColor(glm::vec4(6000.0f, 6000.0f, 6000.0f, 6000.0f));
+            Screen.addLight(&light7);
+
             //Screen.draw3D(glm::vec3(600.0f, -700.0f, 200.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-0.6f, 0.7f, -0.2f)), (float)Screen.getHeight(), 1);
-            Screen.draw3DFocus(glm::vec3(500.0f, -500.0f, 700.0f), 500.0f, 800.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-0.5f, 0.5f, -0.7f)), (float)Screen.getHeight(), 0.0f, 16);
+            Screen.draw3DFocus(glm::vec3(350.0f, -300.0f, 350.0f), 500.0f, 800.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-0.5f, 0.5f, -0.7f)), (float)Screen.getHeight(), 0.0f, 1);
+            //Screen.draw3DPaint(glm::vec3(00.0f, -0.0f, 350.0f), 900.0f, glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-0.0f, 0.0f, -0.2f)), (float)Screen.getHeight(), 1, layer1.getPtr(), glm::vec3(1.0f));
             //Screen.draw3DFocusMBlur(glm::vec3(600.0f, -700.0f, 200.0f), 500.0f, 800.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-0.6f, 0.7f, -0.2f)), (float)Screen.getHeight(), 0.0f, 16);
             //Screen.draw3D(glm::vec3(780.0f, 88.0f, -100.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-1.0f, -0.1f, -0.0f)), (float)Screen.getHeight(), 1);
-            //Screen.draw3DFocus(glm::vec3(780.0f, -100.0f, -100.0f), 500.0f, 500.0f, glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-1.0f, 0.1f, -0.0f)), (float)Screen.getHeight(), 0.0f, 1);
-            //Screen.draw3DFocusMBlur(glm::vec3(780.0f, 88.0f, -100.0f), 500.0f, 500.0f, glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-1.0f, -0.1f, -0.0f)), (float)Screen.getHeight(), 0.0f, 16);
-            /*int count = 0;
+            //Screen.draw3DFocus(glm::vec3(780.0f, 88.0f, -100.0f), 1000.0f, 500.0f, glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-1.0f, 0.1f, -0.0f)), (float)Screen.getHeight(), 0.0f, 1);
+            //Screen.draw3DPaint(glm::vec3(780.0f, 88.0f, -100.0f), 500.0f, glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-1.0f, -0.1f, -0.0f)), (float)Screen.getHeight(), 1, layer1.getPtr(), glm::vec3(1.0f));
+            //Screen.draw3DFocusMBlur(glm::vec3(780.0f, 88.0f, -100.0f), 500.0f, 500.0f, glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-1.0f, -0.1f, -0.0f)), (float)Screen.getHeight(), 0.0f, 1);
+            /*int count = 50;
             int idx = imageManager.addImage(*Screen.getPtr());
-            string nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
+            string nameBuf;// = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
             //imageManager.writePNG((char*)nameBuf.c_str(), idx);
-            float sH = 0.6;
-            for(int i = 0; i < 10; i++)
+            float sH = 1.2;
+            sH -= 50 * (1.2/(24.0f * 3.0f));
+            for(int i = 50; i < 24 * 3; i++)
             {
-                hold6.setShnell(sH);
-                hold6.updateChildParams();
-                Screen.draw3D(glm::vec3(-400.0f, -500.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.35f, 0.5f, -1.0f)), (float)Screen.getHeight(), 1);
-                //Screen.draw3D(glm::vec3(0.0f, 0.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 1);
+                hold.setShnell(sH);
+                glm::vec3 cPos2 = glm::vec3(780.0f, 88.0f, -100.0f);
+                glm::vec3 cPos1 = glm::vec3(500.0f, -500.0f, 700.0f);
+                glm::vec3 cAng2 = glm::normalize(glm::vec3(-1.0f, 0.1f, -0.0f));
+                glm::vec3 cAng1 = glm::normalize(glm::vec3(-0.5f, 0.5f, -0.7f));
+                Screen.draw3DFocus(cPos2 * ((float)i/(float)(24.0*3.0)) + cPos1 * (1 - ((float)i/(float)(24.0*3.0))), 1000.0f, 500.0f, glm::vec3(0.0f, 1.0f, 0.0f), cAng2 * ((float)i/(float)(24.0*3.0)) + cAng1 * (1 - ((float)i/(float)(24.0*3.0))), (float)Screen.getHeight(), 0.0f, 8);
+                //Screen.draw3DFocus(glm::vec3(-400.0f, -500.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.35f, 0.5f, -1.0f)), (float)Screen.getHeight(), 1);
+                //Screen.draw3DFocus(glm::vec3(0.0f, 0.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 1);
                 nameBuf = std::string("../Mov1/frame" + std::to_string(count++) + ".png");
                 imageManager.writePNG((char*)nameBuf.c_str(), idx);
-                sH += .1;
+                sH -= 1.2/(24.0f * 3.0f);
+            }*/
+            /*int count = 67;
+            int idx = imageManager.addImage(*Screen.getPtr());
+            string nameBuf;// = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
+            //imageManager.writePNG((char*)nameBuf.c_str(), idx);
+            float sH = 0.0;
+            sH = 0.05*67;
+            for(int i = 67; i < 24 * 3; i++)
+            {
+                Screen.draw3DPaint(glm::vec3(00.0f, -0.0f, 350.0f), 900.0f, glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(-0.0f, 0.0f, -0.2f)), (float)Screen.getHeight(), 8, layer1.getPtr(), glm::vec3(sH/1, -sH/2, sH*2));
+                //Screen.draw3DFocus(glm::vec3(-400.0f, -500.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.35f, 0.5f, -1.0f)), (float)Screen.getHeight(), 1);
+                //Screen.draw3DFocus(glm::vec3(0.0f, 0.0f, 1000.0f), 500.0f,  glm::vec3(0.0f, 1.0f, 0.0f), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)), (float)Screen.getHeight(), 1);
+                nameBuf = std::string("../Mov2/frame" + std::to_string(count++) + ".png");
+                imageManager.writePNG((char*)nameBuf.c_str(), idx);
+                sH += 0.05;
             }*/
             image* img = Screen.getPtr();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
