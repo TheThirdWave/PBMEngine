@@ -133,6 +133,126 @@ glm::vec4 Shaders::flat(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE,
     return obj.getCD();
 }
 
+glm::vec4 Shaders::voronoi(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
+{
+    //first get the positions of the nearby cells.
+    glm::vec3 cellPos[27];
+    float sidelen = 10;
+    float closest;
+    float dist;
+    int cidx;
+    for(int i = -1; i <= 1; i++)
+    {
+        for(int j = -1; j <= 1; j++)
+        {
+            for(int k = -1; k <= 1; k++)
+            {
+                int index = (i + 1) + (j + 1) * 3 + (k + 1) * 3 * 3;
+                //to get the bottom corner of the cell we divide by the length of the cells and take the floor of that.
+                cellPos[index] = glm::vec3(floor((pH.x + i * sidelen) / sidelen), floor((pH.y + j * sidelen) / sidelen), floor((pH.z + k * sidelen) / sidelen));
+                //then, to get a random spot inside the cell we add some random number betwee 0 and the length of the cell to the corner position,
+                //srand() is just like rand but it takes in a seed value, so you can get a random number that's determined by the position of the
+                //cell's corner position (I think).
+                srand((int)cellPos[index].x);
+                float jitterX = sidelen * static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                srand((int)cellPos[index].y);
+                float jitterY = sidelen * static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                srand((int)cellPos[index].z);
+                float jitterZ = sidelen * static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                cellPos[index].x += jitterX;
+                cellPos[index].y += jitterY;
+                cellPos[index].z += jitterZ;
+
+                //now, we find the point of all the surrounding cells that's closest to the hit position.
+                if(index == 0)
+                {
+                    closest = glm::length(cellPos[index] - pH);
+                    cidx = index;
+                }
+                else
+                {
+                    dist = glm::length(cellPos[index] - pH);
+                    if(dist < closest)
+                    {
+                        cidx = index;
+                        closest = dist;
+                    }
+                }
+            }
+        }
+    }
+    //now we use the position of the nearest point to get the color at pH using srand.
+    glm::vec4 cD = obj.getCD();
+    srand((int)cellPos[cidx].x);
+    cD.r = cD.a * static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    srand((int)cellPos[cidx].y);
+    cD.g = cD.a * static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    srand((int)cellPos[cidx].z);
+    cD.b = cD.a * static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    glm::vec4 cA = obj.getCA();
+    glm::vec4 cS = obj.getCS();
+    glm::vec4 cL;
+    glm::vec4 cPe = cA;
+    float t = 0;
+    float d = obj.getGeo().depth;
+    float r;
+    glm::vec3 pDH = pH - nH * d;
+    LightBase* curLight;
+    glm::vec3 nL;
+    intercept hits[MAX_LINE_INTERCEPTS];
+    int numHits = 0;
+    for(int i = 0; i < renderer->lightNum; i++)
+    {
+        numHits = 0;
+        curLight = renderer->lights[i];
+        nL = -curLight->getRelativeNorm(pH);
+        cL = curLight->getColor(pH);
+
+        //get angle for diffuse light, raycast can catch occluders as well.
+        numHits = castRay(pDH, nL, hits, numHits);
+        sortByT(hits, numHits);
+        if(curLight->getType() != DIRECTIONAL) numHits = cullForPLight(hits, numHits, pH, curLight);
+        r = getTotalR(hits, numHits, obj);
+        if(r == 0) t = 0;
+        else t = d / r;
+
+        glm::vec4 cDD = cD * cL;
+        if(curLight->getType() != DIRECTIONAL)
+        {
+            //float dnom = glm::dot(curLight->getPos() - pH, curLight->getPos() - pH);
+            //t = t / dnom * 10000;
+        }
+        if(curLight->getType() == SPOTLIGHT)
+        {
+            float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+            t *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+        }
+        t = clamp(t, 1.0, 0.0);
+        cDD.r *= t;
+        cDD.g *= t;
+        cDD.b *= t;
+
+        cPe += cDD;
+
+        //calculate angle for specular highlight
+        glm::vec3 ref = -nL + (2 * glm::dot(nH, nL) * nH);
+        float cos = glm::dot(nPe, ref);
+        float s = clamp(cos, obj.getGeo().radius, obj.getGeo().width);
+        if(curLight->getType() == SPOTLIGHT)
+        {
+            float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+            s *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+        }
+        //if(cos > 0.98) s = 1;
+        //else s = 0;
+        cPe += cS * cL * s;
+
+    }
+
+    return cPe;
+
+}
+
 //This changes the color of the point hit based on whether or not that point is facing towards the light.
 glm::vec4 Shaders::diffuse(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
 {
@@ -1272,6 +1392,183 @@ glm::vec4 Shaders::aLight(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 p
 glm::vec4 Shaders::texMap(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
 {
     glm::vec4 cD = obj.getTexCol(pH);
+    glm::vec4 cA = obj.getCA();
+    glm::vec4 cS = obj.getCS();
+    glm::vec4 cL;
+    glm::vec4 cPe = cA;
+    float t = 0;
+    float d = obj.getGeo().depth;
+    float r;
+    glm::vec3 pDH = pH - nH * d;
+    LightBase* curLight;
+    glm::vec3 nL;
+    intercept hits[MAX_LINE_INTERCEPTS];
+    int numHits = 0;
+    for(int i = 0; i < renderer->lightNum; i++)
+    {
+        numHits = 0;
+        curLight = renderer->lights[i];
+        nL = -curLight->getRelativeNorm(pH);
+        cL = curLight->getColor(pH);
+
+        //get angle for diffuse light, raycast can catch occluders as well.
+        numHits = castRay(pDH, nL, hits, numHits);
+        sortByT(hits, numHits);
+        if(curLight->getType() != DIRECTIONAL) numHits = cullForPLight(hits, numHits, pH, curLight);
+        r = getTotalR(hits, numHits, obj);
+        if(r == 0) t = 0;
+        else t = d / r;
+
+        glm::vec4 cDD = cD * cL;
+        if(curLight->getType() != DIRECTIONAL)
+        {
+            //float dnom = glm::dot(curLight->getPos() - pH, curLight->getPos() - pH);
+            //t = t / dnom * 10000;
+        }
+        if(curLight->getType() == SPOTLIGHT)
+        {
+            float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+            t *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+        }
+        t = clamp(t, 1.0, 0.0);
+        cDD.r *= t;
+        cDD.g *= t;
+        cDD.b *= t;
+
+        cPe += cDD;
+
+        //calculate angle for specular highlight
+        glm::vec3 ref = -nL + (2 * glm::dot(nH, nL) * nH);
+        float cos = glm::dot(nPe, ref);
+        float s = clamp(cos, obj.getGeo().radius, obj.getGeo().width);
+        if(curLight->getType() == SPOTLIGHT)
+        {
+            float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+            s *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+        }
+        //if(cos > 0.98) s = 1;
+        //else s = 0;
+        cPe += cS * cL * s;
+
+    }
+
+    return cPe;
+
+}
+
+glm::vec4 Shaders::texMapDProj(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
+{
+    glm::vec3 p0 = obj.getTexPos();
+    glm::vec3 n2 = obj.getTexNorm();
+    glm::vec3 up;
+    Imagemanip* tex = obj.getTexture();
+    if(n2 != glm::vec3(0.0f, 1.0f, 0.0f) && n2 != glm::vec3(0.0f, -1.0f, 0.0f)) up = glm::vec3(0.0f, -1.0f, 0.0f);
+    else up = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 n0, n1;
+    n0 = glm::normalize(glm::cross(n2, up));
+    n1 = glm::normalize(glm::cross(n2, n0));
+    int texWidth = tex->getWidth();
+    int texHeight = tex->getHeight();
+    int ptx = glm::dot((pH - p0), n0) + (texWidth / 2.0f);
+    int pty = glm::dot((pH - p0), n1) + (texHeight / 2.0f);
+    int buf[4];
+    ptx = ptx * 2 % texWidth;
+    pty = pty * 2 % texHeight;
+    if(ptx < 0 || ptx > texWidth) return glm::vec4(0.0f);
+    if(pty < 0 || pty > texHeight) return glm::vec4(0.0f);
+    tex->getDataAt(ptx, pty, buf);
+    glm::vec4 h = obj.getCD();
+    glm::vec4 cD =  glm::vec4((buf[0] / 255.0f) * h.a, (buf[1] / 255.0f) * h.a, (buf[2] / 255.0f) * h.a, h.a);
+    glm::vec4 cA = obj.getCA();
+    glm::vec4 cS = obj.getCS();
+    glm::vec4 cL;
+    glm::vec4 cPe = cA;
+    float t = 0;
+    float d = obj.getGeo().depth;
+    float r;
+    glm::vec3 pDH = pH - nH * d;
+    LightBase* curLight;
+    glm::vec3 nL;
+    intercept hits[MAX_LINE_INTERCEPTS];
+    int numHits = 0;
+    for(int i = 0; i < renderer->lightNum; i++)
+    {
+        numHits = 0;
+        curLight = renderer->lights[i];
+        nL = -curLight->getRelativeNorm(pH);
+        cL = curLight->getColor(pH);
+
+        //get angle for diffuse light, raycast can catch occluders as well.
+        numHits = castRay(pDH, nL, hits, numHits);
+        sortByT(hits, numHits);
+        if(curLight->getType() != DIRECTIONAL) numHits = cullForPLight(hits, numHits, pH, curLight);
+        r = getTotalR(hits, numHits, obj);
+        if(r == 0) t = 0;
+        else t = d / r;
+
+        glm::vec4 cDD = cD * cL;
+        if(curLight->getType() != DIRECTIONAL)
+        {
+            //float dnom = glm::dot(curLight->getPos() - pH, curLight->getPos() - pH);
+            //t = t / dnom * 10000;
+        }
+        if(curLight->getType() == SPOTLIGHT)
+        {
+            float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+            t *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+        }
+        t = clamp(t, 1.0, 0.0);
+        cDD.r *= t;
+        cDD.g *= t;
+        cDD.b *= t;
+
+        cPe += cDD;
+
+        //calculate angle for specular highlight
+        glm::vec3 ref = -nL + (2 * glm::dot(nH, nL) * nH);
+        float cos = glm::dot(nPe, ref);
+        float s = clamp(cos, obj.getGeo().radius, obj.getGeo().width);
+        if(curLight->getType() == SPOTLIGHT)
+        {
+            float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+            s *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+        }
+        //if(cos > 0.98) s = 1;
+        //else s = 0;
+        cPe += cS * cL * s;
+
+    }
+
+    return cPe;
+
+}
+
+glm::vec4 Shaders::texMapPProj(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
+{
+    glm::vec3 p0 = obj.getTexPos();
+    glm::vec3 n2 = obj.getTexNorm();
+    glm::vec3 up;
+    Imagemanip* tex = obj.getTexture();
+    if(n2 != glm::vec3(0.0f, 1.0f, 0.0f) && n2 != glm::vec3(0.0f, -1.0f, 0.0f)) up = glm::vec3(0.0f, -1.0f, 0.0f);
+    else up = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 n0, n1;
+    n0 = glm::normalize(glm::cross(n2, up));
+    n1 = glm::normalize(glm::cross(n2, n0));
+    float dis = glm::dot((pH - p0), n2);
+    float texWidth = tex->getWidth() / obj.getTexDist() * dis;
+    float texHeight = tex->getHeight() / obj.getTexDist() * dis;
+    float ptx = glm::dot((pH - p0), n0) + (texWidth / 2.0f);
+    float pty = glm::dot((pH - p0), n1) + (texHeight / 2.0f);
+    ptx /= texWidth;
+    pty /= texHeight;
+    int buf[4];
+    ptx *= tex->getWidth();
+    pty *= tex->getHeight();
+    ptx = (int)ptx * 2 % tex->getWidth();
+    pty = (int)pty * 2 % tex->getHeight();
+    tex->getDataAt(ptx, pty, buf);
+    glm::vec4 h = obj.getCD();
+    glm::vec4 cD =  glm::vec4((buf[0] / 255.0f) * h.a, (buf[1] / 255.0f) * h.a, (buf[2] / 255.0f) * h.a, h.a);
     glm::vec4 cA = obj.getCA();
     glm::vec4 cS = obj.getCS();
     glm::vec4 cL;
