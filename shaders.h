@@ -15,6 +15,7 @@ public:
     Shaders();
     void setRenderer(Imagemanip*);
     float clamp(float cos, float max, float min);
+    void genvoronoi(float l);
     int castRay(glm::vec3 pE, glm::vec3 nPE, intercept* ret, int idx);
     int castRayMBlur(glm::vec3 pE, glm::vec3 nPE, intercept* ret, int idx);
     void sortByT(intercept* ret, int idx);
@@ -29,6 +30,7 @@ public:
     glm::vec4 phongShadow(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);
     glm::vec4 phongShadowMBlur(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);
     glm::vec4 phongShadowClassic(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);
+    glm::vec4 ambientOcclusion(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);
     glm::vec4 mirror(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);
     glm::vec4 mirrorBlur(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);
     glm::vec4 nMapMirror(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D &obj, int numDeep);

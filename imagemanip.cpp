@@ -71,6 +71,11 @@ void Imagemanip::setKernelValuesEF(Function2D * func)
     kern.setFExactWeightsAvg(func);
 }
 
+void Imagemanip::setVoronoiPts(glm::vec3 * p)
+{
+    voronoiPts = p;
+}
+
 void Imagemanip::initScreen(int width, int height)
 {
     screen.width = width;
@@ -160,6 +165,16 @@ int Imagemanip::getWidth()
 int Imagemanip::getNumChannels()
 {
     return screen.unitbytes;
+}
+
+float Imagemanip::getVSL()
+{
+    return vslen;
+}
+
+glm::vec3* Imagemanip::getVoronoiPts()
+{
+    return voronoiPts;
 }
 
 void Imagemanip::getDataAt(int x, int y, int* buf)
@@ -667,6 +682,8 @@ void Imagemanip::draw3D(glm::vec3 pE, float d, glm::vec3 upVec, glm::vec3 v2, fl
     //Function3D is the base class for all the objects in the scene, if there aren't any objects we don't need to do anything.
     if(func3DNum > 0)
     {
+        vslen = 10;
+        shades.genvoronoi(vslen);
         //This stuff sets up the viewport from pE upVec, v2, s1, and d
         //s0 = The width of the screen.
         float s0 = (float)screen.width / (float)screen.height * s1;
@@ -788,6 +805,8 @@ void Imagemanip::draw3DPaint(glm::vec3 pE, float d, glm::vec3 upVec, glm::vec3 v
     //Function3D is the base class for all the objects in the scene, if there aren't any objects we don't need to do anything.
     if(func3DNum > 0)
     {
+        vslen = 10;
+        shades.genvoronoi(vslen);
         //This stuff sets up the viewport from pE upVec, v2, s1, and d
         //s0 = The width of the screen.
         float s0 = (float)screen.width / (float)screen.height * s1;
@@ -915,6 +934,8 @@ void Imagemanip::draw3DFocus(glm::vec3 pE, float d, float focalLength, glm::vec3
     //Function3D is the base class for all the objects in the scene, if there aren't any objects we don't need to do anything.
     if(func3DNum > 0)
     {
+        vslen = 20;
+        shades.genvoronoi(vslen);
         //This stuff sets up the viewport from pE upVec, v2, s1, and d
         //s0 = The width of the screen.
         float s0 = (float)screen.width / (float)screen.height * s1;
@@ -1043,6 +1064,8 @@ void Imagemanip::draw3DFocusMBlur(glm::vec3 pE, float d, float focalLength, glm:
     //Function3D is the base class for all the objects in the scene, if there aren't any objects we don't need to do anything.
     if(func3DNum > 0)
     {
+        vslen = 10;
+        shades.genvoronoi(vslen);
         //This stuff sets up the viewport from pE upVec, v2, s1, and d
         //s0 = The width of the screen.
         float s0 = (float)screen.width / (float)screen.height * s1;
