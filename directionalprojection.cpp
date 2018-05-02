@@ -52,7 +52,9 @@ void PerspectiveProjection::initialize(glm::vec3 n, glm::vec3 p, float f)
 
 glm::vec3 PerspectiveProjection::getRelativeNorm(glm::vec3 pH)
 {
-    return geo.normal;
+    glm::vec3 norm = glm::normalize(pH - position);
+    //if(glm::dot(norm, geo.normal) >= 0) return norm;
+    return norm;
 }
 
 glm::vec4 PerspectiveProjection::getColor(glm::vec3 pH)
@@ -65,14 +67,17 @@ glm::vec4 PerspectiveProjection::getColor(glm::vec3 pH)
     n0 = glm::normalize(glm::cross(geo.normal, up));
     n1 = glm::normalize(glm::cross(geo.normal, n0));
     n2 = geo.normal;
-    float dis = glm::length(glm::dot((pH - p0), n2)) / geo.depth;
-    int texWidth = texture->getWidth();
-    int texHeight = texture->getHeight();
-    int ptx = glm::dot((pH - p0), n0) + (texWidth / 2.0f) ;
-    int pty = glm::dot((pH - p0), n1) + (texHeight / 2.0f);
+    float dis = glm::dot((pH - p0), n2);
+    if(dis < 0) return glm::vec4(0.0f);
+    float texWidth = texture->getWidth() / geo.depth * dis;
+    float texHeight = texture->getHeight() / geo.depth * dis;
+    float ptx = glm::dot((pH - p0), n0) + (texWidth / 2.0f);
+    float pty = glm::dot((pH - p0), n1) + (texHeight / 2.0f);
+    ptx /= texWidth;
+    pty /= texHeight;
     int buf[4];
-    if(ptx < 0 || ptx > texWidth) return glm::vec4(0.0f);
-    if(pty < 0 || pty > texHeight) return glm::vec4(0.0f);
-    texture->getDataAt(ptx, pty, buf);
+    if(ptx < 0 || ptx > 1) return glm::vec4(0.0f);
+    if(pty < 0 || pty > 1) return glm::vec4(0.0f);
+    texture->getDataAt(ptx * texture->getWidth(), pty * texture->getHeight(), buf);
     return glm::vec4((buf[0] / 255.0f) * cL.a, (buf[1] / 255.0f) * cL.a, (buf[2] / 255.0f) * cL.a, cL.a);
 }

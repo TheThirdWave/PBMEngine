@@ -56,6 +56,13 @@ void Function3D::setColor(glm::vec4 cs, glm::vec4 cd, glm::vec4 ca)
     cA = ca;
 }
 
+void Function3D::setTexProj(glm::vec3 tp, glm::vec3 tn, float d)
+{
+    texpos = tp;
+    texnorm = tn;
+    texdist = d;
+}
+
 void Function3D::setQParams(int a1, int a2, int a3, int a4, int a5)
 {
     a02 = a1;
@@ -174,6 +181,31 @@ glm::vec4 Function3D::getCA()
     return cA;
 }
 
+glm::vec3 Function3D::getTexPos()
+{
+    return texpos;
+}
+
+glm::vec3 Function3D::getTexNorm()
+{
+    return texnorm;
+}
+
+glm::vec3 Function3D::getPos()
+{
+    return origPoint;
+}
+
+glm::vec3 Function3D::getNorm()
+{
+    return normal;
+}
+
+float Function3D::getTexDist()
+{
+    return texdist;
+}
+
 float Function3D::getDisp()
 {
     return disp;
@@ -202,4 +234,9 @@ geometry Function3D::getGeo()
 Function3D* Function3D::getParent()
 {
     return parent;
+}
+
+Imagemanip* Function3D::getTexture()
+{
+    return texture;
 }

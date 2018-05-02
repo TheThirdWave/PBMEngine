@@ -30,7 +30,8 @@ private:
     Function2D* functions[MAX_FUNCTIONS];
     Function3D* functions3D[MAX_FUNCTIONS];
     LightBase* lights[MAX_LIGHTS];
-    int funcNum, func3DNum, lightNum;
+    glm::vec3* voronoiPts;
+    int funcNum, func3DNum, lightNum, vslen;
     Shaders shades;
 public:
     Imagemanip();
@@ -40,12 +41,15 @@ public:
     int getWidth();
     int getHeight();
     int getNumChannels();
+    float getVSL();
+    glm::vec3* getVoronoiPts();
     void getDataAt(int, int, int*);
     void setScreen(image*);
     void setKernel(int, int);
     void setKernelValues(float);
     void setKernelValuesF(Function2D*);
     void setKernelValuesEF(Function2D*);
+    void setVoronoiPts(glm::vec3*);
     void initScreen(image*);
     void initScreen(int, int);
     void switchScreenPtrs();

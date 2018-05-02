@@ -12,11 +12,11 @@ class Function3D
     friend class Imagemanip;
 protected:
     glm::vec3 normal, normal2, normal3;
-    glm::vec3 origPoint, point2;
+    glm::vec3 origPoint, point2, texpos, texnorm;
     glm::vec3* points[MAX_POINTS];
     glm::vec4 cS, cD, cA;
     int a02, a12, a22, a21, a00, pointIdx, numChildren;
-    float s0, s1, s2, disp, shnell, blur, tt;
+    float s0, s1, s2, disp, shnell, blur, tt, texdist;
     geometry geo;
     Imagemanip* texture;
     Imagemanip* bumpMap;
@@ -54,15 +54,22 @@ public:
     void setUVTriangle(triangle2d);
     void setChildren(Function3D* ch, int num);
     void setParent(Function3D* p);
+    void setTexProj(glm::vec3 tp, glm::vec3 tn, float d);
     geometry getGeo();
     glm::vec4 getCS();
     glm::vec4 getCD();
     glm::vec4 getCA();
+    glm::vec3 getTexPos();
+    glm::vec3 getTexNorm();
+    glm::vec3 getPos();
+    glm::vec3 getNorm();
+    float getTexDist();
     float getShnell();
     float getDisp();
     float getBlur();
     float getTT();
     Function3D* getParent();
+    Imagemanip* getTexture();
     virtual glm::vec4 getTexCol(glm::vec3) = 0;
     virtual glm::vec3 getNMapAt(glm::vec3) = 0;
     virtual float getBMapAt(glm::vec3) = 0;
