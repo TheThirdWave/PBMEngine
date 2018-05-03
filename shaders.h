@@ -5,6 +5,11 @@
 #include "algorithm"
 #include "vector"
 #include "lightbase.h"
+#include "../glm-0.9.8.5/glm/glm.hpp"
+#include "../glm-0.9.8.5/glm/gtc/matrix_transform.hpp"
+#include "../glm-0.9.8.5/glm/gtc/type_ptr.hpp"
+#include "../glm-0.9.8.5/glm/gtx/transform.hpp"
+#include "../glm-0.9.8.5/glm/gtx/rotate_vector.hpp"
 
 class Imagemanip;
 

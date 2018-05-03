@@ -769,7 +769,26 @@ glm::vec4 Shaders::ambientOcclusion(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, g
         cDD.r *= t;
         cDD.g *= t;
         cDD.b *= t;
-        for()
+
+        int numOR = 10;
+        float hold = numOR;
+        for(int i = 0; i < numOR; i++)
+        {
+            float rotH = PI * static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+            glm::vec3 h = glm::rotate(glm::vec3(0.0f, 1.0f, 0.0f), rotH, glm::vec3(1.0f, 0.0f, 0.0f));
+            rotH = 2 * PI * static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+            h = glm::rotate(h, rotH, glm::vec3(0.0f, 1.0f, 0.0f));
+            numHits = 0;
+            numHits = castRay(pH + nH * 0.001f, h, hits, numHits);//(pH, h, hits, numHits);
+            sortByT(hits, numHits);
+            float z = hits[0].t / renderer->getAmbRad();
+            if(numHits > 0 && hits[0].t <= renderer->getAmbRad()) hold -= z;//z / (z + renderer->getOccFall());
+        }
+        glm::vec4 cDA = cD;
+        cDA.r *= (hold / (float)numOR);
+        cDA.b *= (hold / (float)numOR);
+        cDA.g *= (hold / (float)numOR);
+        cPe += cDA;// * (hold / 10.0f);
 
         cPe += cDD;
 

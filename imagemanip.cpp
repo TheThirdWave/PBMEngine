@@ -61,6 +61,16 @@ void Imagemanip::setKernelValues(float v)
     kern.setWeights(v);
 }
 
+void Imagemanip::setAmbRad(float a)
+{
+    ambRad = a;
+}
+
+void Imagemanip::setOccFall(float f)
+{
+    occFall = f;
+}
+
 void Imagemanip::setKernelValuesF(Function2D * func)
 {
     kern.setFuncWeights(func);
@@ -170,6 +180,16 @@ int Imagemanip::getNumChannels()
 float Imagemanip::getVSL()
 {
     return vslen;
+}
+
+float Imagemanip::getAmbRad()
+{
+    return ambRad;
+}
+
+float Imagemanip::getOccFall()
+{
+    return occFall;
 }
 
 glm::vec3* Imagemanip::getVoronoiPts()

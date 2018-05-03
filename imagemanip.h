@@ -32,6 +32,7 @@ private:
     LightBase* lights[MAX_LIGHTS];
     glm::vec3* voronoiPts;
     int funcNum, func3DNum, lightNum, vslen;
+    float ambRad, occFall;
     Shaders shades;
 public:
     Imagemanip();
@@ -42,9 +43,13 @@ public:
     int getHeight();
     int getNumChannels();
     float getVSL();
+    float getAmbRad();
+    float getOccFall();
     glm::vec3* getVoronoiPts();
     void getDataAt(int, int, int*);
     void setScreen(image*);
+    void setAmbRad(float);
+    void setOccFall(float);
     void setKernel(int, int);
     void setKernelValues(float);
     void setKernelValuesF(Function2D*);
