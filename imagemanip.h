@@ -31,8 +31,9 @@ private:
     Function3D* functions3D[MAX_FUNCTIONS];
     LightBase* lights[MAX_LIGHTS];
     glm::vec3* voronoiPts;
-    int funcNum, func3DNum, lightNum, vslen;
-    float ambRad, occFall;
+    glm::vec3* occSpherePts;
+    int funcNum, func3DNum, lightNum, vslen, numOSPts;
+    float ambRad, occFall, occU, occV;
     Shaders shades;
 public:
     Imagemanip();
@@ -42,19 +43,26 @@ public:
     int getWidth();
     int getHeight();
     int getNumChannels();
+    int getNumOSPts();
     float getVSL();
     float getAmbRad();
     float getOccFall();
+    float getOccU();
+    float getOccV();
+    glm::vec3* getOccSpherePts();
     glm::vec3* getVoronoiPts();
     void getDataAt(int, int, int*);
     void setScreen(image*);
     void setAmbRad(float);
     void setOccFall(float);
+    void setOccVals(float, float);
     void setKernel(int, int);
     void setKernelValues(float);
     void setKernelValuesF(Function2D*);
     void setKernelValuesEF(Function2D*);
     void setVoronoiPts(glm::vec3*);
+    void setOccSpherePts(glm::vec3*);
+    void setNumOSPts(int);
     void initScreen(image*);
     void initScreen(int, int);
     void switchScreenPtrs();

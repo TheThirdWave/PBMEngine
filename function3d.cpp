@@ -94,9 +94,19 @@ void Function3D::setBlur(float b)
     blur = b;
 }
 
-void Function3D::floatTT(float t)
+void Function3D::setTT(float t)
 {
     tt = t;
+}
+
+void Function3D::setOCoeff(float o)
+{
+    occCoeff = o;
+}
+
+void Function3D::setcBCoeff(float c)
+{
+    cBCoeff = c;
 }
 
 void Function3D::setGeometry(geometry g)
@@ -224,6 +234,16 @@ float Function3D::getBlur()
 float Function3D::getTT()
 {
     return tt;
+}
+
+float Function3D::getCBCoeff()
+{
+    return cBCoeff;
+}
+
+float Function3D::getOCoeff()
+{
+    return occCoeff;
 }
 
 geometry Function3D::getGeo()

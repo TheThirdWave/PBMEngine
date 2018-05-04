@@ -38,6 +38,36 @@ void Shaders::genvoronoi(float l)
     }
 }
 
+void Shaders::genSphere(int wSeg, int hSeg)
+{
+    int numPts = (hSeg - 2) * wSeg + 2;
+    renderer->setOccSpherePts(new glm::vec3[numPts]);
+    glm::vec3* pts = renderer->getOccSpherePts();
+    renderer->setNumOSPts(numPts);
+    for(int i = 0; i < hSeg; i++)
+    {
+        if(i != 0 && i != hSeg - 1)
+        {
+            for(int j = 0; j < wSeg; j++)
+            {
+                int index = j + ((i - 1) * wSeg) + 1;
+                pts[index] = glm::rotate(glm::vec3(0.0f, 1.0f, 0.0f), (float)(PI / (float)hSeg) * i, glm::vec3(1.0f, 0.0f, 0.0f));
+                pts[index] = glm::rotate(pts[index], (float)((PI * 2) / (wSeg)) * j, glm::vec3(0.0f, 1.0f, 0.0f));
+                int x = 1;
+            }
+        }
+        else if(i == 0)
+        {
+            pts[0] = glm::vec3(0.0f, 1.0f, 0.0f);
+        }
+        else if(i == hSeg - 1)
+        {
+            pts[numPts - 1] = glm::vec3(0.0f, -1.0f, 0.0f);
+        }
+    }
+    renderer->setOccVals((PI / (2 * wSeg)), (PI / hSeg));
+}
+
 int Shaders::castRay(glm::vec3 pE, glm::vec3 nPE, intercept ret[], int idx)
 {
     for(int i = 0; i < renderer->func3DNum; i++)
@@ -770,24 +800,28 @@ glm::vec4 Shaders::ambientOcclusion(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, g
         cDD.g *= t;
         cDD.b *= t;
 
-        int numOR = 10;
+        int numOR = renderer->getNumOSPts();
         float hold = numOR;
         for(int i = 0; i < numOR; i++)
         {
-            float rotH = PI * static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-            glm::vec3 h = glm::rotate(glm::vec3(0.0f, 1.0f, 0.0f), rotH, glm::vec3(1.0f, 0.0f, 0.0f));
-            rotH = 2 * PI * static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-            h = glm::rotate(h, rotH, glm::vec3(0.0f, 1.0f, 0.0f));
+            glm::vec3* oPts = renderer->getOccSpherePts();
+            float oW = renderer->getOccU();
+            float oH = renderer->getOccV();
+            float rotH = (oH * static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) - (oH / 2);
+            float rotW = (oW *static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) - (oW / 2);
+            glm::vec3 h = glm::rotate(oPts[i], rotH, glm::vec3(1.0f, 0.0f, 0.0f));
+            h = glm::rotate(h, rotW, glm::vec3(0.0f, 1.0f, 0.0f));
             numHits = 0;
             numHits = castRay(pH + nH * 0.001f, h, hits, numHits);//(pH, h, hits, numHits);
             sortByT(hits, numHits);
             float z = hits[0].t / renderer->getAmbRad();
-            if(numHits > 0 && hits[0].t <= renderer->getAmbRad()) hold -= z;//z / (z + renderer->getOccFall());
+            if(numHits > 0 && hits[0].t <= renderer->getAmbRad()) hold -= 1 - (pow(renderer->getOccFall(), z) - 1.0f) / (renderer->getOccFall() - 1.0f);//z / (z + renderer->getOccFall());
         }
         glm::vec4 cDA = cD;
         cDA.r *= (hold / (float)numOR);
         cDA.b *= (hold / (float)numOR);
         cDA.g *= (hold / (float)numOR);
+        cDA *= obj.getOCoeff();
         cPe += cDA;// * (hold / 10.0f);
 
         cPe += cDD;
@@ -808,6 +842,239 @@ glm::vec4 Shaders::ambientOcclusion(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, g
     }
 
     return cPe;
+
+}
+
+glm::vec4 Shaders::colorBleed(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
+{
+    if(numDeep < MAX_REFLECTIONS)
+    {
+        glm::vec4 cD = obj.getCD();
+        glm::vec4 cA = obj.getCA();
+        glm::vec4 cS = obj.getCS();
+        glm::vec4 cL;
+        glm::vec4 cPe = cA;
+        float t = 0;
+        float d = obj.getGeo().depth;
+        float r;
+        glm::vec3 pDH = pH - nH * d;
+        LightBase* curLight;
+        glm::vec3 nL;
+        intercept hits[MAX_LINE_INTERCEPTS];
+        int numHits = 0;
+        for(int i = 0; i < renderer->lightNum; i++)
+        {
+            numHits = 0;
+            curLight = renderer->lights[i];
+            nL = -curLight->getRelativeNorm(pH);
+            cL = curLight->getColor(pH);
+
+            //get angle for diffuse light, raycast can catch occluders as well.
+            numHits = castRay(pDH, nL, hits, numHits);
+            sortByT(hits, numHits);
+            if(curLight->getType() != DIRECTIONAL) numHits = cullForPLight(hits, numHits, pH, curLight);
+            r = getTotalR(hits, numHits, obj);
+            if(r == 0) t = 0;
+            else t = d / r;
+
+            glm::vec4 cDD = cD * cL;
+            if(curLight->getType() != DIRECTIONAL)
+            {
+                //float dnom = glm::dot(curLight->getPos() - pH, curLight->getPos() - pH);
+                //t = t / dnom * 10000;
+            }
+            if(curLight->getType() == SPOTLIGHT)
+            {
+                float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+                t *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+            }
+            t = clamp(t, 1.0, 0.0);
+            cDD.r *= t;
+            cDD.g *= t;
+            cDD.b *= t;
+
+            int numOR = renderer->getNumOSPts();
+            float hold = numOR;
+            glm::vec4 cDA = glm::vec4(0.0f);
+            for(int i = 0; i < numOR; i++)
+            {
+                glm::vec3* oPts = renderer->getOccSpherePts();
+                float oW = renderer->getOccU();
+                float oH = renderer->getOccV();
+                float rotH = (oH * static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) - (oH / 2);
+                float rotW = (oW *static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) - (oW / 2);
+                glm::vec3 h = glm::rotate(oPts[i], rotH, glm::vec3(1.0f, 0.0f, 0.0f));
+                h = glm::rotate(h, rotW, glm::vec3(0.0f, 1.0f, 0.0f));
+                numHits = 0;
+                numHits = castRay(pH + nH * 0.001f, h, hits, numHits);//(pH, h, hits, numHits);
+                sortByT(hits, numHits);
+                float z = hits[0].t / renderer->getAmbRad();
+                if(numHits > 0 && hits[0].t <= renderer->getAmbRad())
+                {
+                    hold -= 1 - (pow(renderer->getOccFall(), z) - 1.0f) / (renderer->getOccFall() - 1.0f);//z / (z + renderer->getOccFall());
+                    glm::vec3 hitPoint = (pH + nH * 0.001f) + h * hits[0].t;
+                    cDA += hits[0].obj->getCA() * obj.getCBCoeff();
+                }
+            }
+            cDA.r *= (hold / (float)numOR);
+            cDA.b *= (hold / (float)numOR);
+            cDA.g *= (hold / (float)numOR);
+            cDA *= obj.getOCoeff();
+            cPe += cDA;// * (hold / 10.0f);
+
+            cPe += cDD;
+
+            //calculate angle for specular highlight
+            glm::vec3 ref = -nL + (2 * glm::dot(nH, nL) * nH);
+            float cos = glm::dot(nPe, ref);
+            float s = clamp(cos, obj.getGeo().radius, obj.getGeo().width);
+            if(curLight->getType() == SPOTLIGHT)
+            {
+                float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+                s *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+            }
+            //if(cos > 0.98) s = 1;
+            //else s = 0;
+            cPe += cS * cL * s;
+
+        }
+
+        return cPe;
+    }
+    return glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+
+}
+
+glm::vec4 Shaders::caustics(glm::vec3 nH, glm::vec3 nPe, glm::vec3 pH, glm::vec3 pE, Function3D& obj, int numDeep)
+{
+    if(numDeep < MAX_REFLECTIONS)
+    {
+        glm::vec4 cD = obj.getCD();
+        glm::vec4 cA = obj.getCA();
+        glm::vec4 cS = obj.getCS();
+        glm::vec4 cL;
+        glm::vec4 cPe = cA;
+        float t = 0;
+        float d = obj.getGeo().depth;
+        float r;
+        glm::vec3 pDH = pH - nH * d;
+        LightBase* curLight;
+        glm::vec3 nL;
+        intercept hits[MAX_LINE_INTERCEPTS];
+        int numHits = 0;
+        for(int i = 0; i < renderer->lightNum; i++)
+        {
+            numHits = 0;
+            curLight = renderer->lights[i];
+            nL = -curLight->getRelativeNorm(pH);
+            cL = curLight->getColor(pH);
+
+            //get angle for diffuse light, raycast can catch occluders as well.
+            numHits = castRay(pDH, nL, hits, numHits);
+            sortByT(hits, numHits);
+            if(curLight->getType() != DIRECTIONAL) numHits = cullForPLight(hits, numHits, pH, curLight);
+            r = getTotalR(hits, numHits, obj);
+            if(r == 0) t = 0;
+            else t = d / r;
+
+            glm::vec4 cDD = cD * cL;
+            if(curLight->getType() != DIRECTIONAL)
+            {
+                //float dnom = glm::dot(curLight->getPos() - pH, curLight->getPos() - pH);
+                //t = t / dnom * 10000;
+            }
+            if(curLight->getType() == SPOTLIGHT)
+            {
+                float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+                t *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+            }
+            t = clamp(t, 1.0, 0.0);
+            cDD.r *= t;
+            cDD.g *= t;
+            cDD.b *= t;
+
+            int numOR = renderer->getNumOSPts();
+            float hold = numOR;
+            glm::vec4 cDA = glm::vec4(0.0f);
+            for(int i = 0; i < numOR; i++)
+            {
+                glm::vec3* oPts = renderer->getOccSpherePts();
+                float oW = renderer->getOccU();
+                float oH = renderer->getOccV();
+                float rotH = (oH * static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) - (oH / 2);
+                float rotW = (oW *static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) - (oW / 2);
+                glm::vec3 h = glm::rotate(oPts[i], rotH, glm::vec3(1.0f, 0.0f, 0.0f));
+                h = glm::rotate(h, rotW, glm::vec3(0.0f, 1.0f, 0.0f));
+                numHits = 0;
+                numHits = castRay(pH + nH * 0.001f, h, hits, numHits);//(pH, h, hits, numHits);
+                sortByT(hits, numHits);
+                float z = hits[0].t / renderer->getAmbRad();
+                if(numHits > 0 && hits[0].t <= renderer->getAmbRad())
+                {
+                    hold -= 1 - (pow(renderer->getOccFall(), z) - 1.0f) / (renderer->getOccFall() - 1.0f);//z / (z + renderer->getOccFall());
+                    glm::vec3 hitPoint = (pH + nH * 0.001f) + h * hits[0].t;
+                    if(hits[0].obj->shader != &Shaders::mirror && hits[0].obj->shader != &Shaders::refractor) cDA += hits[0].obj->getCA() * obj.getCBCoeff();
+                    else if(hits[0].obj->shader == &Shaders::mirror)
+                    {
+                        glm::vec3 rNorm = hits[0].obj->getSurfaceNormal(hitPoint);
+                        glm::vec3 rPe = glm::normalize(pH - hitPoint);
+                        //calculate angle for reflecton
+                        glm::vec3 ref1 = -rPe + (2 *glm::dot(rNorm, rPe) * rNorm);
+                        numHits = 0;
+                        //cast ray along the reflection angle.
+                        numHits = castRay(hitPoint, ref1, hits, numHits);
+                        sortByT(hits, numHits);
+                        cDD += cD * hits[0].obj->getCD();
+                    }
+                    else if(hits[0].obj->shader == &Shaders::refractor)
+                    {
+                        glm::vec3 rNorm = hits[0].obj->getSurfaceNormal(hitPoint);
+                        glm::vec3 rPe = glm::normalize(pH - hitPoint);
+                        float shnell = hits[0].obj->getShnell();
+                        //calculate angle for refraction
+                        glm::vec3 ref1;
+                        float C = glm::dot(rNorm, rPe);
+                        float sqrtTerm = (C * C - 1)/(shnell * shnell) + 1;
+                        if(sqrtTerm >= 0)
+                        {
+                            float b = (C / shnell) - sqrt(sqrtTerm);
+                            ref1 = (-1 / shnell) * rPe + b * rNorm;
+                        }
+                        else ref1 = -rPe + (2 *glm::dot(rNorm, rPe) * rNorm);
+                        numHits = 0;
+                        //cast ray along the reflection angle.
+                        numHits = castRay(hitPoint, ref1, hits, numHits);
+                        sortByT(hits, numHits);
+                        cDD += cD * hits[0].obj->getCD();
+                    }
+                }
+            }
+            cDA.r *= (hold / (float)numOR);
+            cDA.b *= (hold / (float)numOR);
+            cDA.g *= (hold / (float)numOR);
+            cDA *= obj.getOCoeff();
+            cPe += cDA;// * (hold / 10.0f);
+
+            cPe += cDD;
+
+            //calculate angle for specular highlight
+            glm::vec3 ref = -nL + (2 * glm::dot(nH, nL) * nH);
+            float cos = glm::dot(nPe, ref);
+            float s = clamp(cos, obj.getGeo().radius, obj.getGeo().width);
+            if(curLight->getType() == SPOTLIGHT)
+            {
+                float cos = glm::dot(glm::normalize((pH - curLight->getPos())), curLight->getGeo().normal);
+                s *= clamp(cos, curLight->getGeo().radius, curLight->getGeo().width);
+            }
+            //if(cos > 0.98) s = 1;
+            //else s = 0;
+            cPe += cS * cL * s;
+
+        }
+
+        return cPe;
+    }
+    return glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
 }
 

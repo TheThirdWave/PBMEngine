@@ -86,6 +86,22 @@ void Imagemanip::setVoronoiPts(glm::vec3 * p)
     voronoiPts = p;
 }
 
+void Imagemanip::setOccSpherePts(glm::vec3* o)
+{
+    occSpherePts = o;
+}
+
+void Imagemanip::setNumOSPts(int n)
+{
+    numOSPts = n;
+}
+
+void Imagemanip::setOccVals(float u, float v)
+{
+    occU = u;
+    occV = v;
+}
+
 void Imagemanip::initScreen(int width, int height)
 {
     screen.width = width;
@@ -177,6 +193,11 @@ int Imagemanip::getNumChannels()
     return screen.unitbytes;
 }
 
+int Imagemanip::getNumOSPts()
+{
+    return numOSPts;
+}
+
 float Imagemanip::getVSL()
 {
     return vslen;
@@ -190,6 +211,21 @@ float Imagemanip::getAmbRad()
 float Imagemanip::getOccFall()
 {
     return occFall;
+}
+
+float Imagemanip::getOccU()
+{
+    return occU;
+}
+
+float Imagemanip::getOccV()
+{
+    return occV;
+}
+
+glm::vec3* Imagemanip::getOccSpherePts()
+{
+    return occSpherePts;
 }
 
 glm::vec3* Imagemanip::getVoronoiPts()
@@ -956,6 +992,7 @@ void Imagemanip::draw3DFocus(glm::vec3 pE, float d, float focalLength, glm::vec3
     {
         vslen = 20;
         shades.genvoronoi(vslen);
+        shades.genSphere(5, 5);
         //This stuff sets up the viewport from pE upVec, v2, s1, and d
         //s0 = The width of the screen.
         float s0 = (float)screen.width / (float)screen.height * s1;
@@ -980,6 +1017,8 @@ void Imagemanip::draw3DFocus(glm::vec3 pE, float d, float focalLength, glm::vec3
         //we loop through all the pixels in the screen.
         for(int y = 0; y < screen.height * screen.unitbytes; y += screen.unitbytes)
         {
+            printf("percent pixels done: %f\n", (100.0f/screen.height) * ((y + 1) / screen.unitbytes));
+            fflush(stdout);
 #pragma omp parallel for
             for(int x = 0; x < screen.width * screen.unitbytes; x += screen.unitbytes)
             {
