@@ -140,6 +140,7 @@ int main(int argc, char* argv[])
         sphModel.init(simWidth, simHeight, 0, 10.0f, 0.9f, 0.5f);
         //sphModel.addParts(1000);
         stuffbuilder.MakeSFCube(&sphModel, glm::vec2(simWidth / 2, simHeight / 2), 512, 4.0f, 500.0f);
+
         sphModel.setState(SFFORCES | SIXES);
         //sphModel.addPart(Particle(glm::vec2(WIDTH / 2.0f, HEIGHT / 2.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1, 10.0f));
         //sphModel.addPart(Particle(glm::vec2(WIDTH / 3.0f, HEIGHT / 3.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1, 10.0f));

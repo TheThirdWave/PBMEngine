@@ -45,7 +45,10 @@ public:
     void pvF(float timeStep);
     void sFrameF(float timeStep);
     void gravityF(float timeStep);
+<<<<<<< HEAD
     void circF(float timeStep);
+=======
+>>>>>>> 66453f8337cd2038a855252e5b6522756518c96a
 
     void circPartCollide(float timeStep);
 
