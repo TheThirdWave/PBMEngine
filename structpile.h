@@ -25,7 +25,7 @@
 #define NUM_PARTS 10000
 #define NUM_DERIV_STATES 4
 
-#include <../GLM/glm/glm.hpp>
+#include <../glm-0.9.8.5/glm/glm.hpp>
 
 struct image {
     unsigned char* data;
@@ -71,7 +71,7 @@ struct attributes
     geometry geo;
 };
 
-enum{ PAINT_OBSTRUCTION, PAINT_SOURCE, PAINT_DIVERGENCE, PAINT_COLOR };
+enum{ PAINT_OBSTRUCTION, PAINT_SOURCE, PAINT_DIVERGENCE, PAINT_COLOR, PAINT_TARGET };
 
 struct triangle {
     glm::vec3   a;
@@ -102,8 +102,23 @@ enum keyState{
 };
 
 enum progState{
-    IDLE = 0,
-    DRAW = 1,
+    RUNNING = 1,
+    DRAW = 1 << 1,
+    PAUSED = 1 << 2,
+    SOURCEIN = 1 << 3,
+    SPH = 1 << 4
+};
+
+enum SPHState{
+    SIXES = 1,
+    SFFORCES = 1 << 1,
+};
+
+enum displayType{
+    IMAGE = 0,
+    DENSITY = 1,
+    PRESSURE = 2,
+    ERROR = 3,
 };
 
 #endif // STRUCTPILE_H

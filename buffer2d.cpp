@@ -8,11 +8,12 @@ Buffer2D::Buffer2D()
     channels = 0;
 }
 
-Buffer2D::Buffer2D(int w, int h, int ch)
+Buffer2D::Buffer2D(int w, int h, int ch, float cs)
 {
     width = w;
     height = h;
     channels = ch;
+    cellSize = cs;
     buffer = new float[width * height * channels];
     memset(buffer, 0.0f, sizeof(float)*width*height*channels);
 }
@@ -42,18 +43,27 @@ int Buffer2D::getNumChannels()
     return channels;
 }
 
-void Buffer2D::init(int w, int h, int ch)
+float Buffer2D::getCellSize()
+{
+    return cellSize;
+}
+
+void Buffer2D::init(int w, int h, int ch, float cs)
 {
     width = w;
     height = h;
     channels = ch;
+    cellSize = cs;
     buffer = new float[width * height * channels];
     memset(buffer, 0, sizeof(float)*width*height*channels);
 }
 
 void Buffer2D::setDataFloat(float f)
 {
-    memset(buffer, f, sizeof(float)*width*height*channels);
+    for(int i = 0; i < width * height * channels; i++)
+    {
+        buffer[i] = f;
+    }
 }
 
 void Buffer2D::setDataBuffer(Buffer2D& buf)
@@ -64,6 +74,29 @@ void Buffer2D::setDataBuffer(Buffer2D& buf)
     channels = buf.getNumChannels();
     buffer = new float[width * height * channels];
     memcpy(buffer, hold, sizeof(float) * width * height * channels);
+}
+
+void Buffer2D::setToIndicies()
+{
+    for(int j = 0; j < height; j++)
+    {
+    #pragma omp parallel for
+        for(int i = 0; i < width; i++)
+        {
+            glm::vec2 iVec;
+            iVec.x = (float)i;
+            iVec.y = (float)j;
+            iVec = iVec * cellSize;
+            int index = i + j * width;
+            buffer[index * channels] = iVec.x;
+            buffer[index * channels + 1] = iVec.y;
+        }
+    }
+}
+
+void Buffer2D::zeroOut()
+{
+    memset(buffer, 0, sizeof(float)*width*height*channels);
 }
 
 void Buffer2D::readImage(const char * fName)
@@ -82,6 +115,7 @@ void Buffer2D::readImage(const char * fName)
     width = spec.width;
     height = spec.height;
     channels = spec.nchannels;
+    cellSize = 1;
     float* pixels = new float[width*height*channels];
     buffer = new float[width*height*channels];
     in->read_image (TypeDesc::FLOAT, pixels);
@@ -133,4 +167,16 @@ void Buffer2D::writeImage(const char * fName)
        delete out;
     }
     delete[] pixels;
+}
+
+glm::vec2 Buffer2D::makeVec2(int index)
+{
+    if(channels == 2) return glm::vec2(index * channels, index * channels + 1);
+    else return glm::vec2(0.0f);
+}
+
+glm::vec3 Buffer2D::makeVec3(int index)
+{
+    if(channels == 3) return glm::vec3(index * channels, index * channels + 1, index * channels + 2);
+    else return glm::vec3(0.0f);
 }
