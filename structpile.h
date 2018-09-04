@@ -27,6 +27,8 @@
 
 #include <../glm-0.9.8.5/glm/glm.hpp>
 
+typedef glm::vec4 color;
+
 struct image {
     unsigned char* data;
     int height;

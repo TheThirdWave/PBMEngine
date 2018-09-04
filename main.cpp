@@ -30,6 +30,9 @@
 #include "sphmodel.h"
 #include "stuffbuilder.h"
 
+//Volume Rendering Stuff
+#include "field.h"
+
 //headers
 void printControls();
 void keyHandler(GLFWwindow* win, int key, int scancode, int action, int mods);
@@ -80,23 +83,14 @@ int main(int argc, char* argv[])
     lux::CmdLineFind clf(argc, argv);
     printControls();
 
-    int pLoops = clf.find("-gs", 30, "Number of Gauss-Seidel iterations.");
-    int iopLoops = clf.find("-iop", 5, "Number of Iterated Orthogonal Projection loops.");
-    int logLoops = clf.find("-log", 0, "Number of Log Advection loops.");
-    int macCormack = clf.find("-MC", 0, "Non-zero input sets macCormack advection. 0 sets Semi-Lagrangian advection.");
     int noImage = clf.find("-blank", 0, "Set to one if you want a blank image (must set width and height)");
     int sph = clf.find("-SPH", 1, "Set to one if you want to run a Something Particle Hydrodynamics simulation");
     int width = clf.find("-width", 256, "Width of simulation if no image supplied");
     int height = clf.find("-height", 500, "Height of simulation if no image supplied.");
-    int simWidth = clf.find("-swidth", 50, "width of SPH simulation.");
-    int simHeight = clf.find("-sheight", 50, "height of SPH simulation.");
-    float timeToCapture = clf.find("-ttc", 0.0f, "How long to run the non-interactive simulation.");
-    float sourceIntensity = clf.find("-si", 1.0f, "Source multiplication coefficient.");
-    float viscosity = clf.find("-v", 0.0f, "The initial viscosity of the simulation.");
-    float vorticity = clf.find("-vort", 0.0f, "The initial vorticity coefficient of the simulation.");
     brightness = clf.find("-b", 1.0f, "The initial display brightness.");
     std::string sourceIn = clf.find("-source", "", "File name for source input");
     std::string imgName = clf.find("-image", "../black.png", "File name for base image.");
+
     if(sourceIn != "")
     {
         prog_state = prog_state | SOURCEIN;
@@ -133,28 +127,6 @@ int main(int argc, char* argv[])
     //set static variables.
     WIDTH = displayBuf.getWidth();
     HEIGHT = displayBuf.getHeight();
-
-    //initialize Fluid Model.
-    if(prog_state & SPH)
-    {
-        sphModel.init(simWidth, simHeight, 0, 10.0f, 0.9f, 0.5f);
-        //sphModel.addParts(1000);
-        stuffbuilder.MakeSFCube(&sphModel, glm::vec2(simWidth / 2, simHeight / 2), 228, 2.0f, 500.0f);
-        sphModel.setState(SFFORCES | SIXES);
-        //sphModel.addPart(Particle(glm::vec2(WIDTH / 2.0f, HEIGHT / 2.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1, 10.0f));
-        //sphModel.addPart(Particle(glm::vec2(WIDTH / 3.0f, HEIGHT / 3.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1, 10.0f));
-    }
-    else
-    {
-        fluidModel.init(&displayBuf, &sourceBuf);
-        fluidModel.setPLoops(pLoops);
-        fluidModel.setIOPLoops(iopLoops);
-        fluidModel.setLogLoops(logLoops);
-        fluidModel.setViscosity(viscosity);
-        fluidModel.setVorticity(vorticity);
-        if(macCormack > 0)fluidModel.setUsingMacCormack(true);
-        else fluidModel.setUsingMacCormack(false);
-    }
 
     //initialize glfw
 	if (!glfwInit())
@@ -206,28 +178,16 @@ int main(int argc, char* argv[])
     //create vertex buffer
     // An array of 3 vectors which represents 3 vertices
     int numVerts;
-    if(prog_state & SPH)
-    {
-        //numVerts = 1;
-        numVerts = NUM_PARTS;
-        g_vertex_buffer_data = new GLfloat[numVerts * 3];
-        g_vertex_buffer_data[0] = 0.5f;
-        g_vertex_buffer_data[1] = 0.5f;
-        g_vertex_buffer_data[2] = -1.0f;
-        sphModel.setpointDispBuf(g_vertex_buffer_data);
-    }
-    else
-    {
-        numVerts = 6;
-        g_vertex_buffer_data = new GLfloat[numVerts * 3]{
-            -1.0f,-1.0f, -1.0f, // triangle 1 : begin
-            1.0f,-1.0f, -1.0f,
-            -1.0f, 1.0f, -1.0f, // triangle 1 : end
-            1.0f, 1.0f, -1.0f, // triangle 2 : begin
-            1.f,-1.0f, -1.0f,
-            -1.0f, 1.0f, -1.0f, // triangle 2 : end
-          };
-    }
+
+    numVerts = 6;
+    g_vertex_buffer_data = new GLfloat[numVerts * 3]{
+        -1.0f,-1.0f, -1.0f, // triangle 1 : begin
+        1.0f,-1.0f, -1.0f,
+        -1.0f, 1.0f, -1.0f, // triangle 1 : end
+        1.0f, 1.0f, -1.0f, // triangle 2 : begin
+        1.f,-1.0f, -1.0f,
+        -1.0f, 1.0f, -1.0f, // triangle 2 : end
+    };
 
     glPointSize(3.0f);
 
@@ -255,25 +215,14 @@ int main(int argc, char* argv[])
 
     // Create uv buffer.
     // One color for each vertex. They were generated randomly.
-    if(prog_state & SPH)
-    {
-        g_uv_buffer_data = new GLfloat[numVerts * 3];
-        g_uv_buffer_data[0] = 0.0f;
-        g_uv_buffer_data[1] = 1.0f;
-        g_uv_buffer_data[2] = 0.0f;
-        sphModel.setcolDispBuf(g_uv_buffer_data);
-    }
-    else
-    {
-        g_uv_buffer_data = new GLfloat[numVerts * 2]{
-            0.0f,  0.0f,
-            1.0f,  0.0f,
-            0.0f,  1.0f,
-            1.0f,  1.0f,
-            1.0f,  0.0f,
-            0.0f,  1.0f
-        };
-    }
+    g_uv_buffer_data = new GLfloat[numVerts * 2]{
+        0.0f,  0.0f,
+        1.0f,  0.0f,
+        0.0f,  1.0f,
+        1.0f,  1.0f,
+        1.0f,  0.0f,
+        0.0f,  1.0f
+    };
 
     glGenBuffers(1, &uvbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
@@ -313,47 +262,12 @@ int main(int argc, char* argv[])
 
 
     cur_time = glfwGetTime();
-    d_cur_time = cur_time;
-    d_prev_time = d_cur_time;
 
     display(window, MatrixID, programID, vertexbuffer, mvp, numVerts);
 
     do {
 
-        if(!(prog_state & sph))
-        {
-            if(prog_state & SOURCEIN && prog_state & RUNNING) convertSourceIn(sourceIntensity);
-            if(timeToCapture <= 0)
-            {
-                if(prog_state & RUNNING)
-                {
-                    update(timeStep);
-                    simTime += timeStep;
-                }
-                d_cur_time = glfwGetTime();
-                d_delta_time = d_cur_time - d_prev_time;
-                if(d_delta_time >= displayTime)
-                {
-                    d_prev_time = d_cur_time;
-                    display(window, MatrixID, programID, vertexbuffer, mvp, numVerts);
-                }
-            }
-            else
-            {
-                update(timeStep);
-                simTime += timeStep;
-                displayBuf.writeImage(("../Mov/frame" + std::to_string(capturedFrames++) + ".png").c_str());
-                display(window, MatrixID, programID, vertexbuffer, mvp, numVerts);
-                if(simTime >= timeToCapture) glfwSetWindowShouldClose(window, GLFW_TRUE);
-            }
-        }
-        else
-        {
-            numVerts = sphModel.getNumVerts();
-            sphModel.update(timeStep);
-            sphModel.passToDisplay(NUM_PARTS);
-            displaySPH(window, MatrixID, programID, vertexbuffer, mvp, numVerts);
-        }
+        display(window, MatrixID, programID, vertexbuffer, mvp, numVerts);
 		glfwPollEvents();
 
 	} while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0);

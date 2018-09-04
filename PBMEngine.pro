@@ -28,7 +28,11 @@ HEADERS += \
     particle.h \
     particlegrid.h \
     solidframe.h \
-    stuffbuilder.h
+    stuffbuilder.h \
+    field.h \
+    scalarfields.h \
+    vectorfields.h \
+    matrixfields.h
 
 DISTFILES += \
     FragS2.glsl \
