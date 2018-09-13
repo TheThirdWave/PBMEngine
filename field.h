@@ -1,11 +1,12 @@
 #ifndef FIELD_H
 #define FIELD_H
 
-#include <../glm-0.9.8.5/glm/glm.hpp>
+#include <../glm-0.9.9.1/glm/glm.hpp>
 #include "structpile.h"
 
 //-----------------------------------------------------------------------------
 // Setting up logic to be able to determine the data type of the gradient
+
 template <typename U>
 struct GradType
 {

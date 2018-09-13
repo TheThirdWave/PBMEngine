@@ -10,11 +10,12 @@
 #include <GLFW/glfw3.h>
 
 //glm includes
-#include <../glm-0.9.8.5/glm/glm.hpp>
-#include <../glm-0.9.8.5/glm/gtc/matrix_transform.hpp>
+#include <../glm-0.9.9.1/glm/glm.hpp>
+#include <../glm-0.9.9.1/glm/gtc/matrix_transform.hpp>
 
 //image buffer stuff
 #include "buffer2d.h"
+#include "ppmrw.h"
 
 //miscellaneous structs and enums and stuff.
 #include "structpile.h"
@@ -84,7 +85,7 @@ int main(int argc, char* argv[])
     printControls();
 
     int noImage = clf.find("-blank", 0, "Set to one if you want a blank image (must set width and height)");
-    int sph = clf.find("-SPH", 1, "Set to one if you want to run a Something Particle Hydrodynamics simulation");
+    int sph = clf.find("-SPH", 0, "Set to one if you want to run a Something Particle Hydrodynamics simulation");
     int width = clf.find("-width", 256, "Width of simulation if no image supplied");
     int height = clf.find("-height", 500, "Height of simulation if no image supplied.");
     brightness = clf.find("-b", 1.0f, "The initial display brightness.");
@@ -115,6 +116,9 @@ int main(int argc, char* argv[])
         loadedImg.init(width, height, 3, 1.0f);
         displayBuf.init(width, height, 3, 1.0f);
     }
+
+    displayBuf.readPPM("../cube.ppm");
+    //displayBuf.writePPM("../cube1.ppm");
     
     sourceBuf.init(displayBuf.getWidth(), displayBuf.getHeight(), 1, 1.0);
 

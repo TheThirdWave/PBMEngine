@@ -1,7 +1,7 @@
 #ifndef SOLIDFRAME_H
 #define SOLIDFRAME_H
 
-#include <../glm-0.9.8.5/glm/glm.hpp>
+#include <../glm-0.9.9.1/glm/glm.hpp>
 #include "structpile.h"
 #include <vector>
 

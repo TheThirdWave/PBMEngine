@@ -169,6 +169,34 @@ void Buffer2D::writeImage(const char * fName)
     delete[] pixels;
 }
 
+void Buffer2D::readPPM(const char * fName)
+{
+    ppmStuff d = ppm.readPPM(fName);
+    width = d.width;
+    height = d.height;
+    channels = d.sampleWidth;
+    cellSize = 1;
+    buffer = new float[width * height * channels];
+    for(int i = 0; i < width * height * channels; i++)
+    {
+        buffer[i] = (float)d.data[i] / 255.0;
+    }
+}
+
+void Buffer2D::writePPM(const char * fName)
+{
+    ppmStuff d;
+    d.width = width;
+    d.height = height;
+    d.sampleWidth = channels;
+    d.data = new char[width * height * channels];
+    for(int i = 0; i < width * height * channels; i++)
+    {
+        d.data[i] = buffer[i] * 255;
+    }
+    ppm.writePPM(fName, d);
+}
+
 glm::vec2 Buffer2D::makeVec2(int index)
 {
     if(channels == 2) return glm::vec2(index * channels, index * channels + 1);

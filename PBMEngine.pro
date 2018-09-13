@@ -11,7 +11,8 @@ SOURCES += main.cpp \
     particle.cpp \
     particlegrid.cpp \
     solidframe.cpp \
-    stuffbuilder.cpp
+    stuffbuilder.cpp \
+    ppmrw.cpp
 
 OTHER_FILES += \
     FragS1.glsl \
@@ -32,7 +33,9 @@ HEADERS += \
     field.h \
     scalarfields.h \
     vectorfields.h \
-    matrixfields.h
+    matrixfields.h \
+    colorfields.h \
+    ppmrw.h
 
 DISTFILES += \
     FragS2.glsl \

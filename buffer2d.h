@@ -2,7 +2,9 @@
 #define BUFFER2D_H
 
 #include <OpenImageIO/imageio.h>
-#include <../glm-0.9.8.5/glm/glm.hpp>
+#include <../glm-0.9.9.1/glm/glm.hpp>
+
+#include "ppmrw.h"
 
 using namespace std;
 OIIO_NAMESPACE_USING
@@ -13,6 +15,7 @@ private:
     float* buffer;
     int width, height, channels;
     float cellSize;
+    ppmrw ppm;
 public:
     Buffer2D();
     Buffer2D(int, int, int, float);
@@ -29,6 +32,8 @@ public:
     void zeroOut();
     void readImage(const char*);
     void writeImage(const char*);
+    void readPPM(const char*);
+    void writePPM(const char*);
 
     glm::vec2 makeVec2(int index);
     glm::vec3 makeVec3(int index);

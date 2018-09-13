@@ -2,7 +2,7 @@
 #define STUFFBUILDER_H
 
 #include <vector>
-#include <../glm-0.9.8.5/glm/glm.hpp>
+#include <../glm-0.9.9.1/glm/glm.hpp>
 
 class SPHModel;
 class Particle;
