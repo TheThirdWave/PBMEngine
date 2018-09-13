@@ -7,13 +7,13 @@
 
 //-----------------------IMPLICIT SHAPES---------------------//
 
-class ScalarFieldSphere:public Field<float>
+class ScalarSphere:public Field<float>
 {
 public:
-    ScalarFieldSphere(glm::vec3 c, float r)
+    ScalarSphere(glm::vec3 c, float r)
     {
        radius = r;
-       center = f;
+       center = c;
     }
 
     float eval(const glm::vec3 &p) const
@@ -27,6 +27,128 @@ public:
     }
 private:
     glm::vec3 center;
+    float radius;
+};
+
+class ScalarEllipse:public Field<float>
+{
+public:
+    ScalarEllipse(glm::vec3 c, float rmin, float rmax)
+    {
+        minRadius = rmin;
+        maxRadius = rmax;
+        normal = glm::normalize(n);
+        center = c;
+    }
+
+    float eval(const glm::vec3 &p) const
+    {
+        glm::vec3 x = p - center;
+        float z = glm::dot(x, normal);
+        glm::vec3 xperp = x - z*normal;
+        return 1 - (z * z)/(maxRadius*maxRadius) - (glm::length(xperp) * glm::length(xperp))/(minRadius * minRadius);
+    }
+
+private:
+    glm::vec3 center;
+    glm::vec3 normal;
+    float minRadius;
+    float maxRadius;
+};
+
+class ScalarTorus:public Field<float>
+{
+public:
+    ScalarTorus(glm::vec3 c, glm::vec3 n, float rmin, float rmax)
+    {
+       minRadius = rmin;
+       maxRadius = rmax;
+       normal = glm::normalize(n);
+       center = c;
+    }
+
+    float eval(const glm::vec3 &p) const
+    {
+        glm::vec3 x = p - center;
+        glm::vec3 xperp = x - glm::dot(x, normal) * normal;
+        return 4*maxRadius*maxRadius*xperp*xperp - pow((x*x + maxRadius*maxRadius-minRadius*minRadius), 2);
+    }
+
+private:
+    glm::vec3 center;
+    glm::vec3 normal;
+    float minRadius;
+    float maxRadius;
+};
+
+class ScalarPlane:public Field<float>
+{
+public:
+    ScalarPlane(glm::vec3 c, glm::vec3 n)
+    {
+       normal = glm::normalize(n);
+       center = c;
+    }
+
+    float eval(const glm::vec3 &p) const
+    {
+        return glm::dot(-(p - center), normal);
+    }
+
+private:
+    glm::vec3 center;
+    glm::vec3 normal;
+};
+
+class ScalarCone:public Field<float>
+{
+public:
+    ScalarCone(glm::vec3 c, glm::vec3 n, float h, float mt)
+    {
+       height = h;
+       normal = glm::normalize(n);
+       center = c;
+       maxTheta = mt;
+    }
+
+    float eval(const glm::vec3 &p) const
+    {
+        float pheight = glm::dot((p - center), normal);
+        if(p == center) return 0;
+        else if(pheight > height) return height - pheight;
+        else if(pheight < 0) return pheight;
+        else
+        {
+            return pheight - glm::length(p) * std::cos(maxTheta);
+        }
+    }
+
+private:
+    glm::vec3 center;
+    glm::vec3 normal;
+    float height;
+    float maxTheta;
+};
+
+class ScalarInfCylinder:public Field<float>
+{
+public:
+    ScalarInfCylinder(glm::vec3 c, glm::vec3 n, float r)
+    {
+       radius = r;
+       normal = glm::normalize(n);
+       center = c;
+    }
+
+    float eval(const glm::vec3 &p) const
+    {
+        glm::vec3 xperp = p - glm::dot(p, normal) * normal;
+        return radius - glm::length(xperp);
+    }
+
+private:
+    glm::vec3 center;
+    glm::vec3 normal;
     float radius;
 };
 
