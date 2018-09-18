@@ -7,6 +7,23 @@
 
 //-----------------------IMPLICIT SHAPES---------------------//
 
+class ScalarField:public Field<float>
+{
+public:
+    ScalarField(float v)
+    {
+        value = v;
+    }
+
+    const float eval(const glm::vec3 &p) const override
+    {
+        return value;
+    }
+
+private:
+    float value;
+};
+
 class ScalarSphere:public Field<float>
 {
 public:
@@ -16,12 +33,12 @@ public:
        center = c;
     }
 
-    float eval(const glm::vec3 &p) const
+    const float eval(const glm::vec3 &p) const override
     {
         return radius - glm::length(p - center);
     }
 
-    glm::vec3 grad(const glm::vec3 &p) const
+    const glm::vec3 grad(const glm::vec3 &p) const override
     {
         return  -(p - center)/glm::length(p - center);
     }
@@ -33,7 +50,7 @@ private:
 class ScalarEllipse:public Field<float>
 {
 public:
-    ScalarEllipse(glm::vec3 c, float rmin, float rmax)
+    ScalarEllipse(glm::vec3 c, glm::vec3 n, float rmin, float rmax)
     {
         minRadius = rmin;
         maxRadius = rmax;
@@ -41,7 +58,7 @@ public:
         center = c;
     }
 
-    float eval(const glm::vec3 &p) const
+    const float eval(const glm::vec3 &p) const override
     {
         glm::vec3 x = p - center;
         float z = glm::dot(x, normal);
@@ -67,11 +84,13 @@ public:
        center = c;
     }
 
-    float eval(const glm::vec3 &p) const
+    const float eval(const glm::vec3 &p) const
     {
         glm::vec3 x = p - center;
         glm::vec3 xperp = x - glm::dot(x, normal) * normal;
-        return 4*maxRadius*maxRadius*xperp*xperp - pow((x*x + maxRadius*maxRadius-minRadius*minRadius), 2);
+        float xlen = glm::length(x);
+        float xplen = glm::length(xperp);
+        return 4*maxRadius*maxRadius*xplen*xplen - std::pow((xlen*xlen + maxRadius*maxRadius-minRadius*minRadius), 2);
     }
 
 private:
@@ -79,6 +98,26 @@ private:
     glm::vec3 normal;
     float minRadius;
     float maxRadius;
+};
+
+class ScalarCube:public Field<float>
+{
+public:
+    ScalarCube(glm::vec3 c, float r)
+    {
+       radius = r;
+       center = c;
+    }
+
+    const float eval(const glm::vec3 &p) const
+    {
+        glm::vec3 x = p - center;
+        return radius * radius - x.x * x.x - x.y * x.y - x.z * x.z;
+    }
+
+private:
+    glm::vec3 center;
+    float radius;
 };
 
 class ScalarPlane:public Field<float>
@@ -90,7 +129,7 @@ public:
        center = c;
     }
 
-    float eval(const glm::vec3 &p) const
+    const float eval(const glm::vec3 &p) const
     {
         return glm::dot(-(p - center), normal);
     }
@@ -111,7 +150,7 @@ public:
        maxTheta = mt;
     }
 
-    float eval(const glm::vec3 &p) const
+    const float eval(const glm::vec3 &p) const
     {
         float pheight = glm::dot((p - center), normal);
         if(p == center) return 0;
@@ -140,7 +179,7 @@ public:
        center = c;
     }
 
-    float eval(const glm::vec3 &p) const
+    const float eval(const glm::vec3 &p) const
     {
         glm::vec3 xperp = p - glm::dot(p, normal) * normal;
         return radius - glm::length(xperp);
@@ -152,74 +191,157 @@ private:
     float radius;
 };
 
+class ScalarIcosahedron:public Field<float>
+{
+public:
+    ScalarIcosahedron(glm::vec3 c, glm::vec3 n, float r)
+    {
+       radius = r;
+       center = c;
+    }
+
+    const float eval(const glm::vec3 &p) const
+    {
+        glm::vec3 x = p - center;
+        float len = glm::length(x);
+        if(len < 1.8*PI) return -1.8*PI;
+        else{
+            return std::cos(x.x + GOLDR * x.y) + std::cos(x.x - GOLDR * x.y) + std::cos(x.y + GOLDR * x.z) + std::cos(x.y - GOLDR * x.z) + std::cos(x.z - GOLDR * x.x) + std::cos(x.z + GOLDR * x.x) - 2.0;
+        }
+    }
+
+private:
+    glm::vec3 center;
+    float radius;
+};
+
+class ScalarSteinerPatch:public Field<float>
+{
+public:
+    ScalarSteinerPatch(glm::vec3 c)
+    {
+        center = c;
+    }
+
+    const float eval(const glm::vec3 &p) const
+    {
+        glm::vec3 x = p - center;
+        return -(x.x*x.x*x.y*x.y + x.x*x.x*x.z*x.z + x.y*x.y*x.z*x.z - x.x*x.y*x.z);
+    }
+
+private:
+    glm::vec3 center;
+};
+
 //-----------------------CONSTRUCTIVE SOLID GEOMETRY------------------------------//
 
 class ScalarIntersect:public Field<float>
 {
 public:
-    ScalarIntersect(Field<float>& f, Field<float>& g)
+    ScalarIntersect(const Field<float>* f, const Field<float>* g)
     {
         f1 = f;
         f2 = g;
     }
-    float eval(const glm::vec3 &P) const
+    const float eval(const glm::vec3 &P) const
     {
-        return std::min(f1.eval(P), f2.eval(P));
+        return std::min(f1->eval(P), f2->eval(P));
     }
 private:
-    Field<float> f1;
-    Field<float> f2;
+    const Field<float>* f1;
+    const Field<float>* f2;
 };
 
 class ScalarUnion:public Field<float>
 {
 public:
-    ScalarUnion(Field<float>& f, Field<float>& g)
+    ScalarUnion(const Field<float>* f, const Field<float>* g)
     {
         f1 = f;
         f2 = g;
     }
-    float eval(const glm::vec3 &P) const
+    const float eval(const glm::vec3 &P) const
     {
-        return std::max(f1.eval(P), f2.eval(P));
+        return std::max(f1->eval(P), f2->eval(P));
     }
 private:
-    Field<float>& f1;
-    Field<float>& f2;
+    const Field<float>* f1;
+    const Field<float>* f2;
 };
 
 class ScalarCutout:public Field<float>
 {
 public:
-    ScalarCutout(Field<float>& f, Field<float>& g)
+    ScalarCutout(const Field<float>* f, const Field<float>* g)
     {
         f1 = f;
         f2 = g;
     }
-    float eval(const glm::vec3 &P) const
+    const float eval(const glm::vec3 &P) const
     {
-        return std::min(f1.eval(P), -f2.eval(P));
+        return std::min(f1->eval(P), -f2->eval(P));
     }
 private:
-    Field<float>& f1;
-    Field<float>& f2;
+    const Field<float>* f1;
+    const Field<float>* f2;
 };
 
 class ScalarShell:public Field<float>
 {
 public:
-    ScalarShell(Field<float>& f, float d)
+    ScalarShell(const Field<float>* f, float d)
     {
         f1 = f;
         depth = d;
     }
-    float eval(const glm::vec3 &P) const
+    const float eval(const glm::vec3 &P) const
     {
-        return std::min(f1.eval(P) + depth, -(f1.eval(P) - depth));
+        return std::min(f1->eval(P) + depth, -(f1->eval(P) - depth));
     }
 private:
-    Field<float>& f1;
+    const Field<float>* f1;
     float depth;
+};
+
+class ScalarMask:public Field<float>
+{
+public:
+    ScalarMask(const Field<float>* f)
+    {
+        f1 = f;
+    }
+
+    const float eval(const glm::vec3 &P) const
+    {
+        float ret = f1->eval(P);
+        if(ret > 0) return 1;
+        else return 0;
+    }
+private:
+    const Field<float>* f1;
+};
+
+class ScalarClamp:public Field<float>
+{
+public:
+    ScalarClamp(const Field<float>* f, float a, float b)
+    {
+        f1 = f;
+        min = a;
+        max = b;
+    }
+
+    const float eval(const glm::vec3 &P) const
+    {
+        float ret = f1->eval(P);
+        if(ret <= min) return min;
+        else if(ret > max) return max;
+        else return ret;
+    }
+private:
+    const Field<float>* f1;
+    float min;
+    float max;
 };
 
 //-----------------------TRANSFORMS------------------------------//
@@ -227,56 +349,56 @@ private:
 class ScalarTranslate:public Field<float>
 {
   public:
-    ScalarTranslate(const Field<float> &f, glm::vec3 v)
+    ScalarTranslate(const Field<float>* f, glm::vec3 v)
     {
         f1 = f;
         movVec = v;
     }
-    float eval(const glm::vec3 &p) const
+    const float eval(const glm::vec3 &p) const
     {
-        return f1.eval(p - movVec);
+        return f1->eval(p - movVec);
     }
 private:
-    Field<float>& f1;
+    const Field<float>* f1;
     glm::vec3 movVec;
 };
 
 class ScalarScale:public Field<float>
 {
 public:
-    ScalarScale(const Field<float> &f, float s)
+    ScalarScale(const Field<float>* f, float s)
     {
         f1 = f;
         scaleFac = s;
     }
-    float eval(const glm::vec3 &P) const
+    const float eval(const glm::vec3 &P) const
     {
-        return f1.eval(p/s);
+        return f1->eval(P/scaleFac);
     }
 private:
-    Field<float>& f1;
+    const Field<float>* f1;
     float scaleFac;
 };
 
 class ScalarRotate:public Field<float>
 {
 public:
-    ScalarRotate(const Field<float> &f, glm::vec3 r)
+    ScalarRotate(const Field<float>* f, glm::vec3 r)
     {
         f1 = f;
         rotAxis = glm::normalize(r);
         rotAngle = glm::length(r);
     }
-    float eval(const glm::vec3 &P) const
+    const float eval(const glm::vec3 &P) const
     {
         float A = std::cos(rotAngle);
         float B = glm::dot(rotAxis, P) * (1 - A);
         float C = std::sin(rotAngle);
         glm::vec3 rotAngle = P * A + rotAxis * B + glm::cross(rotAxis, P) * C;
-        return f1.eval(glm::inverse(rotAngle));
+        return f1->eval(-rotAngle);
     }
 private:
-    Field<float> f1;
+    const Field<float>* f1;
     glm::vec3 rotAxis;
     float rotAngle;
 };
@@ -287,84 +409,148 @@ private:
 class ScalarFieldAdd:public Field<float>
 {
 public:
-    ScalarFieldAdd(const Field<float> &f, const Field<float> &g)
+    ScalarFieldAdd(const Field<float>* f, const Field<float>* g)
     {
         f1 = f;
         f2 = g;
     }
-    float eval(const glm::vec3 &p) const
+    const float eval(const glm::vec3 &p) const
     {
-        return f1.eval(p) + f2.eval(p);
+        return f1->eval(p) + f2->eval(p);
     }
 private:
-    Field<float>& f1;
-    Field<float>& f2;
+    const Field<float>* f1;
+    const Field<float>* f2;
 };
 
 class ScalarFieldSub:public Field<float>
 {
 public:
-    ScalarFieldSub(const Field<float> &f, const Field<float> &g)
+    ScalarFieldSub(const Field<float>* f, const Field<float>* g)
     {
         f1 = f;
         f2 = g;
     }
-    float eval(const glm::vec3 &p) const
+    const float eval(const glm::vec3 &p) const
     {
-        return f1.eval(p) - f2.eval(p);
+        return f1->eval(p) - f2->eval(p);
     }
 private:
-    Field<float>& f1;
-    Field<float>& f2;
+    const Field<float>* f1;
+    const Field<float>* f2;
 };
 
 class ScalarFieldMult:public Field<float>
 {
 public:
-    ScalarFieldMult(const Field<float> &f, const Field<float> &g)
+    ScalarFieldMult(const Field<float>* f, const Field<float>* g)
     {
         f1 = f;
         f2 = g;
     }
-    float eval(const glm::vec3 &p)
+    const float eval(const glm::vec3 &p)
     {
-        return f1.eval(p) * f2.eval(p);
+        return f1->eval(p) * f2->eval(p);
     }
 private:
-    Field<float>& f1;
-    Field<float>& f2;
+    const Field<float>* f1;
+    const Field<float>* f2;
 };
 
 class ScalarFieldDiv:public Field<float>
 {
 public:
-    ScalarFieldDiv(const Field<float> &f, const Field<float> &g)
+    ScalarFieldDiv(const Field<float>* f, const Field<float>* g)
     {
         f1 = f;
         f2 = g;
     }
-    float eval(const glm::vec3 &p) const
+    const float eval(const glm::vec3 &p) const
     {
-        return f1.eval(p) / f2.eval(p);
+        return f1->eval(p) / f2->eval(p);
     }
 private:
-    Field<float>& f1;
-    Field<float>& f2;
+    const Field<float>* f1;
+    const Field<float>* f2;
 };
 
 class ScalarFieldInverse:public Field<float>
 {
 public:
-    ScalarFieldInverse(const Field<float> &f)
+    ScalarFieldInverse(const Field<float>* f)
     {
         f1 = f;
     }
-    float eval(const glm::vec3 &p) const
+    const float eval(const glm::vec3 &p) const
     {
-        return -f1.eval(p);
+        return -f1->eval(p);
     }
 private:
-    Field<float>& f1;
+    const Field<float>* f1;
+};
+
+//-----------------------OVERRIDES---------------------//
+
+inline const ScalarFieldAdd operator+ (const Field<float>& a, const Field<float>& b)
+{
+    return ScalarFieldAdd(&a, &b);
 }
+
+inline const ScalarFieldSub operator- (const Field<float>& a, const Field<float>& b)
+{
+    return ScalarFieldSub(&a, &b);
+}
+
+inline const ScalarFieldInverse operator- (const Field<float>& a)
+{
+    return ScalarFieldInverse(&a);
+}
+
+inline const ScalarFieldMult operator* (const Field<float>& a, const Field<float>& b)
+{
+    return ScalarFieldMult(&a, &b);
+}
+
+inline const ScalarFieldDiv operator/ (const Field<float>& a, const Field<float>& b)
+{
+    return ScalarFieldDiv(&a, &b);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #endif // SCALARFIELDS_H

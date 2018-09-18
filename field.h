@@ -5,7 +5,7 @@
 #include "structpile.h"
 
 //-----------------------------------------------------------------------------
-// Setting up logic to be able to determine the data type of the gradient
+// Setting uP logic to be able to determine the data type of the gradient
 
 template <typename U>
 struct GradType

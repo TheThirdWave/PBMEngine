@@ -8,6 +8,7 @@
 
 #define MAX_IMAGES 10
 #define PI 3.14159265359
+#define GOLDR 1.61803399
 
 #define MAX_PICTURES 10
 #define MAX_SHADERS 10

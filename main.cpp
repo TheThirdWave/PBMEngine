@@ -32,7 +32,11 @@
 #include "stuffbuilder.h"
 
 //Volume Rendering Stuff
+#include "camera.h"
 #include "field.h"
+#include "scalarfields.h"
+#include "colorfields.h"
+#include "volumerenderer.h"
 
 //headers
 void printControls();
@@ -59,6 +63,8 @@ GLuint uvbuffer, textureID;
 FluidModel fluidModel;
 SPHModel sphModel;
 StuffBuilder stuffbuilder;
+volumerenderer volRenderer;
+camera cam;
 
 GLfloat* g_vertex_buffer_data;
 GLfloat* g_uv_buffer_data;
@@ -85,9 +91,10 @@ int main(int argc, char* argv[])
     printControls();
 
     int noImage = clf.find("-blank", 0, "Set to one if you want a blank image (must set width and height)");
+    int volRen = clf.find("-volRen", 1, "Set to one if you're using the volume renderer.");
     int sph = clf.find("-SPH", 0, "Set to one if you want to run a Something Particle Hydrodynamics simulation");
-    int width = clf.find("-width", 256, "Width of simulation if no image supplied");
-    int height = clf.find("-height", 500, "Height of simulation if no image supplied.");
+    int width = clf.find("-width", 720, "Width of simulation if no image supplied");
+    int height = clf.find("-height", 480, "Height of simulation if no image supplied.");
     brightness = clf.find("-b", 1.0f, "The initial display brightness.");
     std::string sourceIn = clf.find("-source", "", "File name for source input");
     std::string imgName = clf.find("-image", "../black.png", "File name for base image.");
@@ -106,19 +113,20 @@ int main(int argc, char* argv[])
     timeStep = clf.find("-ts", (1.0f / (60.0f)), "Starting timestep size.");
 
     //load initial images;
-    if(noImage == 0)
+    if(noImage == 0 && !volRen)
     {
         loadedImg.readImage(imgName.c_str());
         displayBuf.readImage(imgName.c_str());
+    }
+    else if(volRen)
+    {
+        displayBuf.init(width, height, 4, 1.0f);
     }
     else
     {
         loadedImg.init(width, height, 3, 1.0f);
         displayBuf.init(width, height, 3, 1.0f);
     }
-
-    displayBuf.readPPM("../cube.ppm");
-    //displayBuf.writePPM("../cube1.ppm");
     
     sourceBuf.init(displayBuf.getWidth(), displayBuf.getHeight(), 1, 1.0);
 
@@ -264,6 +272,31 @@ int main(int argc, char* argv[])
     // Only during the initialisation
     GLuint MatrixID = glGetUniformLocation(programID, "MVP");
 
+    //-------------------------------------------BUILD SCENE------------------------------------------//
+    cam.setFOV(60);
+    cam.setPos(glm::vec3(0.0f, 0.0f, -10.0f));
+    cam.setLookDir(glm::vec3(0.0f, 0.0f, 1.0f));
+    cam.setUpDir(glm::vec3(0.0f, 1.0f, 0.0f));
+    cam.setRenderDistances(1.0, 20.0);
+
+    ScalarSphere s = ScalarSphere(glm::vec3(0.0f), 5.0);
+    ScalarClamp m = ScalarClamp(&s, 0.0f, 1.0f);
+    ColorField c = ColorField(color(1.0f, 0.0f, 1.0f, 1.0f));
+    glm::vec3 test = glm::vec3(3.0f, 0.0f, 0.0f);
+    float result = m.eval(test);
+    printf("sphere eval: %f\n", result);
+
+    //-------------------------------------------SET UP VOLUME RENDERER------------------------------------------//
+    volRenderer.setCamera(&cam);
+    volRenderer.setDisplayBuf(&displayBuf);
+    volRenderer.setTCoeff(1);
+    volRenderer.setColorFields(&c, 1);
+    volRenderer.setScalarFields(&m, 1);
+    volRenderer.setMarchSteps(20);
+
+    volRenderer.renderFrame();
+    volRenderer.passToDisplay();
+
 
     cur_time = glfwGetTime();
 
@@ -310,7 +343,7 @@ void display(GLFWwindow* window, GLuint matID, GLuint progID, GLuint vertBuf, gl
         else buf[i] *= brightness * 10;
     }
 
-    if(display_state == IMAGE) glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, h->getWidth(), h->getHeight(), GL_RGB, GL_FLOAT, buf);
+    if(display_state == IMAGE) glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, h->getWidth(), h->getHeight(), GL_RGBA, GL_FLOAT, buf);
     //if(display_state == IMAGE) glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, sourceBuf.getWidth(), sourceBuf.getHeight(), GL_RED, GL_FLOAT, sourceBuf.getBuf());)
     else if(display_state == DENSITY)
     {

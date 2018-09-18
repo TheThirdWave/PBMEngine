@@ -12,7 +12,9 @@ SOURCES += main.cpp \
     particlegrid.cpp \
     solidframe.cpp \
     stuffbuilder.cpp \
-    ppmrw.cpp
+    ppmrw.cpp \
+    camera.cpp \
+    volumerenderer.cpp
 
 OTHER_FILES += \
     FragS1.glsl \
@@ -35,7 +37,9 @@ HEADERS += \
     vectorfields.h \
     matrixfields.h \
     colorfields.h \
-    ppmrw.h
+    ppmrw.h \
+    camera.h \
+    volumerenderer.h
 
 DISTFILES += \
     FragS2.glsl \
