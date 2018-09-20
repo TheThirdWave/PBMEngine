@@ -12,6 +12,8 @@
 //glm includes
 #include <../glm-0.9.9.1/glm/glm.hpp>
 #include <../glm-0.9.9.1/glm/gtc/matrix_transform.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <../glm-0.9.9.1/glm/gtx/rotate_vector.hpp>
 
 //image buffer stuff
 #include "buffer2d.h"
@@ -273,41 +275,128 @@ int main(int argc, char* argv[])
     GLuint MatrixID = glGetUniformLocation(programID, "MVP");
 
     //-------------------------------------------BUILD SCENE------------------------------------------//
-    cam.setFOV(60);
-    cam.setPos(glm::vec3(0.0f, 0.0f, -10.0f));
+    cam.setFOV(55);
+    cam.setPos(glm::vec3(0.0f, 5.0f, -55.0f));
     cam.setLookDir(glm::vec3(0.0f, 0.0f, 1.0f));
     cam.setUpDir(glm::vec3(0.0f, 1.0f, 0.0f));
-    cam.setRenderDistances(1.0, 20.0);
+    cam.setRenderDistances(1.0, 70.0);
 
-    ScalarSphere s = ScalarSphere(glm::vec3(0.0f), 5.0);
-    ScalarClamp m = ScalarClamp(&s, 0.0f, 1.0f);
-    ColorField c = ColorField(color(1.0f, 0.0f, 1.0f, 1.0f));
-    glm::vec3 test = glm::vec3(3.0f, 0.0f, 0.0f);
+
+    //ScalarSphere s2 = ScalarSphere(glm::vec3(0.0f, 3.0f, 0.0f), 5.0f);
+    //ScalarCutout cut = ScalarCutout(&s1, &s2);
+    //ScalarTorus t = ScalarTorus(glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 1.0f, 3.0f);
+    //ScalarSteinerPatch steiner = ScalarSteinerPatch(glm::vec3(0.0f));
+    //--------------------MAKE CYLINDER------------------------//
+    ScalarInfCylinder cyl = ScalarInfCylinder(glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1);
+    ScalarPlane p1 = ScalarPlane(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    ScalarPlane p2 = ScalarPlane(glm::vec3(0.0f, -4.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+    ScalarIntersect u1 = ScalarIntersect(&cyl, &p1);
+    ScalarIntersect u2 = ScalarIntersect(&u1, &p2);
+    //--------------------COPY CYLINDER 1-----------------------//
+    ScalarXYZRotate r1 = ScalarXYZRotate(&u2, 0, 0, -90.0);
+    ScalarTranslate t1 = ScalarTranslate(&r1, glm::vec3(-5.0f, 0.0f, 0.0f));
+    //--------------------COPY CYLINDER 2-----------------------//
+    ScalarXYZRotate r2 = ScalarXYZRotate(&u2, 0, 0, -90.0);
+    ScalarTranslate t2 = ScalarTranslate(&r2, glm::vec3(5.0f, 0.0f, 0.0f));
+
+    //---------------------CREATE ARM 1-------------------------//
+    ScalarUnion au1 = ScalarUnion(&t1, &t2);
+    ScalarTranslate arm1 = ScalarTranslate(&au1, glm::vec3(-18.0f, -5.0f, 0.0f));
+    //---------------------CREATE ARM 2-------------------------//
+    ScalarTranslate arm2 = ScalarTranslate(&arm1, glm::vec3(36.0f, 0.0f, 0.0f));
+    //---------------------CREATE LEG 1-------------------------//
+    ScalarXYZRotate lr1 = ScalarXYZRotate(&au1, 0, 0, 90);
+    ScalarTranslate leg1 = ScalarTranslate(&lr1, glm::vec3(-5.0f, 20.0f, 0.0f));
+    //---------------------CREATE LEG 2-------------------------//
+    ScalarTranslate leg2 = ScalarTranslate(&leg1, glm::vec3(10.0f, 0.0f, 0.0f));
+    //---------------------CREATE BODY-------------------------//
+    ScalarEllipse body = ScalarEllipse(glm::vec3(0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 10.0f, 5.0f);
+    //---------------------CREATE CHEST-------------------------//
+    ScalarCone chest = ScalarCone(glm::vec3(0.0f, -18.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 20.0f, 0.2f);
+    //---------------------CREATE HEAD-------------------------//
+    ScalarSphere head = ScalarSphere(glm::vec3(0.0f, -20.0f, 0.0f), 5.0);
+    //---------------------CREATE FOOT 1-------------------------//
+    ScalarCube foot1 = ScalarCube(glm::vec3(-5, 30.0f, 0.0f), 2.2, 6);
+    //---------------------CREATE FOOT 2-------------------------//
+    ScalarCube foot2 = ScalarCube(glm::vec3(5, 30.0f, 0.0f), 2.2, 6);
+    //---------------------CREATE ICO-------------------------//
+    ScalarIcosahedron ico = ScalarIcosahedron(glm::vec3(-18.0f, -5.0f, 0.0f), 2);
+    ScalarScale ico1 = ScalarScale(&ico, 2);
+    //---------------------CREATE STEINER-------------------------//
+    ScalarSteinerPatch steiner = ScalarSteinerPatch(glm::vec3(18.0f, -5.0f, 0.0f));
+    ScalarScale steiner1 = ScalarScale(&steiner, 10);
+    //--------------------UNION EVERYTHING----------------------//
+    ScalarUnion add = ScalarUnion(&arm1, &arm2);
+    ScalarUnion add1 = ScalarUnion(&leg1, &leg2);
+    ScalarUnion add2 = ScalarUnion(&add, &add1);
+    ScalarUnion add3 = ScalarUnion(&add2, &body);
+    ScalarUnion add4 = ScalarUnion(&add3, &chest);
+    ScalarUnion add5 = ScalarUnion(&add4, &head);
+    ScalarUnion add6 = ScalarUnion(&foot1, &foot2);
+    ScalarUnion add7 = ScalarUnion(&add5, &add6);
+    ScalarUnion add8 = ScalarUnion(&add7, &ico1);
+    ScalarUnion add9 = ScalarUnion(&add8, &steiner1);
+    ScalarScale scale = ScalarScale(&add9, 1.0);
+
+
+    ScalarRotate rot = ScalarRotate(&scale, glm::vec3(0.0f, 0.0f , 0.0f));
+    ScalarClamp m = ScalarClamp(&rot, 0.0f, 1.0f);
+
+    //---------------------CREATE COLOR FIELD---------------------//
+    ColorField c1 = ColorField(color(1.0f, 1.0f, 1.0f, 1.0f));
+    ColorField c2 = ColorField(color(0.0f, 1.0f, 0.0f, 1.0f));
+    ColorField c3 = ColorField(color(1.0f, 0.0f, 0.0f, 1.0f));
+    ColorField c4 = ColorField(color(1.0f, 0.2f, 0.2f, 1.0f));
+    ScalarFieldInverse i = ScalarFieldInverse(&body);
+    ScalarFieldInverse i1 = ScalarFieldInverse(&ico);
+    ScalarFieldInverse i2 = ScalarFieldInverse(&ico1);
+    ScalarIntersect is = ScalarIntersect(&i, &i1);
+    ScalarIntersect is2 = ScalarIntersect(&is, &i2);
+    ColorScalarClamp cs4 = ColorScalarClamp(&c1, &is2, 0, 1);
+
+    ColorScalarClamp cs1 = ColorScalarClamp(&c2, &body, 0, 1);
+    ColorScalarClamp cs3 = ColorScalarClamp(&c3, &ico, 0, 1);
+    ColorScalarClamp cs5 = ColorScalarClamp(&c4, &ico1, 0, 1);
+
+    //---------------------CREATE COLOR FIELD---------------------//
+    ColorFieldAdd cAdd = ColorFieldAdd(&cs1, &cs3);
+    ColorFieldAdd cAdd1 = ColorFieldAdd(&cs4, &cAdd);
+    ColorFieldAdd cAdd2 = ColorFieldAdd(&cAdd1, &cs5);
+
+
+    glm::vec3 test = glm::vec3(1.0f, 1.0f, 0.0f);
     float result = m.eval(test);
     printf("sphere eval: %f\n", result);
 
     //-------------------------------------------SET UP VOLUME RENDERER------------------------------------------//
     volRenderer.setCamera(&cam);
     volRenderer.setDisplayBuf(&displayBuf);
-    volRenderer.setTCoeff(1);
-    volRenderer.setColorFields(&c, 1);
+    volRenderer.setTCoeff(100);
+    volRenderer.setColorFields(&cAdd2, 1);
     volRenderer.setScalarFields(&m, 1);
-    volRenderer.setMarchSteps(20);
+    volRenderer.setMarchSteps(400);
 
-    volRenderer.renderFrame();
-    volRenderer.passToDisplay();
+    char fname[100];
+    int numFrames = 4;
+    for(int i = 1; i < numFrames; i++)
+    {
+        glm::vec3 cPos = glm::rotateY(glm::vec3(0.0f, 5.0f, -55.0f), 2*(float)PI * i/numFrames);
+        glm::vec3 cLook = glm::rotateY(glm::vec3(0.0f, 0.0f, 1.0f), 2*(float)PI * i/numFrames);
+        cam.setPos(cPos);
+        cam.setLookDir(cLook);
+        volRenderer.renderFrame();
+        volRenderer.passToDisplay();
+        sprintf(fname, "../turntable/turn%d.exr", i);
+        displayBuf.writeImage(fname);
+        printf("finished rendering %s\n", fname);
+    }
 
-
-    cur_time = glfwGetTime();
-
-    display(window, MatrixID, programID, vertexbuffer, mvp, numVerts);
-
-    do {
+    /*do {
 
         display(window, MatrixID, programID, vertexbuffer, mvp, numVerts);
 		glfwPollEvents();
 
-	} while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0);
+    } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0);*/
 
 }
 

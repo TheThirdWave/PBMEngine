@@ -103,21 +103,23 @@ private:
 class ScalarCube:public Field<float>
 {
 public:
-    ScalarCube(glm::vec3 c, float r)
+    ScalarCube(glm::vec3 c, float r, int s)
     {
        radius = r;
        center = c;
+       sharpness = s;
     }
 
     const float eval(const glm::vec3 &p) const
     {
         glm::vec3 x = p - center;
-        return radius * radius - x.x * x.x - x.y * x.y - x.z * x.z;
+        return std::pow(radius, sharpness) - std::pow(x.x, sharpness) - std::pow(x.y, sharpness) - std::pow(x.z, sharpness);
     }
 
 private:
     glm::vec3 center;
     float radius;
+    int sharpness;
 };
 
 class ScalarPlane:public Field<float>
@@ -194,7 +196,7 @@ private:
 class ScalarIcosahedron:public Field<float>
 {
 public:
-    ScalarIcosahedron(glm::vec3 c, glm::vec3 n, float r)
+    ScalarIcosahedron(glm::vec3 c, float r)
     {
        radius = r;
        center = c;
@@ -204,7 +206,7 @@ public:
     {
         glm::vec3 x = p - center;
         float len = glm::length(x);
-        if(len < 1.8*PI) return -1.8*PI;
+        if(len > 1.8*PI) return -1.8*PI;
         else{
             return std::cos(x.x + GOLDR * x.y) + std::cos(x.x - GOLDR * x.y) + std::cos(x.y + GOLDR * x.z) + std::cos(x.y - GOLDR * x.z) + std::cos(x.z - GOLDR * x.x) + std::cos(x.z + GOLDR * x.x) - 2.0;
         }
@@ -226,7 +228,7 @@ public:
     const float eval(const glm::vec3 &p) const
     {
         glm::vec3 x = p - center;
-        return -(x.x*x.x*x.y*x.y + x.x*x.x*x.z*x.z + x.y*x.y*x.z*x.z - x.x*x.y*x.z);
+        return -((x.x*x.x)*(x.y*x.y) + (x.x*x.x)*(x.z*x.z) + (x.y*x.y)*(x.z*x.z) - (x.x*x.y*x.z));
     }
 
 private:
@@ -363,6 +365,7 @@ private:
     glm::vec3 movVec;
 };
 
+
 class ScalarScale:public Field<float>
 {
 public:
@@ -391,11 +394,15 @@ public:
     }
     const float eval(const glm::vec3 &P) const
     {
-        float A = std::cos(rotAngle);
-        float B = glm::dot(rotAxis, P) * (1 - A);
-        float C = std::sin(rotAngle);
-        glm::vec3 rotAngle = P * A + rotAxis * B + glm::cross(rotAxis, P) * C;
-        return f1->eval(-rotAngle);
+        if(rotAngle != 0)
+        {
+            float A = std::cos(rotAngle);
+            float B = glm::dot(rotAxis, P) * (1 - A);
+            float C = std::sin(rotAngle);
+            glm::vec3 rotAngle = P * A + rotAxis * B + glm::cross(rotAxis, P) * C;
+            return f1->eval(-rotAngle);
+        }
+        else return f1->eval(P);
     }
 private:
     const Field<float>* f1;
@@ -403,6 +410,27 @@ private:
     float rotAngle;
 };
 
+class ScalarXYZRotate:public Field<float>
+{
+public:
+    ScalarXYZRotate(const Field<float>* f, float x, float y, float z)
+    {
+        f1 = f;
+        rx = new ScalarRotate(f1, glm::vec3(x * ((float)PI / 180), 0.0f, 0.0f));
+        ry = new ScalarRotate(rx, glm::vec3(0.0f, y * ((float)PI / 180), 0.0f));
+        rz = new ScalarRotate(ry, glm::vec3(0.0f, 0.0f, z * ((float)PI / 180)));
+    }
+
+    const float eval(const glm::vec3 &P) const
+    {
+        return rz->eval(P);
+    }
+private:
+    const Field<float>* f1;
+    ScalarRotate* rx;
+    ScalarRotate* ry;
+    ScalarRotate* rz;
+};
 
 //-----------------------FIELD ALGEBRA STUFF---------------------//
 

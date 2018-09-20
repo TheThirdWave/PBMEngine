@@ -1,4 +1,5 @@
 #include "volumerenderer.h"
+#include <random>
 
 volumerenderer::volumerenderer()
 {
@@ -73,41 +74,47 @@ void volumerenderer::renderFrame()
     int Nu = disp->getWidth();
     int Nv = disp->getHeight();
     float ratio = (float)Nu/(float)Nv;
-    printf("frame data:\n");
-    printf("Xc = (%f, %f, %f) ", Xc.x, Xc.y, Xc.z);
-    printf("Nc = (%f, %f, %f) ", Nc.x, Nc.y, Nc.z);
-    printf("Vc = (%f, %f, %f) ", Vc.x, Vc.y, Vc.z);
-    printf("Uc = (%f, %f, %f)\n", Uc.x, Uc.y, Uc.z);
+    std::random_device rd1{};
+    std::random_device rd2{};
+    std::mt19937 gen1(rd1());
+    std::mt19937 gen2(rd2());
+    std::uniform_real_distribution<double> dis(0.0, 1.0);
+//    printf("frame data:\n");
+//    printf("Xc = (%f, %f, %f) ", Xc.x, Xc.y, Xc.z);
+//    printf("Nc = (%f, %f, %f) ", Nc.x, Nc.y, Nc.z);
+//    printf("Vc = (%f, %f, %f) ", Vc.x, Vc.y, Vc.z);
+//    printf("Uc = (%f, %f, %f)\n", Uc.x, Uc.y, Uc.z);
 
     //loop through pixels.
     for(int j = 0; j < Nv; j++)
     {
+#pragma omp parallel for
         for(int i = 0; i < Nu; i++)
         {
-            float Ui = (-1 + 2 * ((float)i / ((float)Nu - 1.0))) * std::tan(Fc/2); //Add AA here
-            float Vj = (-1 + 2 * ((float)j / ((float)Nv - 1.0))) * (std::tan(Fc/2) / ratio); //Add AA here.
+            float Ui = (-1 + 2 * (((float)i + dis(gen1)) / ((float)Nu - 1.0))) * std::tan(Fc/2); //dis(gen) for AA
+            float Vj = (-1 + 2 * (((float)j + dis(gen2)) / ((float)Nv - 1.0))) * (std::tan(Fc/2) / ratio); //dis(gen) for AA
             glm::vec3 Qij = Ui * Uc + Vj * Vc;
             glm::vec3 Nij = glm::normalize(Qij + Nc); //direction of ray for pixel ij.
-            printf("pixData: ");
-            printf("Qij = (%f, %f, %f) ", Qij.x, Qij.y, Qij.z);
-            printf("Nij = (%f, %f, %f)\n", Nij.x, Nij.y, Nij.z);
-            colBuf[j * Nu + i] = castRayMarch(Xc, Nij, Snear, Sfar);
+//            printf("pixData: ");
+//            printf("Qij = (%f, %f, %f) ", Qij.x, Qij.y, Qij.z);
+//            printf("Nij = (%f, %f, %f)\n", Nij.x, Nij.y, Nij.z);
+            colBuf[j * Nu + i] = castRayMarch(Xc, Nij, Snear, Sfar, dis(gen1));
         }
     }
 
 }
 
-color volumerenderer::castRayMarch(glm::vec3 Xc, glm::vec3 Np, float Snear, float Sfar)
+color volumerenderer::castRayMarch(glm::vec3 Xc, glm::vec3 Np, float Snear, float Sfar, float rand)
 {
     float stepDist = (Sfar - Snear) / numMarchSteps;
     color Lp = color(0.0f); // accumulated color
     float T = 1; // transmissivity
     for(int i = 0; i < numMarchSteps; i++)
     {
-        glm::vec3 samplePoint = Xc + Np * Snear + stepDist * i * Np;// Add AA here.
-        float deltaT = std::exp(-Kt*scalarFields[0].eval(samplePoint));
-        printf("marchData: ");
-        printf("samplePoint = (%f, %f, %f)\n", samplePoint.x, samplePoint.y, samplePoint.z);
+        glm::vec3 samplePoint = Xc + Np * Snear + stepDist * (i + rand) * Np;// Add AA here.
+        float deltaT = std::exp(-Kt * stepDist * scalarFields[0].eval(samplePoint));
+//        printf("marchData: ");
+//        printf("samplePoint = (%f, %f, %f)\n", samplePoint.x, samplePoint.y, samplePoint.z);
         Lp += colorFields[0].eval(samplePoint) * (1 - deltaT) * T;
         T *= deltaT;
     }

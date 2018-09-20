@@ -68,16 +68,46 @@ public:
     }
     const color eval(const glm::vec3 &P) const override
     {
-        float A = std::cos(rotAngle);
-        float B = glm::dot(rotAxis, P) * (1 - A);
-        float C = std::sin(rotAngle);
-        glm::vec3 rotAngle = P * A + rotAxis * B + glm::cross(rotAxis, P) * C;
-        return f1->eval(-rotAngle);
+        if(rotAngle != 0)
+        {
+            float A = std::cos(rotAngle);
+            float B = glm::dot(rotAxis, P) * (1 - A);
+            float C = std::sin(rotAngle);
+            glm::vec3 rotAngle = P * A + rotAxis * B + glm::cross(rotAxis, P) * C;
+            return f1->eval(-rotAngle);
+        }
+        return f1->eval(P);
     }
 private:
     const Field<color>* f1;
     glm::vec3 rotAxis;
     float rotAngle;
+};
+
+//-----------------------CONSTRUCTIVE SOLID GEOMETRY------------------------------//
+class ColorScalarClamp:public Field<color>
+{
+public:
+    ColorScalarClamp(const Field<color>* f, const Field<float>* g, float mi, float ma)
+    {
+        f1 = f;
+        f2 = g;
+        min = mi;
+        max = ma;
+    }
+    const color eval(const glm::vec3 &P) const
+    {
+        float seval = f2->eval(P);
+
+        if(seval > max) return f1->eval(P) * max;
+        else if(seval < min) return f1->eval(P) * min;
+        else return f1->eval(P) * seval;
+    }
+private:
+    const Field<color>* f1;
+    const Field<float>* f2;
+    float min;
+    float max;
 };
 
 //-----------------------FIELD ALGEBRA STUFF---------------------//

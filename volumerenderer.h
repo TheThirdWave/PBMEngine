@@ -1,6 +1,7 @@
 #ifndef VOLUMERENDERER_H
 #define VOLUMERENDERER_H
 
+#include <random>
 #include <../glm-0.9.9.1/glm/glm.hpp>
 #include <../glm-0.9.9.1/glm/gtc/matrix_transform.hpp>
 #include "structpile.h"
@@ -27,7 +28,7 @@ public:
     void setMarchSteps(int s);
 
     void renderFrame();
-    color castRayMarch(glm::vec3 Xc, glm::vec3 Np, float Snear, float Sfar);
+    color castRayMarch(glm::vec3 Xc, glm::vec3 Np, float Snear, float Sfar, float rand);
 private:
     camera* cam;
     Buffer2D* disp;
