@@ -95,8 +95,8 @@ int main(int argc, char* argv[])
     int noImage = clf.find("-blank", 0, "Set to one if you want a blank image (must set width and height)");
     int volRen = clf.find("-volRen", 1, "Set to one if you're using the volume renderer.");
     int sph = clf.find("-SPH", 0, "Set to one if you want to run a Something Particle Hydrodynamics simulation");
-    int width = clf.find("-width", 720, "Width of simulation if no image supplied");
-    int height = clf.find("-height", 480, "Height of simulation if no image supplied.");
+    int width = clf.find("-width", 1920, "Width of simulation if no image supplied");
+    int height = clf.find("-height", 1080, "Height of simulation if no image supplied.");
     brightness = clf.find("-b", 1.0f, "The initial display brightness.");
     std::string sourceIn = clf.find("-source", "", "File name for source input");
     std::string imgName = clf.find("-image", "../black.png", "File name for base image.");
@@ -377,7 +377,7 @@ int main(int argc, char* argv[])
     volRenderer.setMarchSteps(400);
 
     char fname[100];
-    int numFrames = 4;
+    int numFrames = 120;
     for(int i = 1; i < numFrames; i++)
     {
         glm::vec3 cPos = glm::rotateY(glm::vec3(0.0f, 5.0f, -55.0f), 2*(float)PI * i/numFrames);

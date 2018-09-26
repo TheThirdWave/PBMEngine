@@ -79,11 +79,6 @@ void volumerenderer::renderFrame()
     std::mt19937 gen1(rd1());
     std::mt19937 gen2(rd2());
     std::uniform_real_distribution<double> dis(0.0, 1.0);
-//    printf("frame data:\n");
-//    printf("Xc = (%f, %f, %f) ", Xc.x, Xc.y, Xc.z);
-//    printf("Nc = (%f, %f, %f) ", Nc.x, Nc.y, Nc.z);
-//    printf("Vc = (%f, %f, %f) ", Vc.x, Vc.y, Vc.z);
-//    printf("Uc = (%f, %f, %f)\n", Uc.x, Uc.y, Uc.z);
 
     //loop through pixels.
     for(int j = 0; j < Nv; j++)
@@ -111,7 +106,7 @@ color volumerenderer::castRayMarch(glm::vec3 Xc, glm::vec3 Np, float Snear, floa
     float T = 1; // transmissivity
     for(int i = 0; i < numMarchSteps; i++)
     {
-        glm::vec3 samplePoint = Xc + Np * Snear + stepDist * (i + rand) * Np;// Add AA here.
+        glm::vec3 samplePoint = Xc + Np * Snear + stepDist * (i + rand) * Np;//rand for AA
         float deltaT = std::exp(-Kt * stepDist * scalarFields[0].eval(samplePoint));
 //        printf("marchData: ");
 //        printf("samplePoint = (%f, %f, %f)\n", samplePoint.x, samplePoint.y, samplePoint.z);
