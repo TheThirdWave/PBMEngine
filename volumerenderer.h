@@ -24,21 +24,30 @@ public:
     void setDisplayBuf(Buffer2D* d);
     void setScalarFields(const Field<float>* fields, int len);
     void setColorFields(const Field<color>* fields, int len);
+    void setLights(light* l, int len);
+    void setBoundingBox(bbox* b);
     void setTCoeff(float t);
-    void setMarchSteps(int s);
+    void setMarchSize(float s);
 
     void renderFrame();
     color castRayMarch(glm::vec3 Xc, glm::vec3 Np, float Snear, float Sfar, float rand);
+    color calculateLights(glm::vec3 Xc);
+    float calcDSM(glm::vec3 Xc, glm::vec3 Nl, float Sl);
+    bool checkBoundingBox(glm::vec3& Xc, glm::vec3& Np, bbox* b, float Snear, float Sfar, isect& hitPoints);
+
 private:
     camera* cam;
     Buffer2D* disp;
     color* colBuf;
+    light* lights;
     const Field<float>* scalarFields;
     const Field<color>* colorFields;
+    bbox* boundingBox;
 
     int numSFields;
     int numCFields;
-    int numMarchSteps;
+    int numLights;
+    float marchSize;
     float Kt;
 };
 

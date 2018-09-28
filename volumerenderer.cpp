@@ -52,14 +52,25 @@ void volumerenderer::setColorFields(const Field<color> *fields, int len)
     numCFields = len;
 }
 
+void volumerenderer::setLights(light *l, int len)
+{
+    lights = l;
+    numLights = len;
+}
+
 void volumerenderer::setTCoeff(float t)
 {
     Kt = t;
 }
 
-void volumerenderer::setMarchSteps(int s)
+void volumerenderer::setMarchSize(float s)
 {
-    numMarchSteps = s;
+    marchSize = s;
+}
+
+void volumerenderer::setBoundingBox(bbox *b)
+{
+    boundingBox = b;
 }
 
 void volumerenderer::renderFrame()
@@ -95,24 +106,123 @@ void volumerenderer::renderFrame()
 //            printf("Nij = (%f, %f, %f)\n", Nij.x, Nij.y, Nij.z);
             colBuf[j * Nu + i] = castRayMarch(Xc, Nij, Snear, Sfar, dis(gen1));
         }
+        printf("Percentage Frame Done: %f\n", (j * (float)Nu) / ((float)Nu * Nv));
     }
 
 }
 
 color volumerenderer::castRayMarch(glm::vec3 Xc, glm::vec3 Np, float Snear, float Sfar, float rand)
 {
-    float stepDist = (Sfar - Snear) / numMarchSteps;
+    isect hits;
     color Lp = color(0.0f); // accumulated color
     float T = 1; // transmissivity
-    for(int i = 0; i < numMarchSteps; i++)
+    if(checkBoundingBox(Xc, Np, boundingBox, Snear, Sfar, hits))
     {
-        glm::vec3 samplePoint = Xc + Np * Snear + stepDist * (i + rand) * Np;//rand for AA
-        float deltaT = std::exp(-Kt * stepDist * scalarFields[0].eval(samplePoint));
-//        printf("marchData: ");
-//        printf("samplePoint = (%f, %f, %f)\n", samplePoint.x, samplePoint.y, samplePoint.z);
-        Lp += colorFields[0].eval(samplePoint) * (1 - deltaT) * T;
-        T *= deltaT;
+        int numSteps = (hits.t1 - hits.t0) / marchSize;
+        for(int i = 0; i < numSteps; i++)
+        {
+            glm::vec3 samplePoint = Xc + Np * hits.t0 + marchSize * (i + rand) * Np;//rand for AA
+            float deltaT = std::exp(-Kt * marchSize * scalarFields[0].eval(samplePoint));
+            Lp += calculateLights(samplePoint) * (1 - deltaT) * T;
+            T *= deltaT;
+        }
     }
     Lp.a = 1-T;
     return Lp;
 }
+
+color volumerenderer::calculateLights(glm::vec3 Xc)
+{
+    color fColor = color(color(0.0f, 0.0f, 0.0f, 0.0f));
+    float Tl;
+    for(int i = 0; i < numLights; i++)
+    {
+        glm::vec3 Ll = lights[i].pos - Xc;
+        glm::vec3 Nl = glm::normalize(Ll);
+        float Sl = glm::length(Ll);
+        Tl = std::exp(-Kt * calcDSM(Xc, Nl, Sl));
+        fColor += lights[i].col * Tl;
+    }
+    return fColor * colorFields[0].eval(Xc);
+}
+
+float volumerenderer::calcDSM(glm::vec3 Xc, glm::vec3 Nl, float Sl)
+{
+    int nSteps = Sl / marchSize;
+    float dsm = 0;
+    glm::vec3 x;
+    for(int i = 0; i < nSteps; i++)
+    {
+        x = Xc + Nl * marchSize * (float)i;
+        float rho = scalarFields[0].eval(x);
+        if(rho <= 0) break;
+        dsm += rho * marchSize;
+    }
+    return dsm;
+}
+
+bool volumerenderer::checkBoundingBox(glm::vec3& Xc, glm::vec3& Np, bbox* b, float Snear, float Sfar, isect &hitPoints)
+{
+    float tmin, tmax, tymin, tymax, tzmin, tzmax;
+    float divx = 1 / Np.x;
+    if(divx >= 0)
+    {
+        tmin = (b->LLC.x - Xc.x) * divx;
+        tmax = (b->URC.x - Xc.x) * divx;
+    }
+    else
+    {
+        tmin = (b->URC.x - Xc.x) * divx;
+        tmax = (b->LLC.x - Xc.x) * divx;
+    }
+    float divy = 1 / Np.y;
+    if(divy >= 0)
+    {
+        tymin = (b->LLC.y - Xc.y) * divy;
+        tymax = (b->URC.y - Xc.y) * divy;
+    }
+    else
+    {
+        tymin = (b->URC.y - Xc.y) * divy;
+        tymax = (b->LLC.y - Xc.y) * divy;
+    }
+    if((tmin > tymax) || (tymin > tmax)) return false;
+    if(tymin > tmin) tmin = tymin;
+    if(tymax < tmax) tmax = tymax;
+    float divz = 1 / Np.z;
+    if(divz >= 0)
+    {
+        tzmin = (b->LLC.z - Xc.z) * divz;
+        tzmax = (b->URC.z - Xc.z) * divz;
+    }
+    else
+    {
+        tzmin = (b->URC.z - Xc.z) * divz;
+        tzmax = (b->LLC.z - Xc.z) * divz;
+    }
+    if((tmin > tzmax) || (tmin > tmax)) return false;
+    if(tzmin > tmin) tmin = tzmin;
+    if(tzmax < tmax) tmax = tzmax;
+    if(!((tmin < Sfar) && (tmax > Snear))) return false;
+    hitPoints.t0 = tmin;
+    hitPoints.t1 = tmax;
+    return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

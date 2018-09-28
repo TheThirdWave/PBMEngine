@@ -235,6 +235,30 @@ private:
     glm::vec3 center;
 };
 
+class ScalarGrid:public Field<float>
+{
+public:
+    ScalarGrid(glm::vec3 L, glm::vec3 U, int nx, int ny, int nz, const float* dat, float def)
+    {
+        LLC = L;
+        URC = U;
+
+    }
+
+    const float eval(const glm::vec3 &P) const
+    {
+
+    }
+private:
+    glm::vec3 LLC;
+    glm::vec3 URC;
+    int Nx;
+    int Ny;
+    int Nz;
+    const float* data;
+    float defaultVal;
+};
+
 //-----------------------CONSTRUCTIVE SOLID GEOMETRY------------------------------//
 
 class ScalarIntersect:public Field<float>

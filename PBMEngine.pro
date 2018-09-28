@@ -14,7 +14,8 @@ SOURCES += main.cpp \
     stuffbuilder.cpp \
     ppmrw.cpp \
     camera.cpp \
-    volumerenderer.cpp
+    volumerenderer.cpp \
+    grid.cpp
 
 OTHER_FILES += \
     FragS1.glsl \
@@ -39,7 +40,8 @@ HEADERS += \
     colorfields.h \
     ppmrw.h \
     camera.h \
-    volumerenderer.h
+    volumerenderer.h \
+    grid.h
 
 DISTFILES += \
     FragS2.glsl \

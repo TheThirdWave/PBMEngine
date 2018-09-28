@@ -30,6 +30,10 @@
 
 typedef glm::vec4 color;
 
+struct light {
+    glm::vec3 pos;
+    color col;
+};
 struct image {
     unsigned char* data;
     int height;
@@ -54,6 +58,16 @@ struct geometry {
     float           width;
     float           height;
     float           depth;
+};
+
+struct bbox {
+    glm::vec3 LLC;
+    glm::vec3 URC;
+};
+
+struct isect {
+    float t0;
+    float t1;
 };
 
 struct state
