@@ -1,8 +1,10 @@
 #ifndef SCALARFIELDS_H
 #define SCALARFIELDS_H
 
+#include <algorithm>
 #include <../glm-0.9.9.1/glm/glm.hpp>
 #include "structpile.h"
+#include "grid.h"
 #include "field.h"
 
 //-----------------------IMPLICIT SHAPES---------------------//
@@ -238,16 +240,22 @@ private:
 class ScalarGrid:public Field<float>
 {
 public:
-    ScalarGrid(glm::vec3 L, glm::vec3 U, int nx, int ny, int nz, const float* dat, float def)
+    ScalarGrid(Grid<float>* g, float def)
     {
-        LLC = L;
-        URC = U;
-
+        LLC = g->getLLC();
+        URC = g->getURC();
+        int arr[3];
+        g->getDimensions(arr);
+        Nx = arr[0];
+        Ny = arr[1];
+        Nz = arr[2];
+        grid = g;
     }
 
     const float eval(const glm::vec3 &P) const
     {
-
+        if(P.x < LLC.x || P.x >= URC.x || P.y < LLC.y || P.y >= URC.y || P.z < LLC.z || P.z >= URC.z) return defaultVal;
+        return grid->trilerp(P);
     }
 private:
     glm::vec3 LLC;
@@ -255,7 +263,7 @@ private:
     int Nx;
     int Ny;
     int Nz;
-    const float* data;
+    Grid<float>* grid;
     float defaultVal;
 };
 

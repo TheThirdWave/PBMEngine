@@ -38,6 +38,8 @@
 #include "field.h"
 #include "scalarfields.h"
 #include "colorfields.h"
+#include "grid.h"
+#include "volumelight.h"
 #include "volumerenderer.h"
 
 //headers
@@ -221,14 +223,16 @@ int main(int argc, char* argv[])
     float result = m.eval(test);
     printf("sphere eval: %f\n", result);
 
-    //-------------------------------------------SET UP LIGHTS------------------------------------------//
-    light lights[4];
-    lights[0].pos = glm::vec3(40.0f, -24.0f, -20.0f);
-    lights[0].col = color(1.0f);
     //-------------------------------------------SET UP BBOX------------------------------------------//
     bbox bounds;
     bounds.LLC = glm::vec3(-30.0f, -24.0f, -20.0f);
     bounds.URC = glm::vec3(30.0f, 24.0f, 10.0f);
+
+    //-------------------------------------------SET UP LIGHTS------------------------------------------//
+    VolumeLight lights[4];
+    lights[0].setPos(glm::vec3(40.0f, -24.0f, -20.0f));
+    lights[0].setColor(color(1.0f));
+
     //-------------------------------------------SET UP VOLUME RENDERER------------------------------------------//
     volRenderer.setLights(lights, 1);
     volRenderer.setBoundingBox(&bounds);
@@ -239,6 +243,14 @@ int main(int argc, char* argv[])
     volRenderer.setScalarFields(&m, 1);
     volRenderer.setMarchSize(0.5);
 
+    //-------------------------------------------CALCULATE DSMs------------------------------------------//
+    Grid<float>* dsm = new Grid<float>(bounds.LLC, bounds.URC, 400, 400, 400);
+    printf("--------------------starting DSM calc--------------\n");
+    volRenderer.calcDSM(*dsm, lights[0].getPos());
+    lights[0].setDSM(new ScalarGrid(dsm, 0));
+
+    //-------------------------------------------RENDER FRAMES------------------------------------------//
+    printf("--------------------starting Render---------------\n");
     char fname[100];
     int numFrames = 1;
     for(int i = 0; i < numFrames; i++)

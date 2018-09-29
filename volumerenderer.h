@@ -10,6 +10,8 @@
 #include "buffer2d.h"
 #include "field.h"
 #include "scalarfields.h"
+#include "grid.h"
+#include "volumelight.h"
 
 class volumerenderer
 {
@@ -24,7 +26,7 @@ public:
     void setDisplayBuf(Buffer2D* d);
     void setScalarFields(const Field<float>* fields, int len);
     void setColorFields(const Field<color>* fields, int len);
-    void setLights(light* l, int len);
+    void setLights(VolumeLight* l, int len);
     void setBoundingBox(bbox* b);
     void setTCoeff(float t);
     void setMarchSize(float s);
@@ -32,14 +34,16 @@ public:
     void renderFrame();
     color castRayMarch(glm::vec3 Xc, glm::vec3 Np, float Snear, float Sfar, float rand);
     color calculateLights(glm::vec3 Xc);
-    float calcDSM(glm::vec3 Xc, glm::vec3 Nl, float Sl);
+    float lightMarch(glm::vec3 Xc, glm::vec3 Nl, float Sl);
     bool checkBoundingBox(glm::vec3& Xc, glm::vec3& Np, bbox* b, float Snear, float Sfar, isect& hitPoints);
+
+    void calcDSM(Grid<float> &g, glm::vec3 pos);
 
 private:
     camera* cam;
     Buffer2D* disp;
     color* colBuf;
-    light* lights;
+    VolumeLight* lights;
     const Field<float>* scalarFields;
     const Field<color>* colorFields;
     bbox* boundingBox;

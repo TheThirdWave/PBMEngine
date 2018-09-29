@@ -52,7 +52,7 @@ void volumerenderer::setColorFields(const Field<color> *fields, int len)
     numCFields = len;
 }
 
-void volumerenderer::setLights(light *l, int len)
+void volumerenderer::setLights(VolumeLight *l, int len)
 {
     lights = l;
     numLights = len;
@@ -101,9 +101,6 @@ void volumerenderer::renderFrame()
             float Vj = (-1 + 2 * (((float)j + dis(gen2)) / ((float)Nv - 1.0))) * (std::tan(Fc/2) / ratio); //dis(gen) for AA
             glm::vec3 Qij = Ui * Uc + Vj * Vc;
             glm::vec3 Nij = glm::normalize(Qij + Nc); //direction of ray for pixel ij.
-//            printf("pixData: ");
-//            printf("Qij = (%f, %f, %f) ", Qij.x, Qij.y, Qij.z);
-//            printf("Nij = (%f, %f, %f)\n", Nij.x, Nij.y, Nij.z);
             colBuf[j * Nu + i] = castRayMarch(Xc, Nij, Snear, Sfar, dis(gen1));
         }
         printf("Percentage Frame Done: %f\n", (j * (float)Nu) / ((float)Nu * Nv));
@@ -137,16 +134,17 @@ color volumerenderer::calculateLights(glm::vec3 Xc)
     float Tl;
     for(int i = 0; i < numLights; i++)
     {
-        glm::vec3 Ll = lights[i].pos - Xc;
-        glm::vec3 Nl = glm::normalize(Ll);
-        float Sl = glm::length(Ll);
-        Tl = std::exp(-Kt * calcDSM(Xc, Nl, Sl));
-        fColor += lights[i].col * Tl;
+        //glm::vec3 Ll = lights[i].getPos() - Xc;
+        //glm::vec3 Nl = glm::normalize(Ll);
+        //float Sl = glm::length(Ll);
+        //Tl = std::exp(-Kt * lightMarch(Xc, Nl, Sl));
+        Tl = std::exp(-Kt * lights[i].evalDSM(Xc));
+        fColor += lights[i].getColor() * Tl;
     }
     return fColor * colorFields[0].eval(Xc);
 }
 
-float volumerenderer::calcDSM(glm::vec3 Xc, glm::vec3 Nl, float Sl)
+float volumerenderer::lightMarch(glm::vec3 Xc, glm::vec3 Nl, float Sl)
 {
     int nSteps = Sl / marchSize;
     float dsm = 0;
@@ -207,6 +205,32 @@ bool volumerenderer::checkBoundingBox(glm::vec3& Xc, glm::vec3& Np, bbox* b, flo
     hitPoints.t0 = tmin;
     hitPoints.t1 = tmax;
     return true;
+}
+
+void volumerenderer::calcDSM(Grid<float>& g, glm::vec3 pos)
+{
+    int arr[3];
+    g.getDimensions(arr);
+    int Nx = arr[0];
+    int Ny = arr[1];
+    int Nz = arr[2];
+    for(int k = 0; k < Nz; k++)
+    {
+        for(int j = 0; j < Ny; j++)
+        {
+            #pragma omp parallel for
+            for(int i = 0; i < Nx; i++)
+            {
+                glm::vec3 x = g.getIndexPos(i, j, k);
+                glm::vec3 Li = pos - x;
+                glm::vec3 Ni = glm::normalize(Li);
+                float Si = glm::length(Li);
+                float rhoish = lightMarch(x, Ni, Si);
+                g.setDataAt(g.getIndex(i, j, k), rhoish);
+            }
+        }
+        printf("Percentage DSM Done: %f\n", (k * (float)Nx * (float)Ny) / ((float)Nx * Ny * Nz));
+    }
 }
 
 
