@@ -120,6 +120,10 @@ color volumerenderer::castRayMarch(glm::vec3 Xc, glm::vec3 Np, float Snear, floa
         {
             glm::vec3 samplePoint = Xc + Np * hits.t0 + marchSize * (i + rand) * Np;//rand for AA
             float deltaT = std::exp(-Kt * marchSize * scalarFields[0].eval(samplePoint));
+            if(deltaT != 1)
+            {
+                int x = 0;
+            }
             Lp += calculateLights(samplePoint) * (1 - deltaT) * T;
             T *= deltaT;
         }

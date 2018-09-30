@@ -249,12 +249,15 @@ public:
         Nx = arr[0];
         Ny = arr[1];
         Nz = arr[2];
+        dx = (URC.x - LLC.x) / Nx;
+        dy = (URC.y - LLC.y) / Ny;
+        dz = (URC.z - LLC.z) / Nz;
         grid = g;
     }
 
     const float eval(const glm::vec3 &P) const
     {
-        if(P.x < LLC.x || P.x >= URC.x || P.y < LLC.y || P.y >= URC.y || P.z < LLC.z || P.z >= URC.z) return defaultVal;
+        if(P.x < LLC.x || P.x >= URC.x - dx || P.y < LLC.y || P.y >= URC.y - dy || P.z < LLC.z || P.z >= URC.z - dz) return defaultVal;
         return grid->trilerp(P);
     }
 private:
@@ -263,6 +266,9 @@ private:
     int Nx;
     int Ny;
     int Nz;
+    float dx;
+    float dy;
+    float dz;
     Grid<float>* grid;
     float defaultVal;
 };

@@ -31,6 +31,11 @@ public:
         URC = u;
     };
 
+    void setData(T* d)
+    {
+        data = d;
+    }
+
     void setDataAt(int index, T d)
     {
         data[index] = d;
@@ -56,6 +61,11 @@ public:
         return URC;
     };
 
+    T* getData()
+    {
+        return data;
+    }
+
     void getDimensions(int* arr)
     {
         arr[0] = Nx;
@@ -69,62 +79,33 @@ public:
         int i = Xg.x / dx;
         int j = Xg.y / dy;
         int k = Xg.z / dz;
+        float u = Xg.x - i * dx;
+        float v = Xg.y - j * dy;
+        float w = Xg.z - k * dz;
         T c000, c001, c010, c011, c100, c101, c110, c111, c00, c01, c10, c11, c0, c1;
         int index = getIndex(i, j, k);
-        if(index < 0 || index > Nx * Ny * Nz)
-        {
-            int x = 0;
-        }
         c000 = data[index];
         index = getIndex(i, j, k + 1);
-        if(index < 0 || index > Nx * Ny * Nz)
-        {
-            int x = 0;
-        }
         c001 = data[index];
         index = getIndex(i, j + 1, k);
-        if(index < 0 || index > Nx * Ny * Nz)
-        {
-            int x = 0;
-        }
         c010 = data[index];
         index = getIndex(i, j + 1, k + 1);
-        if(index < 0 || index > Nx * Ny * Nz)
-        {
-            int x = 0;
-        }
         c011 = data[index];
         index = getIndex(i + 1, j, k);
-        if(index < 0 || index > Nx * Ny * Nz)
-        {
-            int x = 0;
-        }
         c100 = data[getIndex(i + 1, j, k)];
         index = getIndex(i + 1, j, k + 1);
-        if(index < 0 || index > Nx * Ny * Nz)
-        {
-            int x = 0;
-        }
         c101 = data[getIndex(i + 1, j, k + 1)];
         index = getIndex(i + 1, j + 1, k);
-        if(index < 0 || index > Nx * Ny * Nz)
-        {
-            int x = 0;
-        }
         c110 = data[index];
         index = getIndex(i + 1, j + 1, k + 1);
-        if(index < 0 || index > Nx * Ny * Nz)
-        {
-            int x = 0;
-        }
         c111 = data[index];
-        c00 = c000 * (1 - Xg.x) + c100 * Xg.x;
-        c01 = c001 * (1 - Xg.x) + c101 * Xg.x;
-        c10 = c010 * (1 - Xg.x) + c110 * Xg.x;
-        c11 = c011 * (1 - Xg.x) + c111 * Xg.x;
-        c0 = c00 * (1 - Xg.y) + c10 * Xg.y;
-        c1 = c01 * (1 - Xg.y) + c11 * Xg.y;
-        return c0 * (1 - Xg.z) + c1 * Xg.z;
+        c00 = c000 * (1 - u) + c100 * u;
+        c01 = c001 * (1 - u) + c101 * u;
+        c10 = c010 * (1 - u) + c110 * u;
+        c11 = c011 * (1 - u) + c111 * u;
+        c0 = c00 * (1 - v) + c10 * v;
+        c1 = c01 * (1 - v) + c11 * v;
+        return c0 * (1 - w) + c1 * w;
     };
 
 private:

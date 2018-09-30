@@ -41,6 +41,7 @@
 #include "grid.h"
 #include "volumelight.h"
 #include "volumerenderer.h"
+#include "volumerw.h"
 
 //headers
 void printControls();
@@ -53,12 +54,12 @@ static float WIDTH, HEIGHT;
 Buffer2D loadedImg;
 Buffer2D displayBuf;
 Buffer2D sourceInBuf;
-Buffer2D sourceBuf;
 GLuint uvbuffer, textureID;
 FluidModel fluidModel;
 SPHModel sphModel;
 StuffBuilder stuffbuilder;
 volumerenderer volRenderer;
+VolumeRW volRW;
 camera cam;
 
 GLfloat* g_vertex_buffer_data;
@@ -87,43 +88,18 @@ int main(int argc, char* argv[])
 
     int noImage = clf.find("-blank", 0, "Set to one if you want a blank image (must set width and height)");
     int volRen = clf.find("-volRen", 1, "Set to one if you're using the volume renderer.");
-    int sph = clf.find("-SPH", 0, "Set to one if you want to run a Something Particle Hydrodynamics simulation");
+    int readLights = clf.find("-rLights", 0, "Set to one if you wish to read the light grids from memory.");
+    int writeLights = clf.find("-wLights", 0, "Set to one if you wish to write the light grids to memory.");
     int width = clf.find("-width", 720, "Width of simulation if no image supplied");
     int height = clf.find("-height", 480, "Height of simulation if no image supplied.");
     brightness = clf.find("-b", 1.0f, "The initial display brightness.");
-    std::string sourceIn = clf.find("-source", "", "File name for source input");
     std::string imgName = clf.find("-image", "../black.png", "File name for base image.");
 
-    if(sourceIn != "")
-    {
-        prog_state = prog_state | SOURCEIN;
-        sourceInBuf.readImage(sourceIn.c_str());
-    }
-    if(sph > 0)
-    {
-        prog_state = prog_state | SPH;
-        noImage = 1;
-    }
-    else prog_state = prog_state & ~SPH;
     timeStep = clf.find("-ts", (1.0f / (60.0f)), "Starting timestep size.");
 
-    //load initial images;
-    if(noImage == 0 && !volRen)
-    {
-        loadedImg.readImage(imgName.c_str());
-        displayBuf.readImage(imgName.c_str());
-    }
-    else if(volRen)
-    {
-        displayBuf.init(width, height, 4, 1.0f);
-    }
-    else
-    {
-        loadedImg.init(width, height, 3, 1.0f);
-        displayBuf.init(width, height, 3, 1.0f);
-    }
+    //init display buffer.
+    displayBuf.init(width, height, 4, 1.0f);
     
-    sourceBuf.init(displayBuf.getWidth(), displayBuf.getHeight(), 1, 1.0);
 
     //set static variables.
     WIDTH = displayBuf.getWidth();
@@ -244,26 +220,43 @@ int main(int argc, char* argv[])
     volRenderer.setMarchSize(0.5);
 
     //-------------------------------------------CALCULATE DSMs------------------------------------------//
-    Grid<float>* dsm = new Grid<float>(bounds.LLC, bounds.URC, 400, 400, 400);
-    printf("--------------------starting DSM calc--------------\n");
-    volRenderer.calcDSM(*dsm, lights[0].getPos());
+    Grid<float>* dsm;
+    if(readLights == 0)
+    {
+        printf("--------------------starting DSM calc--------------\n");
+        dsm = new Grid<float>(bounds.LLC, bounds.URC, 400, 400, 400);
+        volRenderer.calcDSM(*dsm, lights[0].getPos());
+    }
+    else
+    {
+        printf("--------------------starting DSM read--------------\n");
+        dsm = volRW.readScalarGrid("../grids/grid0.grid");
+    }
+    if(writeLights == 1 && readLights == 0)
+    {
+        printf("--------------------writing DSM--------------\n");
+        volRW.writeScalarGrid(dsm, "../grids/grid0.grid");
+    }
     lights[0].setDSM(new ScalarGrid(dsm, 0));
 
     //-------------------------------------------RENDER FRAMES------------------------------------------//
-    printf("--------------------starting Render---------------\n");
-    char fname[100];
-    int numFrames = 1;
-    for(int i = 0; i < numFrames; i++)
+    if(volRen == 1)
     {
-        glm::vec3 cPos = glm::rotateY(glm::vec3(0.0f, 5.0f, -55.0f), 2*(float)PI * i/numFrames);
-        glm::vec3 cLook = glm::rotateY(glm::vec3(0.0f, 0.0f, 1.0f), 2*(float)PI * i/numFrames);
-        cam.setPos(cPos);
-        cam.setLookDir(cLook);
-        volRenderer.renderFrame();
-        volRenderer.passToDisplay();
-        sprintf(fname, "../turntable/turn%d.exr", i);
-        displayBuf.writeImage(fname);
-        printf("finished rendering %s\n", fname);
+        printf("--------------------starting Render---------------\n");
+        char fname[100];
+        int numFrames = 1;
+        for(int i = 0; i < numFrames; i++)
+        {
+            glm::vec3 cPos = glm::rotateY(glm::vec3(0.0f, 5.0f, -55.0f), 2*(float)PI * i/numFrames);
+            glm::vec3 cLook = glm::rotateY(glm::vec3(0.0f, 0.0f, 1.0f), 2*(float)PI * i/numFrames);
+            cam.setPos(cPos);
+            cam.setLookDir(cLook);
+            volRenderer.renderFrame();
+            volRenderer.passToDisplay();
+            sprintf(fname, "../turntable/turn%d.exr", i);
+            displayBuf.writeImage(fname);
+            printf("finished rendering %s\n", fname);
+        }
     }
 
 }
@@ -288,40 +281,16 @@ void keyHandler(GLFWwindow* win, int key, int scancode, int action, int mods)
      case GLFW_KEY_R:
         if(action == GLFW_PRESS)
         {
-            displayBuf.setDataBuffer(loadedImg);
-            sourceBuf.zeroOut();
-            fluidModel.reset();
-            printf("SIMULATION RESET!\n");
         }
         break;
     case GLFW_KEY_O:
         if(action == GLFW_PRESS)
         {
-            if(paint_mode == PAINT_SOURCE)
-            {
-                paint_mode = PAINT_OBSTRUCTION;
-                printf("Paint mode: Obstruction\n");
-            }
-            else
-            {
-                paint_mode = PAINT_SOURCE;
-                printf("Paint mode: Source\n");
-            }
         }
         break;
     case GLFW_KEY_I:
         if(action == GLFW_PRESS)
         {
-            if(paint_mode == PAINT_SOURCE)
-            {
-                paint_mode = PAINT_TARGET;
-                printf("Paint mode: Target\n");
-            }
-            else
-            {
-                paint_mode = PAINT_SOURCE;
-                printf("Paint mode: Source\n");
-            }
         }
         break;
     case GLFW_KEY_P:
