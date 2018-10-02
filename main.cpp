@@ -42,6 +42,7 @@
 #include "volumelight.h"
 #include "volumerenderer.h"
 #include "volumerw.h"
+#include "lsgenerator.h"
 
 //headers
 void printControls();
@@ -60,6 +61,7 @@ SPHModel sphModel;
 StuffBuilder stuffbuilder;
 volumerenderer volRenderer;
 VolumeRW volRW;
+LSGenerator lsGen;
 camera cam;
 
 GLfloat* g_vertex_buffer_data;
@@ -90,6 +92,7 @@ int main(int argc, char* argv[])
     int volRen = clf.find("-volRen", 1, "Set to one if you're using the volume renderer.");
     int readLights = clf.find("-rLights", 0, "Set to one if you wish to read the light grids from memory.");
     int writeLights = clf.find("-wLights", 0, "Set to one if you wish to write the light grids to memory.");
+    int sceneSwitch = clf.find("-scene", 0, "# determines which scene to load");
     int width = clf.find("-width", 720, "Width of simulation if no image supplied");
     int height = clf.find("-height", 480, "Height of simulation if no image supplied.");
     brightness = clf.find("-b", 1.0f, "The initial display brightness.");
@@ -117,6 +120,7 @@ int main(int argc, char* argv[])
     //ScalarCutout cut = ScalarCutout(&s1, &s2);
     //ScalarTorus t = ScalarTorus(glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 1.0f, 3.0f);
     //ScalarSteinerPatch steiner = ScalarSteinerPatch(glm::vec3(0.0f));
+    /*
     //--------------------MAKE CYLINDER------------------------//
     ScalarInfCylinder cyl = ScalarInfCylinder(glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1);
     ScalarPlane p1 = ScalarPlane(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -172,7 +176,16 @@ int main(int argc, char* argv[])
 
     ScalarRotate rot = ScalarRotate(&scale, glm::vec3(0.0f, 0.0f , 0.0f));
     ScalarClamp m = ScalarClamp(&rot, 0.0f, 1.0f);
+    */
+    //--------------------LOAD BUNNY----------------------//
+    lsGen.readObj("../models/cleanbunny.obj");
+    Grid<float>* bun = new Grid<float>(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 400, 400, 400);
+    lsGen.stampLS(*bun);
+    ScalarGrid bunGrid = ScalarGrid(bun, -1.0f);
+    ScalarClamp bunClamp = ScalarClamp(&bunGrid, 0, 1);
+    ScalarScale enhance = ScalarScale(&bunClamp, 50);
 
+    /*
     //---------------------CREATE COLOR FIELD---------------------//
     ColorField c1 = ColorField(color(1.0f, 1.0f, 1.0f, 1.0f));
     ColorField c2 = ColorField(color(0.0f, 1.0f, 0.0f, 1.0f));
@@ -193,11 +206,13 @@ int main(int argc, char* argv[])
     ColorFieldAdd cAdd = ColorFieldAdd(&cs1, &cs3);
     ColorFieldAdd cAdd1 = ColorFieldAdd(&cs4, &cAdd);
     ColorFieldAdd cAdd2 = ColorFieldAdd(&cAdd1, &cs5);
+    */
+    ColorField white = ColorField(color(1.0f, 1.0f, 1.0f, 1.0f));
 
 
     glm::vec3 test = glm::vec3(1.0f, 1.0f, 0.0f);
-    float result = m.eval(test);
-    printf("sphere eval: %f\n", result);
+    //float result = m.eval(test);
+    //printf("sphere eval: %f\n", result);
 
     //-------------------------------------------SET UP BBOX------------------------------------------//
     bbox bounds;
@@ -215,8 +230,8 @@ int main(int argc, char* argv[])
     volRenderer.setCamera(&cam);
     volRenderer.setDisplayBuf(&displayBuf);
     volRenderer.setTCoeff(10);
-    volRenderer.setColorFields(&cAdd2, 1);
-    volRenderer.setScalarFields(&m, 1);
+    volRenderer.setColorFields(&white, 1);
+    volRenderer.setScalarFields(&enhance, 1);
     volRenderer.setMarchSize(0.5);
 
     //-------------------------------------------CALCULATE DSMs------------------------------------------//

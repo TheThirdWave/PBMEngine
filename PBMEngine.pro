@@ -17,7 +17,8 @@ SOURCES += main.cpp \
     volumerenderer.cpp \
     grid.cpp \
     volumelight.cpp \
-    volumerw.cpp
+    volumerw.cpp \
+    lsgenerator.cpp
 
 OTHER_FILES += \
     FragS1.glsl \
@@ -45,7 +46,8 @@ HEADERS += \
     volumerenderer.h \
     grid.h \
     volumelight.h \
-    volumerw.h
+    volumerw.h \
+    lsgenerator.h
 
 DISTFILES += \
     FragS2.glsl \
