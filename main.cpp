@@ -92,9 +92,11 @@ int main(int argc, char* argv[])
     int volRen = clf.find("-volRen", 1, "Set to one if you're using the volume renderer.");
     int readLights = clf.find("-rLights", 0, "Set to one if you wish to read the light grids from memory.");
     int writeLights = clf.find("-wLights", 0, "Set to one if you wish to write the light grids to memory.");
+    int readObjects = clf.find("-rObj", 0, "Set to one if you wish to write the object grids to memory.");
+    int writeObjects = clf.find("-wObj", 0, "Set to one if you wish to read the object grids from memory.");
     int sceneSwitch = clf.find("-scene", 0, "# determines which scene to load");
-    int width = clf.find("-width", 720, "Width of simulation if no image supplied");
-    int height = clf.find("-height", 480, "Height of simulation if no image supplied.");
+    int width = clf.find("-width", 1920, "Width of simulation if no image supplied");
+    int height = clf.find("-height", 1080, "Height of simulation if no image supplied.");
     brightness = clf.find("-b", 1.0f, "The initial display brightness.");
     std::string imgName = clf.find("-image", "../black.png", "File name for base image.");
 
@@ -110,7 +112,7 @@ int main(int argc, char* argv[])
 
     //-------------------------------------------BUILD SCENE------------------------------------------//
     cam.setFOV(55);
-    cam.setPos(glm::vec3(0.0f, 5.0f, -55.0f));
+    cam.setPos(glm::vec3(0.0f, 0.0f, -50.0f));
     cam.setLookDir(glm::vec3(0.0f, 0.0f, 1.0f));
     cam.setUpDir(glm::vec3(0.0f, 1.0f, 0.0f));
     cam.setRenderDistances(1.0, 70.0);
@@ -120,9 +122,9 @@ int main(int argc, char* argv[])
     //ScalarCutout cut = ScalarCutout(&s1, &s2);
     //ScalarTorus t = ScalarTorus(glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 1.0f, 3.0f);
     //ScalarSteinerPatch steiner = ScalarSteinerPatch(glm::vec3(0.0f));
-    /*
+    char oname[100];
     //--------------------MAKE CYLINDER------------------------//
-    ScalarInfCylinder cyl = ScalarInfCylinder(glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1);
+/*    ScalarInfCylinder cyl = ScalarInfCylinder(glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 1);
     ScalarPlane p1 = ScalarPlane(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     ScalarPlane p2 = ScalarPlane(glm::vec3(0.0f, -4.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
     ScalarIntersect u1 = ScalarIntersect(&cyl, &p1);
@@ -175,16 +177,84 @@ int main(int argc, char* argv[])
 
 
     ScalarRotate rot = ScalarRotate(&scale, glm::vec3(0.0f, 0.0f , 0.0f));
-    ScalarClamp m = ScalarClamp(&rot, 0.0f, 1.0f);
-    */
+    Grid<float>* scene;
+    if(readObjects == 1)
+    {
+        printf("--------------------reading FULL SCENE--------------\n");
+        sprintf(oname, "../grids/scene.grid");
+        scene = volRW.readScalarGrid(oname);
+    }
+    else
+    {
+        scene = new Grid<float>(glm::vec3(-35.0f, -30.0f, -30.0f), glm::vec3(35.0f, 30.0f, 30.0f), 400, 400, 400);
+        scene->stampField(&rot);
+    }
+    if(writeObjects == 1 && readObjects == 0)
+    {
+        printf("--------------------writing BUNNY--------------\n");
+        sprintf(oname, "../grids/scene.grid");
+        volRW.writeScalarGrid(scene, oname);
+    }
+    ScalarGrid scene1 = ScalarGrid(scene, -1);
+    ScalarClamp m = ScalarClamp(&scene1, 0.0f, 1.0f);
+*/
     //--------------------LOAD BUNNY----------------------//
-    lsGen.readObj("../models/cleanbunny.obj");
-    Grid<float>* bun = new Grid<float>(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 400, 400, 400);
-    lsGen.stampLS(*bun);
+    Grid<float>* bun;
+    if(readObjects == 1)
+    {
+        printf("--------------------reading BUNNY--------------\n");
+        sprintf(oname, "../grids/bun.grid");
+        bun = volRW.readScalarGrid(oname);
+    }
+    else
+    {
+        lsGen.readObj("../models/cleanbunny.obj");
+        bun = new Grid<float>(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 50, 50, 50);
+        lsGen.stampLS(*bun);
+    }
+    if(writeObjects == 1 && readObjects == 0)
+    {
+        printf("--------------------writing BUNNY--------------\n");
+        sprintf(oname, "../grids/bun.grid");
+        volRW.writeScalarGrid(bun, oname);
+    }
+    //ScalarSphere test = ScalarSphere(glm::vec3(0.0f, 0.0f, 0.0f), 1.0);
+    //bun->stampField(&test);
     ScalarGrid bunGrid = ScalarGrid(bun, -1.0f);
-    ScalarClamp bunClamp = ScalarClamp(&bunGrid, 0, 1);
-    ScalarScale enhance = ScalarScale(&bunClamp, 50);
+    ScalarScale enhance = ScalarScale(&bunGrid, -15);
+    ScalarClamp bunClamp = ScalarClamp(&enhance, 0.0f, 1.0f);
 
+    //--------------------LOAD TEAPOT----------------------//
+    Grid<float>* tea;
+    if(readObjects == 1)
+    {
+        printf("--------------------reading BUNNY--------------\n");
+        sprintf(oname, "../grids/tea.grid");
+        tea = volRW.readScalarGrid(oname);
+    }
+    else
+    {
+        lsGen.readObj("../models/cleanteapot1.obj");
+        tea = new Grid<float>(glm::vec3(-1.5f, -1.0f, -1.0f), glm::vec3(1.5f, 1.0f, 1.0f), 50, 50, 50);
+        lsGen.stampLS(*tea);
+    }
+    if(writeObjects == 1 && readObjects == 0)
+    {
+        printf("--------------------writing TEAPOT--------------\n");
+        sprintf(oname, "../grids/tea.grid");
+        volRW.writeScalarGrid(tea, oname);
+    }
+    //ScalarSphere test = ScalarSphere(glm::vec3(0.0f, 0.0f, 0.0f), 1.0);
+    //bun->stampField(&test);
+    ScalarGrid teaGrid = ScalarGrid(tea, -1.0f);
+    ScalarScale teahance = ScalarScale(&teaGrid, -15);
+    ScalarClamp teaClamp = ScalarClamp(&teahance, 0.0f, 1.0f);
+
+    //---------------------CREATE BUNNY BOWL---------------------//
+    ScalarCutout hat = ScalarCutout(&teaGrid, new ScalarSphere(glm::vec3(0.0f, 1.0f, 0.0f), 1.0));
+    ScalarUnion bbowl = ScalarUnion(&hat, new ScalarTranslate(&bunGrid, glm::vec3(0.0f, 0.5f, 0.0f)));
+    ScalarScale bigBowl = ScalarScale(&bbowl, -15);
+    ScalarClamp cBowl = ScalarClamp(&bigBowl, 0, 1);
     /*
     //---------------------CREATE COLOR FIELD---------------------//
     ColorField c1 = ColorField(color(1.0f, 1.0f, 1.0f, 1.0f));
@@ -209,60 +279,144 @@ int main(int argc, char* argv[])
     */
     ColorField white = ColorField(color(1.0f, 1.0f, 1.0f, 1.0f));
 
-
-    glm::vec3 test = glm::vec3(1.0f, 1.0f, 0.0f);
-    //float result = m.eval(test);
-    //printf("sphere eval: %f\n", result);
-
     //-------------------------------------------SET UP BBOX------------------------------------------//
     bbox bounds;
-    bounds.LLC = glm::vec3(-30.0f, -24.0f, -20.0f);
-    bounds.URC = glm::vec3(30.0f, 24.0f, 10.0f);
+    bounds.LLC = glm::vec3(-35.0f, -30.0f, -30.0f);
+    bounds.URC = glm::vec3(35.0f, 30.0f, 30.0f);
 
     //-------------------------------------------SET UP LIGHTS------------------------------------------//
     VolumeLight lights[4];
-    lights[0].setPos(glm::vec3(40.0f, -24.0f, -20.0f));
-    lights[0].setColor(color(1.0f));
+    lights[0].setPos(glm::vec3(35.0f, -30.0f, -20.0f));
+    lights[0].setColor(color(0.0f, 1.0f, 1.0f, 1.0f));
+    lights[1].setPos(glm::vec3(-30.0f, 30.0f, -10.0f));
+    lights[1].setColor(color(1.0f, 0.0f, 0.0f, 1.0f));
+    lights[2].setPos(glm::vec3(-10.0f, 10.0f, 40.0f));
+    lights[2].setColor(color(0.0f, 1.0f, 1.0f, 1.0f));
 
     //-------------------------------------------SET UP VOLUME RENDERER------------------------------------------//
-    volRenderer.setLights(lights, 1);
+    volRenderer.setLights(lights, 3);
     volRenderer.setBoundingBox(&bounds);
     volRenderer.setCamera(&cam);
     volRenderer.setDisplayBuf(&displayBuf);
-    volRenderer.setTCoeff(10);
+    volRenderer.setTCoeff(3);
     volRenderer.setColorFields(&white, 1);
-    volRenderer.setScalarFields(&enhance, 1);
-    volRenderer.setMarchSize(0.5);
+    volRenderer.setScalarFields(&teaClamp, 1);
+    volRenderer.setMarchSize(0.1);
 
     //-------------------------------------------CALCULATE DSMs------------------------------------------//
-    Grid<float>* dsm;
+    Grid<float>* dsmb[3];
+    Grid<float>* dsmt[3];
+    Grid<float>* dsmh[3];
+    Grid<float>* dsms[3];
+    ScalarGrid* blgrid[3];
+    ScalarGrid* tlgrid[3];
+    ScalarGrid* hlgrid[3];
+    ScalarGrid* slgrid[3];
+    char gname[100];
     if(readLights == 0)
     {
         printf("--------------------starting DSM calc--------------\n");
-        dsm = new Grid<float>(bounds.LLC, bounds.URC, 400, 400, 400);
-        volRenderer.calcDSM(*dsm, lights[0].getPos());
+        for(int i = 0; i < 3; i++)
+        {
+            dsmb[i] = new Grid<float>(bounds.LLC, bounds.URC, 400, 400, 400);
+            volRenderer.calcDSM(*dsmb[i], lights[i].getPos());
+        }
+        volRenderer.setScalarFields(&teahance, 1);
+        for(int i = 0; i < 3; i++)
+        {
+            dsmt[i] = new Grid<float>(bounds.LLC, bounds.URC, 400, 400, 400);
+            volRenderer.calcDSM(*dsmt[i], lights[i].getPos());
+        }
+        volRenderer.setScalarFields(&cBowl, 1);
+        for(int i = 0; i < 3; i++)
+        {
+            dsmh[i] = new Grid<float>(bounds.LLC, bounds.URC, 400, 400, 400);
+            volRenderer.calcDSM(*dsmh[i], lights[i].getPos());
+        }
+ /*       volRenderer.setScalarFields(&m, 1);
+        for(int i = 0; i < 3; i++)
+        {
+            dsms[i] = new Grid<float>(bounds.LLC, bounds.URC, 400, 400, 400);
+            volRenderer.calcDSM(*dsms[i], lights[i].getPos());
+        }*/
     }
     else
     {
         printf("--------------------starting DSM read--------------\n");
-        dsm = volRW.readScalarGrid("../grids/grid0.grid");
+        for(int i = 0; i < 3; i++)
+        {
+            sprintf(gname, "../grids/blgrid%d.grid", i);
+            dsmb[i] = volRW.readScalarGrid(gname);
+        }
+        printf("--------------------starting DSM read--------------\n");
+        for(int i = 0; i < 3; i++)
+        {
+            sprintf(gname, "../grids/tlgrid%d.grid", i);
+            dsmt[i] = volRW.readScalarGrid(gname);
+        }
+        printf("--------------------starting DSM read--------------\n");
+        for(int i = 0; i < 3; i++)
+        {
+            sprintf(gname, "../grids/hlgrid%d.grid", i);
+            dsmh[i] = volRW.readScalarGrid(gname);
+        }
+        /*printf("--------------------starting DSM read--------------\n");
+        for(int i = 0; i < 3; i++)
+        {
+            sprintf(gname, "../grids/slgrid%d.grid", i);
+            dsms[i] = volRW.readScalarGrid(gname);
+        }*/
     }
     if(writeLights == 1 && readLights == 0)
     {
         printf("--------------------writing DSM--------------\n");
-        volRW.writeScalarGrid(dsm, "../grids/grid0.grid");
+        for(int i = 0; i < 3; i++)
+        {
+            sprintf(gname, "../grids/blgrid%d.grid", i);
+            volRW.writeScalarGrid(dsmb[i], gname);
+        }
+        printf("--------------------writing DSM--------------\n");
+        for(int i = 0; i < 3; i++)
+        {
+            sprintf(gname, "../grids/tlgrid%d.grid", i);
+            volRW.writeScalarGrid(dsmt[i], gname);
+        }
+        printf("--------------------writing DSM--------------\n");
+        for(int i = 0; i < 3; i++)
+        {
+            sprintf(gname, "../grids/hlgrid%d.grid", i);
+            volRW.writeScalarGrid(dsmh[i], gname);
+        }
+        /*printf("--------------------writing DSM--------------\n");
+        for(int i = 0; i < 3; i++)
+        {
+            sprintf(gname, "../grids/slgrid%d.grid", i);
+            volRW.writeScalarGrid(dsms[i], gname);
+        }*/
     }
-    lights[0].setDSM(new ScalarGrid(dsm, 0));
+    for(int i = 0; i < 3; i++)
+    {
+        blgrid[i] = new ScalarGrid(dsmb[i], 0);
+        tlgrid[i] = new ScalarGrid(dsmt[i], 0);
+        hlgrid[i] = new ScalarGrid(dsmh[i], 0);
+        //slgrid[i] = new ScalarGrid(dsms[i], 0);
+    }
 
     //-------------------------------------------RENDER FRAMES------------------------------------------//
     if(volRen == 1)
     {
         printf("--------------------starting Render---------------\n");
+        printf("--------------------BUNNY---------------\n");
         char fname[100];
-        int numFrames = 1;
+        int numFrames = 120;
+        for(int i = 0; i < 3; i++)
+        {
+            lights[i].setDSM(blgrid[i]);
+        }
+        volRenderer.setScalarFields(&bunClamp, 1);
         for(int i = 0; i < numFrames; i++)
         {
-            glm::vec3 cPos = glm::rotateY(glm::vec3(0.0f, 5.0f, -55.0f), 2*(float)PI * i/numFrames);
+            glm::vec3 cPos = glm::rotateY(glm::vec3(0.0f, 0.0f, -50.0f), 2*(float)PI * i/numFrames);
             glm::vec3 cLook = glm::rotateY(glm::vec3(0.0f, 0.0f, 1.0f), 2*(float)PI * i/numFrames);
             cam.setPos(cPos);
             cam.setLookDir(cLook);
@@ -272,6 +426,63 @@ int main(int argc, char* argv[])
             displayBuf.writeImage(fname);
             printf("finished rendering %s\n", fname);
         }
+        printf("--------------------starting Render---------------\n");
+        printf("--------------------TEAPOT---------------\n");
+        for(int i = 0; i < 3; i++)
+        {
+            lights[i].setDSM(tlgrid[i]);
+        }
+        volRenderer.setScalarFields(&teaClamp, 1);
+        for(int i = 0; i < numFrames; i++)
+        {
+            glm::vec3 cPos = glm::rotateY(glm::vec3(0.0f, 0.0f, -50.0f), 2*(float)PI * i/numFrames);
+            glm::vec3 cLook = glm::rotateY(glm::vec3(0.0f, 0.0f, 1.0f), 2*(float)PI * i/numFrames);
+            cam.setPos(cPos);
+            cam.setLookDir(cLook);
+            volRenderer.renderFrame();
+            volRenderer.passToDisplay();
+            sprintf(fname, "../turntable1/turn%d.exr", i);
+            displayBuf.writeImage(fname);
+            printf("finished rendering %s\n", fname);
+        }
+        printf("--------------------starting Render---------------\n");
+        printf("--------------------BUNNY BOWL---------------\n");
+        for(int i = 0; i < 3; i++)
+        {
+            lights[i].setDSM(hlgrid[i]);
+        }
+        volRenderer.setScalarFields(&cBowl, 1);
+        for(int i = 0; i < numFrames; i++)
+        {
+            glm::vec3 cPos = glm::rotateY(glm::vec3(0.0f, 0.0f, -50.0f), 2*(float)PI * i/numFrames);
+            glm::vec3 cLook = glm::rotateY(glm::vec3(0.0f, 0.0f, 1.0f), 2*(float)PI * i/numFrames);
+            cam.setPos(cPos);
+            cam.setLookDir(cLook);
+            volRenderer.renderFrame();
+            volRenderer.passToDisplay();
+            sprintf(fname, "../turntable2/turn%d.exr", i);
+            displayBuf.writeImage(fname);
+            printf("finished rendering %s\n", fname);
+        }
+        /*printf("--------------------starting Render---------------\n");
+        printf("--------------------FULL SCENE---------------\n");
+        for(int i = 0; i < 3; i++)
+        {
+            lights[i].setDSM(slgrid[i]);
+        }
+        volRenderer.setScalarFields(&m, 1);
+        for(int i = 0; i < numFrames; i++)
+        {
+            glm::vec3 cPos = glm::rotateY(glm::vec3(0.0f, 0.0f, -50.0f), 2*(float)PI * i/numFrames);
+            glm::vec3 cLook = glm::rotateY(glm::vec3(0.0f, 0.0f, 1.0f), 2*(float)PI * i/numFrames);
+            cam.setPos(cPos);
+            cam.setLookDir(cLook);
+            volRenderer.renderFrame();
+            volRenderer.passToDisplay();
+            sprintf(fname, "../turntable3/turn%d.exr", i);
+            displayBuf.writeImage(fname);
+            printf("finished rendering %s\n", fname);
+        }*/
     }
 
 }

@@ -3,6 +3,7 @@
 
 #include <../glm-0.9.9.1/glm/glm.hpp>
 #include "structpile.h"
+#include "field.h"
 
 template < class T >
 class Grid
@@ -19,17 +20,18 @@ public:
         dy = (URC.y - LLC.y) / Ny;
         dz = (URC.z - LLC.z) / Nz;
         data = new T[Nx * Ny * Nz];
-    };
+        memset(data, 0, sizeof(T) * Nx * Ny * Nz);
+    }
 
     void setLLC(glm::vec3 l)
     {
         LLC = l;
-    };
+    }
 
     void setURC(glm::vec3 u)
     {
         URC = u;
-    };
+    }
 
     void setData(T* d)
     {
@@ -39,27 +41,28 @@ public:
     void setDataAt(int index, T d)
     {
         data[index] = d;
-    };
+        //printf("data[%d]: %f\n", data[index]);
+    }
 
     int getIndex(int i, int j, int k)
     {
         return i + Nx * j + Nx * Ny * k;
-    };
+    }
 
     glm::vec3 getIndexPos(int i, int j, int k)
     {
         return LLC + glm::vec3(i * dx, j * dy, k * dz);
-    };
+    }
 
     glm::vec3 getLLC()
     {
         return LLC;
-    };
+    }
 
     glm::vec3 getURC()
     {
         return URC;
-    };
+    }
 
     T* getData()
     {
@@ -71,7 +74,22 @@ public:
         arr[0] = Nx;
         arr[1] = Ny;
         arr[2] = Nz;
-    }; //expects an int array of length 3 : int[3]
+    } //expects an int array of length 3 : int[3]
+
+    void stampField(Field<T>* f)
+    {
+        for(int k = 0; k < Nz; k++)
+        {
+            for(int j = 0; j < Ny; j++)
+            {
+                for(int i = 0; i < Nx; i++)
+                {
+                    int idx = getIndex(i, j, k);
+                    setDataAt(idx, f->eval(getIndexPos(i, j, k)));
+                }
+            }
+        }
+    }
 
     T trilerp(const glm::vec3& x)
     {
@@ -106,7 +124,7 @@ public:
         c0 = c00 * (1 - v) + c10 * v;
         c1 = c01 * (1 - v) + c11 * v;
         return c0 * (1 - w) + c1 * w;
-    };
+    }
 
 private:
     glm::vec3 LLC;

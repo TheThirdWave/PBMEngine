@@ -29,6 +29,7 @@ public:
     void setLights(VolumeLight* l, int len);
     void setBoundingBox(bbox* b);
     void setTCoeff(float t);
+    void setAA(int aa);
     void setMarchSize(float s);
 
     void renderFrame();
@@ -51,6 +52,7 @@ private:
     int numSFields;
     int numCFields;
     int numLights;
+    int AA;
     float marchSize;
     float Kt;
 };

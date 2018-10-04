@@ -253,6 +253,7 @@ public:
         dy = (URC.y - LLC.y) / Ny;
         dz = (URC.z - LLC.z) / Nz;
         grid = g;
+        defaultVal = def;
     }
 
     const float eval(const glm::vec3 &P) const

@@ -4,6 +4,7 @@ CONFIG -= qt
 
 QMAKE_CXXFLAGS += -fopenmp
 
+
 SOURCES += main.cpp \
     buffer2d.cpp \
     fluidmodel.cpp \

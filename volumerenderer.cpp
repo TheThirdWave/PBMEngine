@@ -63,6 +63,11 @@ void volumerenderer::setTCoeff(float t)
     Kt = t;
 }
 
+void volumerenderer::setAA(int aa)
+{
+    AA = aa;
+}
+
 void volumerenderer::setMarchSize(float s)
 {
     marchSize = s;
