@@ -91,6 +91,30 @@ public:
         }
     }
 
+    void stampNoise(Field<T>* f, mparticle* p)
+    {
+        for(int k = 0; k < Nz; k++)
+        {
+            for(int j = 0; j < Ny; j++)
+            {
+#pragma omp parallel for
+                for(int i = 0; i < Nx; i++)
+                {
+                    int idx = getIndex(i, j, k);
+                    glm::vec3 x = getIndexPos(i, j, k);
+                    float nv = std::abs(f->eval(x));
+                    float len = glm::length(x - p->pos)/p->pscale;
+                    float ff;
+                    if(len < 1) ff = 1 - len;
+                    else ff = 0;
+                    nv *= std::pow(ff, p->fade);
+
+                    if(nv > data[idx]) setDataAt(idx, nv);
+                }
+            }
+        }
+    }
+
     T trilerp(const glm::vec3& x)
     {
         glm::vec3 Xg = x - LLC;

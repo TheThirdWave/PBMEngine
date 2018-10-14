@@ -19,13 +19,14 @@ SOURCES += main.cpp \
     grid.cpp \
     volumelight.cpp \
     volumerw.cpp \
-    lsgenerator.cpp
+    lsgenerator.cpp \
+    stampednoise.cpp
 
 OTHER_FILES += \
     FragS1.glsl \
     VertS1.glsl
 
-LIBS += -L/usr/local/lib -lglfw3 -pthread -lGLEW -lGLU -lGL -lrt -lXrandr -lXxf86vm -lXi -lXinerama -lXcursor -lX11 -ldl -lm -lOpenImageIO -fopenmp
+LIBS += -L/usr/local/lib -lglfw3 -pthread -lGLEW -lGLU -lGL -lrt -lXrandr -lXxf86vm -lXi -lXinerama -lXcursor -lX11 -ldl -lm -lOpenImageIO -fopenmp -lnoise
 
 HEADERS += \
     buffer2d.h \
@@ -48,7 +49,8 @@ HEADERS += \
     grid.h \
     volumelight.h \
     volumerw.h \
-    lsgenerator.h
+    lsgenerator.h \
+    stampednoise.h
 
 DISTFILES += \
     FragS2.glsl \

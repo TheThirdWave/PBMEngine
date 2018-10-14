@@ -2,6 +2,7 @@
 #define SCALARFIELDS_H
 
 #include <algorithm>
+#include <libnoise/noise.h>
 #include <../glm-0.9.9.1/glm/glm.hpp>
 #include "structpile.h"
 #include "grid.h"
@@ -272,6 +273,137 @@ private:
     float dz;
     Grid<float>* grid;
     float defaultVal;
+};
+
+class ScalarPyro:public Field<float>
+{
+public:
+    ScalarPyro(const Field<float>* f, double freq, double lac, double per, float amp, float gam, int oct)
+    {
+        f1 = f;
+        amplitude = amp;
+        gamma = gam;
+        perlin.SetFrequency(freq);
+        perlin.SetLacunarity(lac);
+        perlin.SetPersistence(per);
+        perlin.SetOctaveCount(oct);
+    }
+
+    const float eval(const glm::vec3 &P) const
+    {
+        float dist = f1->eval(P); //STUPID ASSUMPTION: assumes f1 is an SDF.
+        glm::vec3 surface = P + (-dist * f1->grad(P));
+        float N = amplitude * std::pow(std::abs(perlin.GetValue(surface.x, surface.y, surface.z)), gamma);
+        if(-N <= dist)
+        {
+            return 1;
+        }
+        else return 0;
+    }
+
+    void setAmplitude(float amp)
+    {
+        amplitude = amp;
+    }
+
+    void setGammap(float gam)
+    {
+        gamma = gam;
+    }
+
+    void setFrequency(double freq)
+    {
+        perlin.SetFrequency(freq);
+    }
+
+    void setLacunarity(double lac)
+    {
+        perlin.SetLacunarity(lac);
+    }
+
+    void setNoiseQuality(noise::NoiseQuality nQ)
+    {
+        perlin.SetNoiseQuality(nQ);
+    }
+
+    void setOctaveCount(int oct)
+    {
+        perlin.SetOctaveCount(oct);
+    }
+
+    void setPersistence(double per)
+    {
+        perlin.SetPersistence(per);
+    }
+
+    void setSeed(int seed)
+    {
+        perlin.SetSeed(seed);
+    }
+
+private:
+    noise::module::Perlin perlin;
+    const Field<float>* f1;
+    float amplitude;
+    float gamma;
+};
+
+class ScalarFSPN:public Field<float>
+{
+public:
+    ScalarFSPN(glm::vec3 trans, double freq, double lac, double per, int oct)
+    {
+        translate = trans;
+        perlin.SetFrequency(freq);
+        perlin.SetLacunarity(lac);
+        perlin.SetPersistence(per);
+        perlin.SetOctaveCount(oct);
+    }
+
+    const float eval(const glm::vec3 &P) const
+    {
+        glm::vec3 pos = P + translate;
+        return perlin.GetValue(pos.x, pos.y, pos.z);
+    }
+
+    void setTranslate(glm::vec3 trans)
+    {
+        translate = trans;
+    }
+
+    void setFrequency(double freq)
+    {
+        perlin.SetFrequency(freq);
+    }
+
+    void setLacunarity(double lac)
+    {
+        perlin.SetLacunarity(lac);
+    }
+
+    void setNoiseQuality(noise::NoiseQuality nQ)
+    {
+        perlin.SetNoiseQuality(nQ);
+    }
+
+    void setOctaveCount(int oct)
+    {
+        perlin.SetOctaveCount(oct);
+    }
+
+    void setPersistence(double per)
+    {
+        perlin.SetPersistence(per);
+    }
+
+    void setSeed(int seed)
+    {
+        perlin.SetSeed(seed);
+    }
+
+private:
+    noise::module::Perlin perlin;
+    glm::vec3 translate;
 };
 
 //-----------------------CONSTRUCTIVE SOLID GEOMETRY------------------------------//

@@ -17,16 +17,15 @@ void LSGenerator::stampLS(Grid<float> &g)
     int Nx = arr[0];
     int Ny = arr[1];
     int Nz = arr[2];
-    int idx;
 
     for(int k = 0; k < Nz; k++)
     {
         for(int j = 0; j < Ny; j++)
         {
-//#pragma omp parallel for
+#pragma omp parallel for
             for(int i = 0; i < Nx; i++)
             {
-                idx = g.getIndex(i, j, k);
+                int idx = g.getIndex(i, j, k);
                 g.setDataAt(idx, findClosestPoint(g.getIndexPos(i, j, k)));
             }
         }

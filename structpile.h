@@ -30,6 +30,12 @@
 
 typedef glm::vec4 color;
 
+struct mparticle {
+    glm::vec3 pos;
+    float pscale;
+    float fade;
+};
+
 struct light {
     glm::vec3 pos;
     color col;
