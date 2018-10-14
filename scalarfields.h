@@ -259,8 +259,27 @@ public:
 
     const float eval(const glm::vec3 &P) const
     {
-        if(P.x < LLC.x || P.x >= URC.x - dx || P.y < LLC.y || P.y >= URC.y - dy || P.z < LLC.z || P.z >= URC.z - dz) return defaultVal;
+        glm::vec3 Xg = P - LLC;
+        int i = Xg.x / dx;
+        int j = Xg.y / dy;
+        int k = Xg.z / dz;
+        if(i < 0 || i >= Nx - 1 || j < 0 || j >= Ny - 1 || k < 0 || k >= Nz - 1) return defaultVal;
         return grid->trilerp(P);
+    }
+
+    void setGrid(Grid<float>* g)
+    {
+        LLC = g->getLLC();
+        URC = g->getURC();
+        int arr[3];
+        g->getDimensions(arr);
+        Nx = arr[0];
+        Ny = arr[1];
+        Nz = arr[2];
+        dx = (URC.x - LLC.x) / Nx;
+        dy = (URC.y - LLC.y) / Ny;
+        dz = (URC.z - LLC.z) / Nz;
+        grid = g;
     }
 private:
     glm::vec3 LLC;
@@ -363,7 +382,10 @@ public:
     const float eval(const glm::vec3 &P) const
     {
         glm::vec3 pos = P + translate;
-        return perlin.GetValue(pos.x, pos.y, pos.z);
+        float ret = perlin.GetValue(pos.x, pos.y, pos.z);
+        if (ret > 1) ret = 1;
+        else if (ret < -1) ret = -1;
+        return ret;
     }
 
     void setTranslate(glm::vec3 trans)

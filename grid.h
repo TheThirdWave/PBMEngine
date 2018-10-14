@@ -44,6 +44,11 @@ public:
         //printf("data[%d]: %f\n", data[index]);
     }
 
+    void clearData()
+    {
+        memset(data, 0, sizeof(T) * Nx * Ny * Nz);
+    }
+
     int getIndex(int i, int j, int k)
     {
         return i + Nx * j + Nx * Ny * k;
@@ -148,6 +153,33 @@ public:
         c0 = c00 * (1 - v) + c10 * v;
         c1 = c01 * (1 - v) + c11 * v;
         return c0 * (1 - w) + c1 * w;
+    }
+
+    void revTrilerp(const wispdot& x)
+    {
+        glm::vec3 Xg = x.pos - LLC;
+        int i = Xg.x / dx;
+        int j = Xg.y / dy;
+        int k = Xg.z / dz;
+        float u = Xg.x - i * dx;
+        float v = Xg.y - j * dy;
+        float w = Xg.z - k * dz;
+        int index = getIndex(i, j, k);
+        data[index] += x.density * (1.0 - (float)u) * (1.0 - (float)v) * (1.0 - (float)w);
+        index = getIndex(i, j, k+1);
+        data[index] += x.density * (1.0 - (float)u) * (1.0 - (float)v) * ((float)w);
+        index = getIndex(i, j+1, k);
+        data[index] += x.density * (1.0 - (float)u) * ((float)v) * (1.0 - (float)w);
+        index = getIndex(i, j+1, k+1);
+        data[index] += x.density * (1.0 - (float)u) * ((float)v) * ((float)w);
+        index = getIndex(i+1, j, k);
+        data[index] += x.density * ((float)u) * (1.0 - (float)v) * (1.0 - (float)w);
+        index = getIndex(i+1, j, k+1);
+        data[index] += x.density * ((float)u) * (1.0 - (float)v) * ((float)w);
+        index = getIndex(i+1, j+1, k);
+        data[index] += x.density * ((float)u) * ((float)v) * (1.0 - (float)w);
+        index = getIndex(i+1, j+1, k+1);
+        data[index] += x.density * ((float)u) * ((float)v) * ((float)w);
     }
 
 private:

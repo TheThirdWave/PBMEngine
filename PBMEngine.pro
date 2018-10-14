@@ -20,7 +20,8 @@ SOURCES += main.cpp \
     volumelight.cpp \
     volumerw.cpp \
     lsgenerator.cpp \
-    stampednoise.cpp
+    stampednoise.cpp \
+    wisppart.cpp
 
 OTHER_FILES += \
     FragS1.glsl \
@@ -50,7 +51,8 @@ HEADERS += \
     volumelight.h \
     volumerw.h \
     lsgenerator.h \
-    stampednoise.h
+    stampednoise.h \
+    wisppart.h
 
 DISTFILES += \
     FragS2.glsl \

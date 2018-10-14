@@ -30,6 +30,25 @@
 
 typedef glm::vec4 color;
 
+struct wispdot {
+    glm::vec3 pos;
+    float density;
+};
+
+struct wparticle {
+    glm::vec3 pos;
+    glm::vec3 T;
+    glm::vec3 N;
+    glm::vec3 BN;
+    glm::vec3 O;
+    float pscale;
+    float fade;
+    float density;
+    float clump;
+    float dscale;
+    float numDots;
+};
+
 struct mparticle {
     glm::vec3 pos;
     float pscale;

@@ -14,3 +14,23 @@ Grid<float>* StampedNoise::generateGrid(mparticle *p)
     hold->stampNoise(FSPN, p);
     return hold;
 }
+
+void StampedNoise::restampGrid(Grid<float> *g, mparticle *p)
+{
+    g->stampNoise(FSPN, p);
+}
+
+void StampedNoise::setOctaves(int o)
+{
+    FSPN->setOctaveCount(o);
+}
+
+void StampedNoise::setFrequency(float f)
+{
+    FSPN->setFrequency(f);
+}
+
+void StampedNoise::setFjump(float f)
+{
+    FSPN->setLacunarity(f);
+}
