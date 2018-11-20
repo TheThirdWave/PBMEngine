@@ -24,7 +24,7 @@ Grid<float>* WispPart::generateGrid(wparticle *p)
         float q = std::pow(std::abs(FSPN->eval(rPos)), p->clump);
         glm::vec3 r2 = r1 * q;
         //put r2 in object space/environment space.
-        glm::vec3 p2 = p->pos + p->pscale * (r2.x * p->T + r2.y * p->N + r2.z * p->BN);
+        glm::vec3 p2 = p->pos + p->pscale * r2;//(r2.x * p->T + r2.y * p->N + r2.z * p->BN);
         //Add displacement.
         glm::vec3 d(FSPN2->eval(p2), FSPN2->eval(p2 + p->O), FSPN2->eval(p2 - p->O));
         glm::vec3 p3 = p2 + p->dscale * d;

@@ -39,10 +39,13 @@ bool LSGenerator::readObj(char *fname)
 {
     printf("----------------------loading Level Set OBJ----------------------\n");
     vecs.clear();
+    norms.clear();
     indicies.clear();
+    nindicies.clear();
     std::string hold;
     float hold1[3];
     int hold2[3];
+    int hold21[3];
     std::ifstream in;
     in.open(fname);
     if(in.is_open())
@@ -55,10 +58,22 @@ bool LSGenerator::readObj(char *fname)
                 in >> hold1[0] >> hold1[1] >> hold1[2];
                 vecs.push_back(glm::vec3(hold1[0], hold1[1], hold1[2]));
             }
+            if(hold.compare("vn") == 0)
+            {
+                in >> hold1[0] >> hold1[1] >> hold1[2];
+                norms.push_back(glm::vec3(hold1[0], hold1[1], hold1[2]));
+            }
             else if(hold.compare("f") == 0)
             {
-                in >> hold2[0] >> hold2[1] >> hold2[2];
+                in >> hold2[0];// >> hold21[0] >> hold2[1] >> hold21[1] >> hold2[2] >> hold21[2];
+                in.seekg(2, in.cur);
+                in >> hold21[0] >> hold2[1];
+                in.seekg(2, in.cur);
+                in >> hold21[1] >> hold2[2];
+                in.seekg(2, in.cur);
+                in >> hold21[2];
                 indicies.push_back(std::vector<int>{hold2[0]-1, hold2[1]-1, hold2[2]-1});
+                nindicies.push_back(std::vector<int>{hold21[0]-1, hold21[1]-1, hold21[2]-1});
             }
             else
             {
@@ -75,6 +90,7 @@ bool LSGenerator::readObj(char *fname)
     return true;
 }
 
+
 float LSGenerator::findClosestPoint(glm::vec3 pos)
 {
     //loop through all triangles.
@@ -86,7 +102,7 @@ float LSGenerator::findClosestPoint(glm::vec3 pos)
     glm::vec3 nclosest;
     for(int i = 0; i < indicies.size(); i++)
     {
-        evaluateTri(pos, vecs[indicies[i][0]], vecs[indicies[i][1]], vecs[indicies[i][2]], ptri, ntri);
+        evaluateTri(pos, vecs[indicies[i][0]], vecs[indicies[i][1]], vecs[indicies[i][2]], norms[nindicies[i][0]], norms[nindicies[i][1]], norms[nindicies[i][2]], ptri, ntri);
         dist = glm::length(pos - ptri);
         //printf("dist: %f\n", dist);
         if(i == 0 || dist < minDist)
@@ -103,7 +119,7 @@ float LSGenerator::findClosestPoint(glm::vec3 pos)
     //printf("closestPoint: %f, %f, %f\n", closestPoint.x, closestPoint.y, closestPoint.z);
     //printf("pos: %f, %f, %f\n", pos.x, pos.y, pos.z);
     //printf("pos-closestPoint: %f, %f, %f\n", pos.x-closestPoint.x, pos.y-closestPoint.y, pos.z-closestPoint.z);
-    float inout = glm::dot(pos-closestPoint, nclosest);
+    //float inout = glm::dot(pos-closestPoint, nclosest);
     //printf("%f\n", inout);
     if(glm::dot(pos-closestPoint, nclosest) > 0)
     {
@@ -113,7 +129,9 @@ float LSGenerator::findClosestPoint(glm::vec3 pos)
     return minDist;
 }
 
-void LSGenerator::evaluateTri(glm::vec3 x, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3& p, glm::vec3& n)
+
+
+void LSGenerator::evaluateTri(glm::vec3 x, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 n0, glm::vec3 n1, glm::vec3 n2, glm::vec3& p, glm::vec3& n)
 {
     //first check if the closest point is on the triangle itself.
     //printf("x: %f, %f, %f\n", x.x, x.y, x.z);
@@ -147,6 +165,7 @@ void LSGenerator::evaluateTri(glm::vec3 x, glm::vec3 p0, glm::vec3 p1, glm::vec3
     if(q >= 0 && q <= 1)
     {
         p = p0 + q * e1;
+        n = glm::normalize(n0 + n1);
         //printf("p: %f, %f, %f\n", p.x, p.y, p.z);
         return;
     }
@@ -154,6 +173,7 @@ void LSGenerator::evaluateTri(glm::vec3 x, glm::vec3 p0, glm::vec3 p1, glm::vec3
     if(q >= 0 && q <= 1)
     {
         p = p0 + q * e2;
+        n = glm::normalize(n0 + n2);
         //printf("p: %f, %f, %f\n", p.x, p.y, p.z);
         return;
     }
@@ -161,6 +181,7 @@ void LSGenerator::evaluateTri(glm::vec3 x, glm::vec3 p0, glm::vec3 p1, glm::vec3
     if(q >= 0 && q <= 1)
     {
         p = p1 + q * e3;
+        n = glm::normalize(n1 + n2);
         //printf("p: %f, %f, %f\n", p.x, p.y, p.z);
         return;
     }
@@ -168,9 +189,21 @@ void LSGenerator::evaluateTri(glm::vec3 x, glm::vec3 p0, glm::vec3 p1, glm::vec3
     float l0 = glm::length(x - p0);
     float l1 = glm::length(x - p1);
     float l2 = glm::length(x - p2);
-    if(l0 <= l1 && l0 <= l2) p = p0;
-    else if(l1 <= l0 && l1 <= l2) p = p1;
-    else p = p2;
+    if(l0 <= l1 && l0 <= l2)
+    {
+        p = p0;
+        n = glm::normalize(n0);
+    }
+    else if(l1 <= l0 && l1 <= l2)
+    {
+        p = p1;
+        n = glm::normalize(n1);
+    }
+    else
+    {
+        p = p2;
+        n = glm::normalize(n2);
+    }
     //printf("p: %f, %f, %f\n", p.x, p.y, p.z);
     return;
 }

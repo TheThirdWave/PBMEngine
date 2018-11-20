@@ -267,6 +267,16 @@ public:
         return grid->trilerp(P);
     }
 
+    const glm::vec3 grad(const glm::vec3 &p) const override
+    {
+        glm::vec3 Xg = p - LLC;
+        int i = Xg.x / dx;
+        int j = Xg.y / dy;
+        int k = Xg.z / dz;
+        if(i < 0 || i >= Nx - 1 || j < 0 || j >= Ny - 1 || k < 0 || k >= Nz - 1) return -(p - (URC + ((URC - LLC) / 2.0f)));
+        return grid->grad(p);
+    }
+
     void setGrid(Grid<float>* g)
     {
         LLC = g->getLLC();
@@ -280,6 +290,11 @@ public:
         dy = (URC.y - LLC.y) / Ny;
         dz = (URC.z - LLC.z) / Nz;
         grid = g;
+    }
+
+    void setDefaultVal(float df)
+    {
+        defaultVal = df;
     }
 private:
     glm::vec3 LLC;
@@ -310,9 +325,24 @@ public:
 
     const float eval(const glm::vec3 &P) const
     {
-        float dist = f1->eval(P); //STUPID ASSUMPTION: assumes f1 is an SDF.
-        glm::vec3 surface = P + (-dist * f1->grad(P));
-        float N = amplitude * std::pow(std::abs(perlin.GetValue(surface.x, surface.y, surface.z)), gamma);
+        float dist = f1->eval(P);
+        float fx = dist;
+        glm::vec3 grad = f1->grad(P);
+        glm::vec3 x = P - dist * (grad / (float)std::pow(glm::length(grad), 2));;
+        int count = 0;
+        //assume sdf
+        /*dist = f1->eval(x);
+        grad = f1->grad(x);
+        x = x - dist * glm::length(grad);*/
+        //Near Point Transform (hopefully)
+        while((fx > 0.00001 || fx < -0.00001) && count < numNPT)
+        {
+            x = x - fx * (grad / (float)std::pow(glm::length(grad), 2));
+            fx = f1->eval(x);
+            grad = f1->grad(x);
+            count++;
+        }
+        float N = amplitude * std::pow(std::abs(perlin.GetValue(x.x, x.y, x.z)), gamma);
         if(-N <= dist)
         {
             return 1;
@@ -360,9 +390,15 @@ public:
         perlin.SetSeed(seed);
     }
 
+    void setNumNPT(int npt)
+    {
+        numNPT = npt;
+    }
+
 private:
     noise::module::Perlin perlin;
     const Field<float>* f1;
+    int numNPT;
     float amplitude;
     float gamma;
 };
@@ -426,6 +462,25 @@ public:
 private:
     noise::module::Perlin perlin;
     glm::vec3 translate;
+};
+
+class ScalarCharMap:public Field<float>
+{
+public:
+    ScalarCharMap(const Field<float>* sf, const Field<glm::vec3>* vf)
+    {
+        scalarField = sf;
+        vecField = vf;
+    }
+
+    const float eval(const glm::vec3 &p) const
+    {
+        return scalarField->eval(vecField->eval(p));
+    }
+
+private:
+    const Field<float>* scalarField;
+    const Field<glm::vec3>* vecField;
 };
 
 //-----------------------CONSTRUCTIVE SOLID GEOMETRY------------------------------//
@@ -571,6 +626,10 @@ public:
     {
         return f1->eval(P/scaleFac);
     }
+    const glm::vec3 grad(const glm::vec3 &P) const
+    {
+        return f1->grad(P/scaleFac);
+    }
 private:
     const Field<float>* f1;
     float scaleFac;
@@ -624,6 +683,23 @@ private:
     ScalarRotate* ry;
     ScalarRotate* rz;
 };
+
+/*class ScalarFieldDot:public Field<glm::vec3>
+{
+public:
+    ScalarFieldDot(const Field<glm::vec3>* f, const Field<glm::vec3>* g)
+    {
+        f1 = f;
+        f2 = g;
+    }
+    const glm::vec3 eval(const glm::vec3 &P) const
+    {
+        return glm::dot(f1->eval(P), f2->eval(P));
+    }
+private:
+    const Field<glm::vec3>* f1;
+    const Field<glm::vec3>* f2;
+};*/
 
 //-----------------------FIELD ALGEBRA STUFF---------------------//
 

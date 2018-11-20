@@ -120,6 +120,65 @@ public:
         }
     }
 
+    //this function assumes that T = glm::vec3, for both this grid and the vf field.  This is probably bad form.
+    void advectPos(const Field<T>* vf, int it, float ts)
+    {
+        T* holdData = new T[Nx * Ny * Nz];
+        memset(holdData, 0, sizeof(T) * Nx * Ny * Nz);
+        for(int l = 0; l < it; l++)
+        {
+            for(int k = 0; k < Nz; k++)
+            {
+                for(int j = 0; j < Ny; j++)
+                {
+#pragma omp parallel for
+                    for(int i = 0; i < Nx; i++)
+                    {
+                        int idx = getIndex(i, j, k);
+                        glm::vec3 x = getIndexPos(i, j, k);
+                        glm::vec3 vel = vf->eval(x);
+                        if (l == 0) holdData[idx] = x - vel * ts;
+                        else
+                        {
+                            holdData[idx] = data[idx] - vel * ts;
+                        }
+                    }
+                }
+            }
+            T* h = data;
+            data = holdData;
+            holdData = h;
+        }
+        delete holdData;
+    }
+
+    void contAdvec(const Field<T>* vf, int it, float ts)
+    {
+        T* holdData = new T[Nx * Ny * Nz];
+        memset(holdData, 0, sizeof(T) * Nx * Ny * Nz);
+        for(int l = 0; l < it; l++)
+        {
+            for(int k = 0; k < Nz; k++)
+            {
+                for(int j = 0; j < Ny; j++)
+                {
+#pragma omp parallel for
+                    for(int i = 0; i < Nx; i++)
+                    {
+                        int idx = getIndex(i, j, k);
+                        glm::vec3 x = getIndexPos(i, j, k);
+                        glm::vec3 vel = vf->eval(x);
+                        holdData[idx] = data[idx] - vel * ts;
+                    }
+                }
+            }
+            T* h = data;
+            data = holdData;
+            holdData = h;
+        }
+        delete holdData;
+    }
+
     T trilerp(const glm::vec3& x)
     {
         glm::vec3 Xg = x - LLC;
@@ -180,6 +239,14 @@ public:
         data[index] += x.density * ((float)u) * ((float)v) * (1.0 - (float)w);
         index = getIndex(i+1, j+1, k+1);
         data[index] += x.density * ((float)u) * ((float)v) * ((float)w);
+    }
+
+    glm::vec3 grad(const glm::vec3& x)
+    {
+        float nz = trilerp(glm::vec3(x.x, x.y, x.z - dz)) - trilerp(glm::vec3(x.x, x.y, x.z + dz));
+        float ny = trilerp(glm::vec3(x.x, x.y - dy, x.z)) - trilerp(glm::vec3(x.x, x.y + dy, x.z));
+        float nx = trilerp(glm::vec3(x.x - dx, x.y, x.z)) - trilerp(glm::vec3(x.x + dx, x.y, x.z));
+        return glm::vec3(nx, ny, nz);
     }
 
 private:
