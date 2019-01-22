@@ -334,25 +334,35 @@ int main(int argc, char* argv[])
     lights[2].setPos(glm::vec3(-10.0f, 10.0f, 40.0f));
     lights[2].setColor(color(1.0f, 1.0f, 1.0f, 1.0f));
 
+    //-------------------------------------------SET UP LENS FIELD------------------------------------------//
+    ScalarField constant = ScalarField(1.0f);
+
+    //-------------------------------------------SET UP ENVIRONMENT MAP------------------------------------------//
+    loadedImg.readImage("../GWbackground.png");
+
     //-------------------------------------------SET UP VOLUME RENDERER------------------------------------------//
     volRenderer.setLights(lights, 2);
     volRenderer.setBoundingBox(&bounds);
     volRenderer.setCamera(&cam);
     volRenderer.setDisplayBuf(&displayBuf);
+    volRenderer.setEnvironmentBuf(&loadedImg, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 1.0f);
+    volRenderer.setUseEnvironmentBuf(true);
     volRenderer.setTCoeff(1.0);
     volRenderer.setColorFields(&white, 1);
-    //volRenderer.setScalarFields(&wClamp, 1);
+    volRenderer.setLensField(&constant);
     volRenderer.setMarchSize(0.1);
 
     //-------------------------------------------CALCULATE DSMs------------------------------------------//
-    Grid<float>* dsmb[3];
+    //Grid<float>* dsmb[3];
+    Grid<float>* dsmbh[3];
     //Grid<float>* dsmt[3];
     //Grid<float>* dsmh[3];
     //Grid<float>* dsms[3];
     //Grid<float>* dsmp[2];
     //Grid<float>* dsmn[2];
     //Grid<float>* dsmw[2];
-    ScalarGrid* blgrid[3];
+    //ScalarGrid* blgrid[3];
+    ScalarGrid* bhlgrid[3];
     //ScalarGrid* tlgrid[3];
     //ScalarGrid* hlgrid[3];
     //ScalarGrid* slgrid[3];
@@ -362,12 +372,17 @@ int main(int argc, char* argv[])
     char gname[100];
     if(readLights == 0)
     {
-        volRenderer.setScalarFields(&bunClamp, 1);
+        volRenderer.setScalarFields(&sph1, 1);
         printf("--------------------starting DSM calc--------------\n");
-        for(int i = 0; i < 2; i++)
+        /*for(int i = 0; i < 2; i++)
         {
             dsmb[i] = new Grid<float>(bounds.LLC, bounds.URC, 300, 300, 300);
             volRenderer.calcDSM(*dsmb[i], lights[i].getPos());
+        }*/
+        for(int i = 0; i < 2 ; i++)
+        {
+            dsmbh[i] = new Grid<float>(bounds.LLC, bounds.URC, 300, 300, 300);
+            volRenderer.calcDSM(*dsmbh[i], lights[i].getPos());
         }
         /*
         for(int i = 0; i < 3; i++)
@@ -408,11 +423,17 @@ int main(int argc, char* argv[])
     }
     else
     {
-        printf("--------------------starting DSM read--------------\n");
+        /*printf("--------------------starting DSM read--------------\n");
         for(int i = 0; i < 2; i++)
         {
             sprintf(gname, "../grids/blgrid%d.grid", i);
             dsmb[i] = volRW.readScalarGrid(gname);
+        }*/
+        printf("--------------------starting DSM read--------------\n");
+        for(int i = 0; i < 2; i++)
+        {
+            sprintf(gname, "../grids/bhlgrid%d.grid", i);
+            dsmbh[i] = volRW.readScalarGrid(gname);
         }
         /*printf("--------------------starting DSM read--------------\n");
         for(int i = 0; i < 3; i++)
@@ -453,11 +474,17 @@ int main(int argc, char* argv[])
     }
     if(writeLights == 1 && readLights == 0)
     {
-        printf("--------------------writing DSM--------------\n");
+        /*printf("--------------------writing DSM--------------\n");
         for(int i = 0; i < 2; i++)
         {
             sprintf(gname, "../grids/blgrid%d.grid", i);
             volRW.writeScalarGrid(dsmb[i], gname);
+        }*/
+        printf("--------------------writing DSM--------------\n");
+        for(int i = 0; i < 2; i++)
+        {
+            sprintf(gname, "../grids/bhlgrid%d.grid", i);
+            volRW.writeScalarGrid(dsmbh[i], gname);
         }
         /*printf("--------------------writing DSM--------------\n");
         for(int i = 0; i < 3; i++)
@@ -498,7 +525,8 @@ int main(int argc, char* argv[])
     }
     for(int i = 0; i < 2; i++)
     {
-        blgrid[i] = new ScalarGrid(dsmb[i], 0);
+        //blgrid[i] = new ScalarGrid(dsmb[i], 0);
+        bhlgrid[i] = new ScalarGrid(dsmbh[i], 0);
         //tlgrid[i] = new ScalarGrid(dsmt[i], 0);
         //hlgrid[i] = new ScalarGrid(dsmh[i], 0);
         //slgrid[i] = new ScalarGrid(dsms[i], 0);
@@ -784,46 +812,46 @@ int main(int argc, char* argv[])
         //---------------------INIT PYRO SPHERE---------------------//
         ScalarGrid bunGrid = ScalarGrid(bun, -1.0f);
         ScalarScale enhance = ScalarScale(&bunGrid, -15);
-        ScalarSphere sph1 = ScalarSphere(glm::vec3(0.0f), 10.0f);
-        //ScalarClamp bunClamp = ScalarClamp(&enhance, 0, 1);
+        //ScalarSphere sph1 = ScalarSphere(glm::vec3(0.0f), 10.0f);
+        ScalarClamp bunClamp = ScalarClamp(&sph1, 0, 1);
         ScalarPyro bunPyro = ScalarPyro(&enhance, 0.0001f, 2.0f, 0.5f, 0.0f, 0.5f, 1.0);
         bunPyro.setNumNPT(10);
 
           //light stuff.
         for(int i = 0; i < 3; i++)
         {
-            lights[i].setDSM(blgrid[i]);
+            lights[i].setDSM(bhlgrid[i]);
         }
-          volRenderer.setScalarFields(&bunPyro, 1);
+          volRenderer.setScalarFields(&bunClamp, 1);
           for(int i = 0; i < 2; i++)
           {
-              volRenderer.calcDSM(*dsmb[i], lights[i].getPos());
+              volRenderer.calcDSM(*dsmbh[i], lights[i].getPos());
           }
           printf("--------------------starting Render---------------\n");
           printf("--------------------PYRO SPHERE---------------\n");
           int count = 0;
-          for(int i = 0; i < 60; i++)
+          for(int i = 0; i < 5; i++)
           {
-              glm::vec3 cPos = glm::rotateY(glm::vec3(0.0f, 0.0f, -50.0f), 2*(float)PI * 0/numFrames);
-              glm::vec3 cLook = glm::rotateY(glm::vec3(0.0f, 0.0f, 1.0f), 2*(float)PI * 0/numFrames);
+              glm::vec3 cPos = glm::rotateY(glm::vec3(0.0f, 0.0f, -50.0f), 2*(float)PI * i/numFrames);
+              glm::vec3 cLook = glm::rotateY(glm::vec3(0.0f, 0.0f, 1.0f), 2*(float)PI * i/numFrames);
               cam.setPos(cPos);
               cam.setLookDir(cLook);
               volRenderer.renderFrame();
               volRenderer.passToDisplay();
-              sprintf(fname, "../wedge/turn%d.exr", count++);
+              sprintf(fname, "../BlackHole/turn%d.exr", count++);
               displayBuf.writeImage(fname);
               printf("finished rendering %s\n", fname);
-              //recalculate sphere.
+              /*//recalculate sphere.
               bunPyro.setAmplitude((i + 1) * (1.5/60));
               //recalculate lights
               for(int u = 0; u < 2; u++)
               {
-                  volRenderer.calcDSM(*dsmb[u], lights[u].getPos());
-              }
+                  volRenderer.calcDSM(*dsmbh[u], lights[u].getPos());
+              }*/
           }
 
           //--------------------LOAD ADVECT----------------------//
-          Grid<glm::vec3>* advec = new Grid<glm::vec3>(glm::vec3(-15.0f, -15.0f, -15.0f), glm::vec3(15.0f, 15.5f, 15.0f), 300, 300, 300);
+          /*Grid<glm::vec3>* advec = new Grid<glm::vec3>(glm::vec3(-15.0f, -15.0f, -15.0f), glm::vec3(15.0f, 15.5f, 15.0f), 300, 300, 300);
           ScalarFSPN fs1 = ScalarFSPN(glm::vec3(0.0f), 0.5f, 1.0f, 0.5f, 1);
           VecVelField velF = VecVelField(&fs1, glm::vec3(0.0f, 1.0f, 0.0f));
           advec->advectPos(&velF, 1, 0.05);
@@ -854,7 +882,7 @@ int main(int argc, char* argv[])
               {
                   volRenderer.calcDSM(*dsmb[u], lights[u].getPos());
               }
-          }
+          }*/
     }
 
 }

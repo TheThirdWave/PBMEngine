@@ -43,6 +43,11 @@ int Buffer2D::getNumChannels()
     return channels;
 }
 
+int Buffer2D::getIndex(int x, int y)
+{
+    return (x + y * width) * channels;
+}
+
 float Buffer2D::getCellSize()
 {
     return cellSize;
@@ -207,4 +212,10 @@ glm::vec3 Buffer2D::makeVec3(int index)
 {
     if(channels == 3) return glm::vec3(index * channels, index * channels + 1, index * channels + 2);
     else return glm::vec3(0.0f);
+}
+
+glm::vec4 Buffer2D::makeVec4(int index)
+{
+    if(channels == 4) return glm::vec4(index * channels, index * channels + 1, index * channels + 2, index * channels + 3);
+    else return glm::vec4(0.0f);
 }

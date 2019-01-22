@@ -3,6 +3,7 @@
 
 volumerenderer::volumerenderer()
 {
+    useEnvMap = false;
 
 }
 
@@ -40,6 +41,19 @@ void volumerenderer::setDisplayBuf(Buffer2D *d)
     initColBuf(d->getWidth(), d->getHeight());
 }
 
+void volumerenderer::setEnvironmentBuf(Buffer2D *e, glm::vec3 n1, glm::vec3 n2, float inten)
+{
+    env = e;
+    envUp = glm::normalize(n1);
+    envPole = glm::normalize(n2);
+    envIntensity = inten;
+}
+
+void volumerenderer::setUseEnvironmentBuf(bool y)
+{
+    useEnvMap = y;
+}
+
 void volumerenderer::setScalarFields(const Field<float> *fields, int len)
 {
     scalarFields = fields;
@@ -50,6 +64,11 @@ void volumerenderer::setColorFields(const Field<color> *fields, int len)
 {
     colorFields = fields;
     numCFields = len;
+}
+
+void volumerenderer::setLensField(const Field<float> *field)
+{
+    lensField = field;
 }
 
 void volumerenderer::setLights(VolumeLight *l, int len)
@@ -99,7 +118,7 @@ void volumerenderer::renderFrame()
     //loop through pixels.
     for(int j = 0; j < Nv; j++)
     {
-#pragma omp parallel for
+//#pragma omp parallel for
         for(int i = 0; i < Nu; i++)
         {
             float Ui = (-1 + 2 * (((float)i + dis(gen1)) / ((float)Nu - 1.0))) * std::tan(Fc/2); //dis(gen) for AA
@@ -121,9 +140,10 @@ color volumerenderer::castRayMarch(glm::vec3 Xc, glm::vec3 Np, float Snear, floa
     if(checkBoundingBox(Xc, Np, boundingBox, Snear, Sfar, hits))
     {
         int numSteps = (hits.t1 - hits.t0) / marchSize;
+        glm::vec3 x0 = Xc + Np * hits.t0;
+        glm::vec3 samplePoint = x0;
         for(int i = 0; i < numSteps; i++)
         {
-            glm::vec3 samplePoint = Xc + Np * hits.t0 + marchSize * (i + rand) * Np;//rand for AA
             float deltaT = std::exp(-Kt * marchSize * scalarFields[0].eval(samplePoint));
             if(deltaT != 1)
             {
@@ -131,9 +151,20 @@ color volumerenderer::castRayMarch(glm::vec3 Xc, glm::vec3 Np, float Snear, floa
             }
             Lp += calculateLights(samplePoint) * (1 - deltaT) * T;
             T *= deltaT;
+            x0 = x0 + getNextStepDir(x0, Np, marchSize);///Np * marchSize;
+            samplePoint = x0 + getNextStepDir(x0, Np, marchSize * rand);//Np * marchSize * rand;
         }
     }
-    Lp.a = 1-T;
+    if(useEnvMap)
+    {
+        Lp += sampleEnvMap(Np) * (float)(T);
+        Lp.a = 1;
+    }
+    else
+    {
+        Lp.a = 1-T;
+    }
+
     return Lp;
 }
 
@@ -153,17 +184,62 @@ color volumerenderer::calculateLights(glm::vec3 Xc)
     return fColor * colorFields[0].eval(Xc);
 }
 
+color volumerenderer::sampleEnvMap(glm::vec3 dir)
+{
+    float h = glm::length(dir);
+    glm::vec3 npt = glm::normalize(dir);
+    glm::vec3 up = envUp;
+    glm::vec3 forward = envPole;
+    if(glm::length(glm::cross(up, forward)) == 0)
+    {
+        up = glm::vec3(0.0f, -1.0f, 0.0f);
+        forward = glm::vec3(0.0f, 0.0f, 1.0f);
+    }
+    glm::vec3 n0, n1, n2;
+    n0 = glm::normalize(glm::cross(up, forward));
+    n1 = glm::normalize(glm::cross(up, n0));
+    n2 = up;
+    int texWidth = env->getWidth();
+    int texHeight = env->getHeight();
+    float z = glm::dot(npt, -n2);
+    float phi = std::acos(z);
+    float x = glm::dot(npt, n0);
+    float y = glm::dot(npt, n1);
+    float test = std::sin(phi);
+    float test2 = x / test;
+    if(test2 > 1) test2 = 1;
+    if(test2 < -1) test2 = -1;
+    float cos = std::acos(test2);
+    if(x < 0) cos = (2 * PI) - cos;
+    int index = env->getIndex((cos/(2*PI) * texWidth), ((PI - phi)/PI * texHeight));
+    float* buffer = env->getBuf();
+    glm::vec3 col = glm::vec3(buffer[index], buffer[index + 1], buffer[index + 2]);
+    return color((col) * envIntensity, envIntensity);
+}
+
+glm::vec3 volumerenderer::getNextStepDir(glm::vec3 Xc, glm::vec3 Np, float arcLen)
+{
+    glm::vec3 gradF = lensField->grad(Xc);
+    float F = glm::length(gradF);
+    glm::vec3 alpha = glm::normalize(glm::cross(Np, glm::normalize(gradF)));
+    float beta = std::acos(glm::dot(Np, glm::normalize(gradF)));
+    float cosintegral = std::cos(beta)/F * (F * arcLen + std::log((1 + tan2(beta/2.0))/(1 + tan2(beta/2.0) * std::exp(2*F*arcLen)))) + (2*std::sin(beta))/F * (std::atan(std::tan(beta/2)*std::exp(F*arcLen)) - beta/2);
+    float sinintegral = std::sin(beta)/F * (F * arcLen + std::log((1 + tan2(beta/2.0))/(1 + tan2(beta/2.0) * std::exp(2*F*arcLen)))) - (std::sin(beta)/F) * ((1 - tan2(beta/2))/std::tan(beta/2)) * (std::atan(std::tan(beta/2) * std::exp(F*arcLen)) - beta/2);
+    return Np * (cosintegral) + glm::cross(Np, alpha) * sinintegral;
+    
+}
+
 float volumerenderer::lightMarch(glm::vec3 Xc, glm::vec3 Nl, float Sl)
 {
     int nSteps = Sl / marchSize;
     float dsm = 0;
-    glm::vec3 x;
+    glm::vec3 x = Xc;
     for(int i = 0; i < nSteps; i++)
     {
-        x = Xc + Nl * marchSize * (float)i;
         float rho = scalarFields[0].eval(x);
         if(rho <= 0) break;
         dsm += rho * marchSize;
+        x = x + getNextStepDir(x, Nl, marchSize);//Nl * marchSize;
     }
     return dsm;
 }
@@ -240,6 +316,11 @@ void volumerenderer::calcDSM(Grid<float>& g, glm::vec3 pos)
         }
         printf("Percentage DSM Done: %f\n", (k * (float)Nx * (float)Ny) / ((float)Nx * Ny * Nz));
     }
+}
+
+float volumerenderer::tan2(float x)
+{
+    return (1 - std::cos(2 * x)) / (1 + std::cos(2 * x));
 }
 
 

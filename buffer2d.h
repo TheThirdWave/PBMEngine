@@ -24,6 +24,7 @@ public:
     int getWidth();
     int getHeight();
     int getNumChannels();
+    int getIndex(int x, int y);
     float getCellSize();
     void init(int, int, int, float);
     void setDataFloat(float);
@@ -37,6 +38,7 @@ public:
 
     glm::vec2 makeVec2(int index);
     glm::vec3 makeVec3(int index);
+    glm::vec4 makeVec4(int index);
 
 };
 
